@@ -1,0 +1,41 @@
+.stars {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.star {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+}
+
+.interactive {
+  cursor: pointer;
+}
+
+.empty,
+.filled {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.empty {
+  fill: var(--color-star-empty);
+}
+
+.fillClip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 18px;
+  overflow: hidden;
+  display: block;
+}
+
+.filled {
+  fill: var(--color-star-filled);
+}

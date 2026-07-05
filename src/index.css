@@ -1,9 +1,12 @@
-/* Minimal reset. Design tokens (colors, fonts, spacing) land in Phase 1B. */
+@import './shared/theme/tokens.css';
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
 }

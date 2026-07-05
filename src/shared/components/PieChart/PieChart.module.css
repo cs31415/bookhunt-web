@@ -1,0 +1,12 @@
+.chart {
+  overflow: visible;
+}
+
+.slice {
+  cursor: pointer;
+  transition:
+    transform 0.15s ease-out,
+    opacity 0.15s ease-out;
+  stroke: var(--color-surface);
+  stroke-width: 1;
+}

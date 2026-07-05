@@ -1,0 +1,27 @@
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  box-shadow: var(--shadow-sm);
+}
+
+.queued {
+  background: var(--color-status-queued);
+}
+
+.reading {
+  background: var(--color-status-reading);
+}
+
+.finished {
+  background: var(--color-status-finished);
+}
+
+.abandoned {
+  background: var(--color-status-abandoned);
+}

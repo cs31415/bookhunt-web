@@ -1,0 +1,17 @@
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  margin: 0;
+}
+
+.action {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+}

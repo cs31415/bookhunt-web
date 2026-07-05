@@ -1,0 +1,32 @@
+.image {
+  display: block;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.procedural {
+  display: block;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.title {
+  fill: #fff;
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+
+.author {
+  fill: rgba(255, 255, 255, 0.85);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.year {
+  fill: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+}
