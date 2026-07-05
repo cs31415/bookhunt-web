@@ -8,30 +8,40 @@ import styles from './BookCard.module.css';
 export interface BookCardProps {
   book: BookSummary;
   status?: LibraryStatus;
+  reason?: string;
   onClick?: () => void;
 }
 
-export function BookCard({ book, status, onClick }: BookCardProps) {
+export function BookCard({ book, status, reason, onClick }: BookCardProps) {
   return (
-    <button type="button" className={styles.card} onClick={onClick}>
+    <button type="button" className={`${styles.card} fade-up`} onClick={onClick}>
       <div className={styles.coverWrap}>
-        <Cover book={book} size="md" />
+        <Cover book={book} width="100%" />
         {status && (
           <div className={styles.badgeOverlay}>
             <StatusBadge status={status} />
           </div>
         )}
       </div>
-      <div className={styles.title}>{book.title}</div>
-      <div className={styles.author}>{book.authorName}</div>
-      <div className={styles.rating}>
-        {book.rating != null ? (
-          <Stars value={book.rating} mode="display" />
-        ) : book.source === 'google_books' ? (
-          <span className={styles.label}>GOOGLE BOOKS</span>
-        ) : (
-          <span className={styles.label}>Unrated</span>
-        )}
+      <div>
+        {reason && <div className={styles.eyebrow}>{reason}</div>}
+        <div className={styles.title}>{book.title}</div>
+        <div className={styles.meta}>
+          {book.authorName}
+          {book.year ? ` · ${book.year}` : ''}
+        </div>
+        <div className={styles.rating}>
+          {book.rating != null ? (
+            <>
+              <Stars value={book.rating} mode="display" />
+              <span className={styles.ratingValue}>{book.rating.toFixed(1)}</span>
+            </>
+          ) : (
+            <span className={styles.label}>
+              {book.source === 'google_books' ? 'GOOGLE BOOKS' : 'Unrated'}
+            </span>
+          )}
+        </div>
       </div>
     </button>
   );

@@ -21,10 +21,12 @@
   left: 0;
   width: 18px;
   height: 18px;
+  stroke-width: 1.6;
 }
 
 .empty {
-  fill: var(--color-star-empty);
+  fill: none;
+  stroke: var(--faint);
 }
 
 .fillClip {
@@ -37,5 +39,6 @@
 }
 
 .filled {
-  fill: var(--color-star-filled);
+  fill: var(--gold);
+  stroke: var(--gold);
 }

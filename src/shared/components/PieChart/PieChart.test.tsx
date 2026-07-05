@@ -28,6 +28,6 @@ describe('PieChart', () => {
     fireEvent.mouseEnter(paths[0]);
 
     expect((paths[0] as SVGPathElement).style.opacity).toBe('1');
-    expect((paths[1] as SVGPathElement).style.opacity).toBe('0.6');
+    expect((paths[1] as SVGPathElement).style.opacity).toBe('0.55');
   });
 });

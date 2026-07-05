@@ -8,6 +8,9 @@ export interface StatusBadgeProps {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   return (
-    <span className={`${styles.badge} ${styles[status]}`}>{LIBRARY_STATUS_LABELS[status]}</span>
+    <span className={`${styles.badge} ${styles[status]}`}>
+      <span className={styles.dot} />
+      {LIBRARY_STATUS_LABELS[status]}
+    </span>
   );
 }

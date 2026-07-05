@@ -1,12 +1,55 @@
+.wrap {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .chart {
+  flex: none;
   overflow: visible;
+  filter: drop-shadow(0 6px 14px rgba(42, 38, 32, 0.14));
 }
 
 .slice {
   cursor: pointer;
   transition:
-    transform 0.15s ease-out,
-    opacity 0.15s ease-out;
-  stroke: var(--color-surface);
-  stroke-width: 1;
+    transform 0.18s ease,
+    opacity 0.18s;
+  stroke: var(--card);
+  stroke-width: 2;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 150px;
+}
+
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.legendLabel {
+  flex: 1;
+  color: var(--ink-2);
+}
+
+.legendValue {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
 }

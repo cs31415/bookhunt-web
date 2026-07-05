@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getSurname, pickFontSize, wrapTitle } from './text';
+import { getSurname, wrapTitle } from './text';
 
 describe('getSurname', () => {
   it('returns the last token of a multi-word name', () => {
@@ -20,19 +20,5 @@ describe('wrapTitle', () => {
     const lines = wrapTitle('The Left Hand of Darkness', 12);
     expect(lines.length).toBeGreaterThan(1);
     expect(lines.join(' ')).toBe('The Left Hand of Darkness');
-  });
-});
-
-describe('pickFontSize', () => {
-  it('uses the largest size for a single short line', () => {
-    expect(pickFontSize(1, 4)).toBe(22);
-  });
-
-  it('shrinks as line count grows', () => {
-    expect(pickFontSize(4, 10)).toBe(11);
-  });
-
-  it('shrinks for a very long single line', () => {
-    expect(pickFontSize(1, 20)).toBe(11);
   });
 });

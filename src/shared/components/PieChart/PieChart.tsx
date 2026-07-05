@@ -14,57 +14,78 @@ export interface PieChartProps {
   size?: number;
 }
 
-const HOVER_OFFSET = 8;
+const HOVER_OFFSET = 6;
+const PAD = 10;
 
-export function PieChart({ slices, onPick, size = 160 }: PieChartProps) {
+export function PieChart({ slices, onPick, size = 168 }: PieChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
   const radius = size / 2;
-  const center = size / 2;
+  const center = radius + PAD;
+  const box = size + PAD * 2;
 
   const arcs = slices.reduce<
-    { slice: PieSlice; index: number; startAngle: number; endAngle: number }[]
+    { slice: PieSlice; index: number; startAngle: number; endAngle: number; color: string }[]
   >((acc, slice, index) => {
     const startAngle = acc.length > 0 ? acc[acc.length - 1].endAngle : 0;
     const endAngle = total > 0 ? startAngle + (slice.value / total) * 2 * Math.PI : startAngle;
-    acc.push({ slice, index, startAngle, endAngle });
+    const color = slice.color ?? DEFAULT_PIE_COLORS[index % DEFAULT_PIE_COLORS.length];
+    acc.push({ slice, index, startAngle, endAngle, color });
     return acc;
   }, []);
 
   return (
-    <svg
-      className={styles.chart}
-      viewBox={`0 0 ${size} ${size}`}
-      width={size}
-      height={size}
-      role="img"
-      aria-label="Pie chart"
-    >
-      {arcs.map(({ slice, index, startAngle, endAngle }) => {
-        const isHovered = hoveredIndex === index;
-        const isDimmed = hoveredIndex != null && !isHovered;
-        const mid = midAngle(startAngle, endAngle);
-        const offsetX = isHovered ? Math.sin(mid) * HOVER_OFFSET : 0;
-        const offsetY = isHovered ? -Math.cos(mid) * HOVER_OFFSET : 0;
+    <div className={styles.wrap}>
+      <svg
+        className={styles.chart}
+        viewBox={`0 0 ${box} ${box}`}
+        width={box}
+        height={box}
+        role="img"
+        aria-label="Pie chart"
+      >
+        {arcs.map(({ slice, index, startAngle, endAngle, color }) => {
+          const isHovered = hoveredIndex === index;
+          const isDimmed = hoveredIndex != null && !isHovered;
+          const mid = midAngle(startAngle, endAngle);
+          const offsetX = isHovered ? Math.sin(mid) * HOVER_OFFSET : 0;
+          const offsetY = isHovered ? -Math.cos(mid) * HOVER_OFFSET : 0;
 
-        return (
-          <path
+          return (
+            <path
+              key={slice.label}
+              d={arcPath(center, center, radius, startAngle, endAngle)}
+              fill={color}
+              className={styles.slice}
+              style={{
+                transform: `translate(${offsetX}px, ${offsetY}px)`,
+                opacity: isDimmed ? 0.55 : 1,
+              }}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              onClick={() => onPick?.(slice)}
+            >
+              <title>{`${slice.label}: ${slice.value}`}</title>
+            </path>
+          );
+        })}
+      </svg>
+      <div className={styles.legend}>
+        {arcs.map(({ slice, index, color }) => (
+          <div
             key={slice.label}
-            d={arcPath(center, center, radius - 2, startAngle, endAngle)}
-            fill={slice.color ?? DEFAULT_PIE_COLORS[index % DEFAULT_PIE_COLORS.length]}
-            className={styles.slice}
-            style={{
-              transform: `translate(${offsetX}px, ${offsetY}px)`,
-              opacity: isDimmed ? 0.6 : 1,
-            }}
+            className={styles.legendRow}
+            style={{ opacity: hoveredIndex != null && hoveredIndex !== index ? 0.5 : 1 }}
             onMouseEnter={() => setHoveredIndex(index)}
             onMouseLeave={() => setHoveredIndex(null)}
             onClick={() => onPick?.(slice)}
           >
-            <title>{`${slice.label}: ${slice.value}`}</title>
-          </path>
-        );
-      })}
-    </svg>
+            <span className={styles.swatch} style={{ background: color }} />
+            <span className={styles.legendLabel}>{slice.label}</span>
+            <span className={styles.legendValue}>{slice.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

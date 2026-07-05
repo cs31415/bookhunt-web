@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import styles from './Stars.module.css';
 
-const STAR_PATH =
-  'M12 2l2.9 6.26 6.9.6-5.2 4.6 1.55 6.79L12 16.9l-6.15 3.35L7.4 13.46l-5.2-4.6 6.9-.6z';
+const STAR_PATH = 'M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 21.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z';
 
 export interface StarsProps {
   value: number;
@@ -46,11 +45,11 @@ export function Stars({ value, mode, max = 5, onChange }: StarsProps) {
             onClick={isInteractive ? () => onChange?.(position) : undefined}
           >
             <svg viewBox="0 0 24 24" className={styles.empty} aria-hidden="true">
-              <path d={STAR_PATH} />
+              <path d={STAR_PATH} strokeLinejoin="round" />
             </svg>
             <span className={styles.fillClip} style={{ width: `${fraction * 100}%` }}>
               <svg viewBox="0 0 24 24" className={styles.filled} aria-hidden="true">
-                <path d={STAR_PATH} />
+                <path d={STAR_PATH} strokeLinejoin="round" />
               </svg>
             </span>
           </span>

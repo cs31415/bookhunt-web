@@ -21,10 +21,3 @@ export function wrapTitle(title: string, maxCharsPerLine: number): string[] {
 
   return lines;
 }
-
-export function pickFontSize(lineCount: number, longestLineLen: number): number {
-  if (lineCount > 3 || longestLineLen > 16) return 11;
-  if (lineCount > 2 || longestLineLen > 12) return 14;
-  if (lineCount > 1) return 18;
-  return 22;
-}

@@ -30,11 +30,11 @@ export function ComponentGallery() {
       <h1>Component Gallery (dev only)</h1>
 
       <section style={{ marginBottom: 40 }}>
-        <SectionHead title="Cover" />
+        <SectionHead eyebrow="Design system" title="Cover" />
         <div style={{ display: 'flex', gap: 24 }}>
-          <Cover book={bookWithCoverImage} size="md" />
-          <Cover book={bookWithNoCover} size="md" />
-          <Cover book={bookWithLongTitle} size="md" />
+          <Cover book={bookWithCoverImage} width={132} />
+          <Cover book={bookWithNoCover} width={132} />
+          <Cover book={bookWithLongTitle} width={132} />
         </div>
       </section>
 
@@ -58,9 +58,15 @@ export function ComponentGallery() {
       <section style={{ marginBottom: 40 }}>
         <SectionHead title="BookCard" />
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-          <BookCard book={bookWithCoverImage} status="reading" />
-          <BookCard book={unratedBook} />
-          <BookCard book={googleBooksBook} />
+          <div style={{ width: 132 }}>
+            <BookCard book={bookWithCoverImage} status="reading" reason="More from Herbert" />
+          </div>
+          <div style={{ width: 132 }}>
+            <BookCard book={unratedBook} />
+          </div>
+          <div style={{ width: 132 }}>
+            <BookCard book={googleBooksBook} />
+          </div>
         </div>
       </section>
 
@@ -68,7 +74,7 @@ export function ComponentGallery() {
         <SectionHead title="BookRow" />
         <div style={{ maxWidth: 400 }}>
           <BookRow book={bookWithCoverImage} status="finished" />
-          <BookRow book={bookWithNoCover} />
+          <BookRow book={bookWithNoCover} reason="Because you read evolution" />
         </div>
       </section>
 
