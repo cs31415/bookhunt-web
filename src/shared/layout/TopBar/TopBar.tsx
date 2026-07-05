@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { SearchBar } from '../../components/SearchBar/SearchBar';
 import { BackArrowIcon, LogoMark, UserIcon } from '../icons';
@@ -19,15 +18,10 @@ function SearchField({
 }) {
   const [query, setQuery] = useState(initialQuery);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    onSubmit(query);
-  }
-
   return (
-    <form className={styles.searchForm} onSubmit={handleSubmit}>
-      <SearchBar value={query} onChange={setQuery} />
-    </form>
+    <div className={styles.searchForm}>
+      <SearchBar value={query} onChange={setQuery} onSubmit={onSubmit} placeholder="Search…" />
+    </div>
   );
 }
 

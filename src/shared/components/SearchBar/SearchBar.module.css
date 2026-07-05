@@ -8,11 +8,21 @@
   border-radius: 999px;
 }
 
+.big {
+  padding: 6px 6px 6px 22px;
+  box-shadow: var(--shadow-1);
+}
+
 .icon {
   width: 15px;
   height: 15px;
   color: var(--muted);
   flex-shrink: 0;
+}
+
+.big .icon {
+  width: 20px;
+  height: 20px;
 }
 
 .input {
@@ -23,8 +33,31 @@
   font-size: 14px;
   font-family: var(--serif);
   color: var(--ink);
+  padding: 6px 0;
+}
+
+.big .input {
+  font-size: 18px;
+  padding: 8px 0;
 }
 
 .input::placeholder {
   color: var(--muted);
+}
+
+.submit {
+  flex: none;
+  border: none;
+  border-radius: 999px;
+  background: var(--rust);
+  color: #fff;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 11px 22px;
+  cursor: pointer;
+}
+
+.submit:hover {
+  background: var(--rust-deep);
 }

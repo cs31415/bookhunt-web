@@ -34,7 +34,7 @@ describe('LibrarySnapshotCard', () => {
       />,
     );
 
-    expect(screen.getByText('12 books')).toBeInTheDocument();
+    expect(screen.getByText('12 books, and counting')).toBeInTheDocument();
     // Only non-zero statuses should render as legend rows.
     expect(screen.getByText('Queued')).toBeInTheDocument();
     expect(screen.getByText('Finished')).toBeInTheDocument();
@@ -58,6 +58,6 @@ describe('LibrarySnapshotCard', () => {
       />,
     );
 
-    expect(screen.getByText('1 book')).toBeInTheDocument();
+    expect(screen.getByText('1 book, and counting')).toBeInTheDocument();
   });
 });

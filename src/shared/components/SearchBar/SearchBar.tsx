@@ -1,14 +1,40 @@
+import { useEffect, useRef } from 'react';
+import type { FormEvent } from 'react';
 import styles from './SearchBar.module.css';
 
 export interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
+  onSubmit?: (value: string) => void;
   placeholder?: string;
+  big?: boolean;
+  autoFocus?: boolean;
 }
 
-export function SearchBar({ value, onChange, placeholder = 'Search books...' }: SearchBarProps) {
+export function SearchBar({
+  value,
+  onChange,
+  onSubmit,
+  placeholder = 'Search by idea, title, author, mood…',
+  big = false,
+  autoFocus = false,
+}: SearchBarProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus();
+  }, [autoFocus]);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onSubmit?.(value);
+  }
+
   return (
-    <div className={styles.wrap}>
+    <form
+      className={big ? `${styles.wrap} ${styles.big}` : styles.wrap}
+      onSubmit={handleSubmit}
+    >
       <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2" />
         <line
@@ -22,6 +48,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search books...' }: 
         />
       </svg>
       <input
+        ref={inputRef}
         className={styles.input}
         type="text"
         value={value}
@@ -29,6 +56,11 @@ export function SearchBar({ value, onChange, placeholder = 'Search books...' }: 
         onChange={(event) => onChange(event.target.value)}
         aria-label="Search"
       />
-    </div>
+      {big && (
+        <button type="submit" className={styles.submit}>
+          Search
+        </button>
+      )}
+    </form>
   );
 }

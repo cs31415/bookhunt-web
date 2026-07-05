@@ -81,7 +81,7 @@ describe('DiscoverPage', () => {
     expect(screen.getByText('Recommended for you')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /The Left Hand of Darkness/ })).toBeInTheDocument();
     expect(screen.getByText('More from Herbert')).toBeInTheDocument();
-    expect(screen.getByText('4 books')).toBeInTheDocument();
+    expect(screen.getByText('4 books, and counting')).toBeInTheDocument();
   });
 
   it('hides Currently Reading when there are no reading-status books', async () => {
@@ -126,9 +126,9 @@ describe('DiscoverPage', () => {
 
     renderDiscoverPage();
 
-    fireEvent.click(await screen.findByText('hard sci-fi about first contact'));
+    fireEvent.click(await screen.findByText('where should I start with Dostoevsky'));
     expect(screen.getByTestId('location')).toHaveTextContent(
-      '/search?q=hard%20sci-fi%20about%20first%20contact',
+      '/search?q=where%20should%20I%20start%20with%20Dostoevsky',
     );
   });
 

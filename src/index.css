@@ -24,6 +24,26 @@ h4 {
   line-height: 1.12;
 }
 
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
 .fade-up {
   animation: fade-up 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }

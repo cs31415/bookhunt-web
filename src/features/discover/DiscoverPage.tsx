@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
 import { ExampleQueryPills } from './components/ExampleQueryPills/ExampleQueryPills';
@@ -10,13 +9,10 @@ import { useDiscoverData } from './hooks/useDiscoverData';
 import { EXAMPLE_QUERIES } from './example-queries';
 import styles from './DiscoverPage.module.css';
 
+const VISIBLE_EXAMPLE_QUERIES = EXAMPLE_QUERIES.slice(0, 4);
+
 function DiscoverHero({ onSearch }: { onSearch: (query: string) => void }) {
   const [query, setQuery] = useState('');
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    onSearch(query);
-  }
 
   function handlePillClick(text: string) {
     setQuery(text);
@@ -24,17 +20,12 @@ function DiscoverHero({ onSearch }: { onSearch: (query: string) => void }) {
   }
 
   return (
-    <section className={styles.hero}>
-      <h1 className={styles.heroTitle}>What are you in the mood to read?</h1>
-      <form className={styles.heroForm} onSubmit={handleSubmit}>
-        <SearchBar
-          value={query}
-          onChange={setQuery}
-          placeholder="Try “history that reads like a thriller”"
-        />
-      </form>
-      <ExampleQueryPills queries={EXAMPLE_QUERIES} onPick={handlePillClick} />
-    </section>
+    <div className={styles.hero}>
+      <div className={styles.heroSearch}>
+        <SearchBar value={query} onChange={setQuery} onSubmit={onSearch} big autoFocus />
+      </div>
+      <ExampleQueryPills queries={VISIBLE_EXAMPLE_QUERIES} onPick={handlePillClick} />
+    </div>
   );
 }
 
