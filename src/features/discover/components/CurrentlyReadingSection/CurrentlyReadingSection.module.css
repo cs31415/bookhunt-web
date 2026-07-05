@@ -1,9 +1,44 @@
 .section {
-  margin-bottom: 40px;
+  margin-top: 60px;
+  padding-top: 52px;
+  border-top: 1px solid var(--line);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 17px;
+}
+
+.author {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 3px 0 10px;
+}
+
+.notes {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-style: italic;
+  line-height: 1.5;
 }

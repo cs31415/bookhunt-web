@@ -17,6 +17,8 @@ const STATUS_BY_LABEL = new Map<string, LibraryStatus>(
   ALL_LIBRARY_STATUSES.map((status) => [LIBRARY_STATUS_LABELS[status], status]),
 );
 
+const PIE_SIZE = 172;
+
 export interface LibrarySnapshotCardProps {
   total: number;
   counts: Record<LibraryStatus, number>;
@@ -32,21 +34,6 @@ export function LibrarySnapshotCard({
   onOpenLibrary,
   onAddFirstBook,
 }: LibrarySnapshotCardProps) {
-  if (total === 0) {
-    return (
-      <section className={styles.card}>
-        <h2 className={styles.emptyTitle}>Start your library</h2>
-        <div className={styles.placeholder}>
-          <div className={styles.placeholderRing} />
-          <p className={styles.placeholderText}>Your reading breakdown appears here</p>
-        </div>
-        <button type="button" className={styles.primaryButton} onClick={onAddFirstBook}>
-          Add your first book
-        </button>
-      </section>
-    );
-  }
-
   const slices = ALL_LIBRARY_STATUSES.filter((status) => counts[status] > 0).map((status) => ({
     label: LIBRARY_STATUS_LABELS[status],
     value: counts[status],
@@ -60,18 +47,28 @@ export function LibrarySnapshotCard({
 
   return (
     <section className={styles.card}>
-      <div className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>Library snapshot</div>
-          <div className={styles.total}>
-            {total} {total === 1 ? 'book' : 'books'}
-          </div>
-        </div>
-        <button type="button" className={styles.openLibrary} onClick={onOpenLibrary}>
-          Open library
+      <div className={styles.info}>
+        <div className={styles.eyebrow}>Your library</div>
+        <h2 className={styles.title}>
+          {total > 0 ? `${total} ${total === 1 ? 'book' : 'books'}, and counting` : 'Start your library'}
+        </h2>
+        <button
+          type="button"
+          className={styles.primaryButton}
+          onClick={total > 0 ? onOpenLibrary : onAddFirstBook}
+        >
+          {total > 0 ? 'Open library' : 'Add your first book'}
         </button>
       </div>
-      <PieChart slices={slices} onPick={(slice) => handlePick(slice.label)} />
+      <div className={styles.visual}>
+        {slices.length > 0 ? (
+          <PieChart slices={slices} size={PIE_SIZE} onPick={(slice) => handlePick(slice.label)} />
+        ) : (
+          <div className={styles.placeholder}>
+            <span className={styles.placeholderText}>Your reading breakdown appears here</span>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

@@ -3,17 +3,22 @@
   flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
+  margin-top: 18px;
 }
 
 .pill {
-  padding: 6px 14px;
-  border: 1px solid var(--line-2);
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--card);
+  background: var(--paper-2);
   color: var(--ink-2);
-  font-size: 13px;
-  font-family: var(--serif);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
   cursor: pointer;
+  transition: all 0.14s ease;
 }
 
 .pill:hover {

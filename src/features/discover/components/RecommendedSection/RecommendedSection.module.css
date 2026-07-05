@@ -1,21 +1,23 @@
 .section {
-  margin-bottom: 40px;
+  margin-top: 60px;
+  padding-top: 52px;
+  border-top: 1px solid var(--line);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 20px;
 }
 
 .seeMore {
-  padding: 7px 16px;
+  padding: 6px 12px;
   border: 1px solid var(--line-2);
-  border-radius: var(--r-md);
+  border-radius: 999px;
   background: var(--card);
   color: var(--ink);
   font: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   cursor: pointer;
 }
 

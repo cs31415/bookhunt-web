@@ -50,11 +50,17 @@ export function PieChart({ slices, onPick, size = 168 }: PieChartProps) {
           const mid = midAngle(startAngle, endAngle);
           const offsetX = isHovered ? Math.sin(mid) * HOVER_OFFSET : 0;
           const offsetY = isHovered ? -Math.cos(mid) * HOVER_OFFSET : 0;
+          // A single 100% slice degenerates to a zero-length arc (start === end) — draw a circle instead.
+          const isFullCircle = arcs.length === 1;
 
           return (
             <path
               key={slice.label}
-              d={arcPath(center, center, radius, startAngle, endAngle)}
+              d={
+                isFullCircle
+                  ? `M ${center - radius} ${center} A ${radius} ${radius} 0 1 1 ${center + radius} ${center} A ${radius} ${radius} 0 1 1 ${center - radius} ${center} Z`
+                  : arcPath(center, center, radius, startAngle, endAngle)
+              }
               fill={color}
               className={styles.slice}
               style={{

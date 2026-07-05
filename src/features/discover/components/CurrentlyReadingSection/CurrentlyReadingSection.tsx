@@ -1,16 +1,7 @@
-import { BookCard } from '../../../../shared/components/BookCard/BookCard';
+import { Cover } from '../../../../shared/components/Cover/Cover';
 import { SectionHead } from '../../../../shared/components/SectionHead/SectionHead';
 import type { LibraryEntry } from '../../../../normalize/library';
 import styles from './CurrentlyReadingSection.module.css';
-
-const NOTE_PREVIEW_LENGTH = 72;
-
-function notePreview(notes: string | null): string | undefined {
-  if (!notes) return undefined;
-  return notes.length > NOTE_PREVIEW_LENGTH
-    ? `${notes.slice(0, NOTE_PREVIEW_LENGTH)}…`
-    : notes;
-}
 
 export interface CurrentlyReadingSectionProps {
   entries: LibraryEntry[];
@@ -23,13 +14,23 @@ export function CurrentlyReadingSection({ entries, onSelectBook }: CurrentlyRead
       <SectionHead title="Currently reading" />
       <div className={styles.grid}>
         {entries.map((entry) => (
-          <BookCard
+          <div
             key={entry.book.id}
-            book={entry.book}
-            status={entry.status}
-            reason={notePreview(entry.notes)}
+            className={styles.card}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelectBook(entry.book.slug)}
-          />
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') onSelectBook(entry.book.slug);
+            }}
+          >
+            <Cover book={entry.book} width={78} />
+            <div className={styles.info}>
+              <h4 className={styles.title}>{entry.book.title}</h4>
+              <div className={styles.author}>{entry.book.authorName}</div>
+              {entry.notes && <p className={styles.notes}>“{entry.notes}”</p>}
+            </div>
+          </div>
         ))}
       </div>
     </section>
