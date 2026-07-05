@@ -1,0 +1,9 @@
+/* Minimal reset. Design tokens (colors, fonts, spacing) land in Phase 1B. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
