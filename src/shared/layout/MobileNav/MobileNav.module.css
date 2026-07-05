@@ -1,0 +1,52 @@
+.bar {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    justify-content: space-around;
+    background: color-mix(in srgb, var(--card) 92%, transparent);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+    padding: 8px 2px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+.item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-decoration: none;
+  color: var(--muted);
+  padding: 8px 2px;
+}
+
+.active {
+  color: var(--rust);
+}
+
+.icon {
+  width: 21px;
+  height: 21px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--mono);
+  letter-spacing: 0.02em;
+}
+
+.active .label {
+  font-weight: 600;
+}

@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { getHealth } from '../../api/health/get-health';
+import { Footer } from './Footer/Footer';
+import { MobileNav } from './MobileNav/MobileNav';
+import { TopBar } from './TopBar/TopBar';
+import styles from './AppShell.module.css';
 
-// Dev-only API connectivity check for Phase 1A verification. Header/Footer
-// chrome is added in Ticket 1B once the design system exists.
+// Dev-only API connectivity check for Phase 1A verification.
 function DevHealthCheck() {
   const [status, setStatus] = useState<'checking' | 'ok' | 'unreachable'>('checking');
 
@@ -19,8 +22,13 @@ function DevHealthCheck() {
 export function AppShell() {
   return (
     <>
+      <TopBar />
       {import.meta.env.DEV && <DevHealthCheck />}
-      <Outlet />
+      <main className={styles.main}>
+        <Outlet />
+      </main>
+      <Footer />
+      <MobileNav />
     </>
   );
 }
