@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { AppShell } from '../shared/layout/AppShell';
 import { ComponentGallery } from '../features/dev-gallery/ComponentGallery';
 import { DiscoverPage } from '../features/discover/DiscoverPage';
+import { SearchPage } from '../features/search/SearchPage';
 
 // Plain inline placeholders until Phases 2-6 add the remaining real features/* pages.
 const discoverElement = <DiscoverPage />;
@@ -12,7 +13,7 @@ export const router = createBrowserRouter([
     element: <AppShell />,
     children: [
       { index: true, element: discoverElement },
-      { path: 'search', element: <div>Search</div> },
+      { path: 'search', element: <SearchPage /> },
       { path: 'books/:slug', element: <div>Book Detail</div> },
       { path: 'authors/:slug', element: <div>Author</div> },
       { path: 'library', element: <div>Library</div> },
