@@ -1,0 +1,61 @@
+.page {
+  padding-top: 8px;
+}
+
+.searchBarWrap {
+  max-width: 640px;
+  margin: 8px 0 26px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 232px 1fr;
+  gap: 38px;
+  align-items: start;
+}
+
+.resultsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.heading {
+  font-size: 23px;
+}
+
+.highlight {
+  color: var(--rust);
+}
+
+.count {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.sortSelect {
+  padding: 8px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.error {
+  color: var(--rust-deep);
+  text-align: center;
+  padding: 40px 0;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
