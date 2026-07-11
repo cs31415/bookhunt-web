@@ -1,0 +1,34 @@
+.page {
+  padding-top: 8px;
+}
+
+.notFound {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 20px;
+}
+
+.error {
+  color: var(--rust-deep);
+  text-align: center;
+  padding: 40px 0;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 44px;
+  align-items: start;
+}
+
+.main {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+}

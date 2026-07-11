@@ -1,0 +1,60 @@
+.card {
+  background: var(--card);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+  padding: 24px 26px;
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 22px 30px;
+}
+
+.spec {
+  min-width: 0;
+}
+
+.label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.value {
+  font-size: 14.5px;
+  color: var(--ink);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.pillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.pill:hover {
+  border-color: var(--rust);
+  color: var(--rust);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 13.5px;
+}
