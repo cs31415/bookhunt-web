@@ -100,7 +100,7 @@ function setupHappyPathMocks() {
   mockedGetAuthor.mockResolvedValue(rawAuthor);
   mockedGetBooksByIds.mockResolvedValue({ books: [] });
   mockedGetSummary.mockResolvedValue({ bookId: 95, summary: 'A gripping summary.', generatedAt: null });
-  mockedGenerateThemes.mockResolvedValue({ genres: [], themes: [] });
+  mockedGenerateThemes.mockResolvedValue({ genres: [], themes: [], moods: [] });
   mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
   mockedAddToLibrary.mockResolvedValue({ entry: {} });
   mockedUpdateEntry.mockResolvedValue({ entry: {} });
