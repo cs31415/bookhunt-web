@@ -1,0 +1,46 @@
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bioCard {
+  background: var(--card);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+  padding: 18px 20px;
+}
+
+.authorLink {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--rust);
+  cursor: pointer;
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+.bio {
+  font-size: 13.5px;
+  color: var(--ink-2);
+  line-height: 1.55;
+}

@@ -1,0 +1,119 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.coverWrap {
+  position: relative;
+  cursor: pointer;
+  border-radius: 3px 5px 5px 3px;
+}
+
+.coverWrap.inLibrary {
+  box-shadow:
+    0 0 0 2px var(--rust),
+    0 0 0 4px color-mix(in srgb, var(--rust) 22%, transparent);
+}
+
+.coverInner {
+  transition:
+    opacity 0.16s ease,
+    filter 0.16s ease;
+}
+
+.coverInner.dimmed {
+  filter: grayscale(1) contrast(0.92);
+  opacity: 0.45;
+}
+
+.removeButton,
+.libButton {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+  z-index: 2;
+  box-shadow: var(--shadow-1);
+  padding: 0;
+}
+
+.removeButton {
+  top: 8px;
+  left: 8px;
+  border: none;
+  background: rgba(42, 38, 32, 0.78);
+  color: #fff;
+  font-size: 17px;
+}
+
+.libButton {
+  top: 8px;
+  right: 8px;
+  font-size: 20px;
+  font-weight: 400;
+  background: var(--card);
+  color: var(--ink-2);
+  border: 1px solid var(--line-2);
+}
+
+.libButtonAdd {
+  background: var(--rust);
+  color: #fff;
+  border: none;
+}
+
+.eyebrow {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.eyebrowYou {
+  color: var(--rust);
+}
+
+.title {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.2;
+  margin-bottom: 4px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.title.dimmed {
+  color: var(--muted);
+}
+
+.author {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+
+.ratingRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.8;
+}
+
+.ratingValue {
+  font-size: 11.5px;
+  color: var(--faint);
+}
