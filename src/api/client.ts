@@ -1,3 +1,5 @@
+import { beginRequest, endRequest } from './api-activity';
+
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
 const LOG_API_CALLS = import.meta.env.VITE_LOG_API_CALLS === 'true';
 
@@ -24,7 +26,13 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     console.log(`[api] → ${method} ${path}`, options.body ?? '');
   }
 
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  beginRequest();
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } finally {
+    endRequest();
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({ error: response.statusText }));
