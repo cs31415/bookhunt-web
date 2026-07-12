@@ -1,4 +1,4 @@
-export type BookSource = 'catalog' | 'google_books';
+export type BookSource = 'catalog' | 'google_books' | 'open_library';
 
 export interface BookSummary {
   id: number;

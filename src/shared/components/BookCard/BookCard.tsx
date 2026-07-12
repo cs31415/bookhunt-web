@@ -38,7 +38,11 @@ export function BookCard({ book, status, reason, onClick }: BookCardProps) {
             </>
           ) : (
             <span className={styles.label}>
-              {book.source === 'google_books' ? 'GOOGLE BOOKS' : 'Unrated'}
+              {book.source === 'google_books'
+                ? 'GOOGLE BOOKS'
+                : book.source === 'open_library'
+                  ? 'OPEN LIBRARY'
+                  : 'Unrated'}
             </span>
           )}
         </div>

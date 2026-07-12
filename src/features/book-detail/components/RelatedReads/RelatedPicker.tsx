@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Cover } from '../../../../shared/components/Cover/Cover';
 import { getSearch } from '../../../../api/search/get-search';
-import { normalizeSearchResponse } from '../../../../normalize/search';
+import { normalizeCatalogSearchResponse } from '../../../../normalize/catalog-search';
 import type { BookSummary } from '../../../../shared/types/book';
 import styles from './RelatedPicker.module.css';
 
@@ -23,7 +23,7 @@ export function RelatedPicker({ excludeIds, onPick, onClose }: RelatedPickerProp
         .then((raw) => {
           if (cancelled) return;
           const exclude = new Set(excludeKey ? excludeKey.split(',').map(Number) : []);
-          setResults(normalizeSearchResponse(raw).results.map((r) => r.book).filter((b) => !exclude.has(b.id)));
+          setResults(normalizeCatalogSearchResponse(raw).results.map((r) => r.book).filter((b) => !exclude.has(b.id)));
         })
         .catch(() => {
           if (!cancelled) setResults([]);

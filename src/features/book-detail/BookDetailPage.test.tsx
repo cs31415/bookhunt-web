@@ -170,6 +170,17 @@ describe('BookDetailPage', () => {
     expect(mockedGenerateThemes).toHaveBeenCalledWith(95);
   });
 
+  it('navigates to search with a translated text query when a mood pill is clicked', async () => {
+    renderBookDetailPage('night-watch');
+    await screen.findByRole('heading', { name: 'Night Watch' });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Tense' }));
+
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      `/search?q=${encodeURIComponent('books that feel Tense')}&mood=Tense`,
+    );
+  });
+
   it('adds the book to the library when the cover +/- button is clicked', async () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });

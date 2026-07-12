@@ -5,11 +5,7 @@ import styles from './FilterSidebar.module.css';
 
 export interface FilterSidebarProps {
   parsed: ParsedSearchParams;
-  subjects: string[];
-  moods: string[];
   onToggleInLibraryOnly: () => void;
-  onSelectSubject: (subject: string) => void;
-  onSelectMood: (mood: string) => void;
   onSelectStatus: (status: LibraryStatus) => void;
   onClearFilters: () => void;
 }
@@ -47,41 +43,21 @@ function FilterGroup({
 
 export function FilterSidebar({
   parsed,
-  subjects,
-  moods,
   onToggleInLibraryOnly,
-  onSelectSubject,
-  onSelectMood,
   onSelectStatus,
   onClearFilters,
 }: FilterSidebarProps) {
-  const hasActiveFilters =
-    parsed.inLibraryOnly || Boolean(parsed.subject) || Boolean(parsed.mood) || Boolean(parsed.status);
+  const hasActiveFilters = parsed.inLibraryOnly || Boolean(parsed.status);
 
   return (
     <aside className={styles.rail}>
-      <label className={styles.toggleRow}>
-        <span
-          className={parsed.inLibraryOnly ? `${styles.toggle} ${styles.toggleOn}` : styles.toggle}
-          onClick={onToggleInLibraryOnly}
-        >
+      <label className={styles.toggleRow} onClick={onToggleInLibraryOnly}>
+        <span className={parsed.inLibraryOnly ? `${styles.toggle} ${styles.toggleOn}` : styles.toggle}>
           <span className={styles.toggleKnob} />
         </span>
         <span>In my library only</span>
       </label>
 
-      <FilterGroup
-        title="Category"
-        items={subjects.map((s) => ({ value: s, label: s }))}
-        activeValue={parsed.subject}
-        onSelect={onSelectSubject}
-      />
-      <FilterGroup
-        title="Mood"
-        items={moods.map((m) => ({ value: m, label: m }))}
-        activeValue={parsed.mood}
-        onSelect={onSelectMood}
-      />
       <FilterGroup
         title="Status"
         items={ALL_LIBRARY_STATUSES.map((s) => ({ value: s, label: LIBRARY_STATUS_LABELS[s] }))}

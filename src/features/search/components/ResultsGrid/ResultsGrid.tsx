@@ -5,10 +5,10 @@ import styles from './ResultsGrid.module.css';
 export interface ResultsGridProps {
   results: SearchResultItem[];
   loading: boolean;
-  onSelectBook: (slug: string) => void;
+  onSelectResult: (item: SearchResultItem) => void;
 }
 
-export function ResultsGrid({ results, loading, onSelectBook }: ResultsGridProps) {
+export function ResultsGrid({ results, loading, onSelectResult }: ResultsGridProps) {
   if (loading) {
     return (
       <div className={styles.grid}>
@@ -34,8 +34,13 @@ export function ResultsGrid({ results, loading, onSelectBook }: ResultsGridProps
 
   return (
     <div className={styles.grid}>
-      {results.map(({ book, status }) => (
-        <BookCard key={book.id} book={book} status={status} onClick={() => onSelectBook(book.slug)} />
+      {results.map((item) => (
+        <BookCard
+          key={item.book.id}
+          book={item.book}
+          status={item.status}
+          onClick={() => onSelectResult(item)}
+        />
       ))}
     </div>
   );

@@ -1,15 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from './SearchPage';
-import { getSearch } from '../../api/search/get-search';
-import { getFacets } from '../../api/search/get-facets';
+import { aiSearch } from '../../api/ai/search';
+import type { RawAiSearchBook } from '../../normalize/search';
 
-vi.mock('../../api/search/get-search');
-vi.mock('../../api/search/get-facets');
+vi.mock('../../api/ai/search');
 
-const mockedGetSearch = vi.mocked(getSearch);
-const mockedGetFacets = vi.mocked(getFacets);
+const mockedAiSearch = vi.mocked(aiSearch);
 
 function LocationProbe() {
   const location = useLocation();
@@ -34,101 +32,155 @@ function renderSearchPage(initialEntry: string) {
   return router;
 }
 
-const rawBook = {
-  book_id: 95,
-  slug: 'night-watch',
-  title: 'Night Watch',
-  author_name: 'Lucille Fletcher',
-  author_slug: 'lucille-fletcher',
-  year: 2026,
-  rating: null,
-  cover_url: null,
-  hue: '#6f7a55',
-  in_library: false,
-  library_status: null,
-};
+function makeBook(overrides: Partial<RawAiSearchBook> = {}): RawAiSearchBook {
+  return {
+    googleBooksId: 'abc123',
+    openLibraryId: null,
+    title: 'Night Watch',
+    authors: ['Lucille Fletcher'],
+    year: 2026,
+    publisher: null,
+    pages: 80,
+    rating: null,
+    coverUrl: null,
+    isbn13: null,
+    language: 'en',
+    blurb: null,
+    categories: [],
+    inLibrary: false,
+    libraryStatus: null,
+    source: 'google_books',
+    ...overrides,
+  };
+}
 
 describe('SearchPage', () => {
   beforeEach(() => {
-    mockedGetFacets.mockResolvedValue({ subjects: ['History', 'Fiction'], moods: ['Lyrical'] });
+    mockedAiSearch.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('prompts for a query when there is none yet, and does not fetch', async () => {
+    renderSearchPage('/search');
+
+    expect(await screen.findByText(/Type a query above/)).toBeInTheDocument();
+    expect(mockedAiSearch).not.toHaveBeenCalled();
   });
 
   it('shows results and count for a query', async () => {
-    mockedGetSearch.mockResolvedValue({ books: [rawBook], total: 1, page: 1, pageSize: 24, query: 'thriller' });
+    mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'thriller' });
 
     renderSearchPage('/search?q=thriller');
 
     expect(await screen.findByRole('button', { name: /Night Watch/ })).toBeInTheDocument();
     expect(screen.getByText(/Results for/)).toBeInTheDocument();
     expect(screen.getByText('1 book')).toBeInTheDocument();
-    expect(mockedGetSearch).toHaveBeenCalledWith(expect.objectContaining({ q: 'thriller', page: 1 }));
+    expect(mockedAiSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ query: 'thriller', inLibraryOnly: false }),
+    );
   });
 
   it('shows the theme heading when arriving via a theme pill', async () => {
-    mockedGetSearch.mockResolvedValue({ books: [], total: 0, page: 1, pageSize: 24, query: '' });
+    mockedAiSearch.mockResolvedValue({ books: [], query: '' });
 
     renderSearchPage('/search?q=guilt+and+redemption&theme=true');
 
     expect(await screen.findByText(/Books on the theme of/)).toBeInTheDocument();
   });
 
-  it('shows the mood heading when arriving via a mood pill', async () => {
-    mockedGetSearch.mockResolvedValue({ books: [], total: 0, page: 1, pageSize: 24, query: '' });
+  it('shows the mood heading and translated query when arriving via a mood pill', async () => {
+    mockedAiSearch.mockResolvedValue({ books: [], query: '' });
 
-    renderSearchPage('/search?mood=Lyrical');
+    renderSearchPage('/search?q=books+that+feel+Lyrical&mood=Lyrical');
 
     const heading = await screen.findByRole('heading', { level: 2 });
     expect(heading).toHaveTextContent('Books that feel Lyrical');
     await waitFor(() =>
-      expect(mockedGetSearch).toHaveBeenCalledWith(expect.objectContaining({ moods: ['Lyrical'] })),
+      expect(mockedAiSearch).toHaveBeenCalledWith(
+        expect.objectContaining({ query: 'books that feel Lyrical' }),
+      ),
     );
   });
 
   it('shows the empty state when there are no results', async () => {
-    mockedGetSearch.mockResolvedValue({ books: [], total: 0, page: 1, pageSize: 24, query: 'zzz' });
+    mockedAiSearch.mockResolvedValue({ books: [], query: 'zzz' });
 
     renderSearchPage('/search?q=zzz');
 
     expect(await screen.findByText('No books match.')).toBeInTheDocument();
   });
 
-  it('applies a category filter and shows Clear filters', async () => {
-    mockedGetSearch.mockResolvedValue({ books: [rawBook], total: 1, page: 1, pageSize: 24, query: '' });
+  it('passes inLibraryOnly through when the toggle is on', async () => {
+    mockedAiSearch.mockResolvedValue({ books: [], query: 'thriller' });
 
-    renderSearchPage('/search');
+    renderSearchPage('/search?q=thriller');
+    await waitFor(() => expect(mockedAiSearch).toHaveBeenCalledTimes(1));
 
-    fireEvent.click(await screen.findByText('History'));
+    fireEvent.click(screen.getByText('In my library only'));
 
     await waitFor(() =>
-      expect(mockedGetSearch).toHaveBeenCalledWith(expect.objectContaining({ subjects: ['History'] })),
+      expect(mockedAiSearch).toHaveBeenCalledWith(expect.objectContaining({ inLibraryOnly: true })),
     );
-    expect(await screen.findByText('Clear filters')).toBeInTheDocument();
   });
 
-  it('sorts by highest rated', async () => {
-    mockedGetSearch.mockResolvedValue({ books: [rawBook], total: 1, page: 1, pageSize: 24, query: '' });
+  it('filters to a status client-side without refetching', async () => {
+    mockedAiSearch.mockResolvedValue({
+      books: [
+        makeBook({ googleBooksId: 'a', title: 'Reading Book', inLibrary: true, libraryStatus: 'reading' }),
+        makeBook({ googleBooksId: 'b', title: 'Finished Book', inLibrary: true, libraryStatus: 'finished' }),
+      ],
+      query: 'thriller',
+    });
 
-    renderSearchPage('/search');
-    await screen.findByRole('button', { name: /Night Watch/ });
+    renderSearchPage('/search?q=thriller');
+    await screen.findByRole('button', { name: /Reading Book/ });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reading' }));
+
+    expect(await screen.findByRole('button', { name: /Reading Book/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Finished Book/ })).not.toBeInTheDocument();
+    expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it('sorts by highest rated client-side without refetching', async () => {
+    mockedAiSearch.mockResolvedValue({
+      books: [
+        makeBook({ googleBooksId: 'a', title: 'Low Rated', rating: 2 }),
+        makeBook({ googleBooksId: 'b', title: 'High Rated', rating: 4.8 }),
+      ],
+      query: 'thriller',
+    });
+
+    renderSearchPage('/search?q=thriller');
+    await screen.findByRole('button', { name: /Low Rated/ });
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'rating' } });
 
-    await waitFor(() =>
-      expect(mockedGetSearch).toHaveBeenCalledWith(expect.objectContaining({ sort: 'rating' })),
+    const buttons = await screen.findAllByRole('button', { name: /Rated/ });
+    expect(buttons[0]).toHaveTextContent('High Rated');
+    expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the Google Books page when a result is clicked', async () => {
+    mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'thriller' });
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    renderSearchPage('/search?q=thriller');
+
+    fireEvent.click(await screen.findByRole('button', { name: /Night Watch/ }));
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://books.google.com/books?id=abc123',
+      '_blank',
+      'noopener,noreferrer',
     );
   });
 
-  it('navigates to book detail when a result is clicked', async () => {
-    mockedGetSearch.mockResolvedValue({ books: [rawBook], total: 1, page: 1, pageSize: 24, query: '' });
-
-    renderSearchPage('/search');
-
-    fireEvent.click(await screen.findByRole('button', { name: /Night Watch/ }));
-    expect(screen.getByTestId('location')).toHaveTextContent('/books/night-watch');
-  });
-
   it('shows an error message when the search fails', async () => {
-    mockedGetSearch.mockRejectedValue(new Error('network error'));
+    mockedAiSearch.mockRejectedValue(new Error('network error'));
 
     renderSearchPage('/search?q=x');
 

@@ -126,12 +126,16 @@ export function BookDetailPage() {
         onRate={handleRate}
         onOpenAuthor={() => navigate(`/authors/${book.authorSlug}`)}
         onThemeClick={(theme) => navigate(`/search?q=${encodeURIComponent(theme)}&theme=true`)}
-        onMoodClick={(mood) => navigate(`/search?mood=${encodeURIComponent(mood)}`)}
+        onMoodClick={(mood) =>
+          navigate(`/search?q=${encodeURIComponent(`books that feel ${mood}`)}&mood=${encodeURIComponent(mood)}`)
+        }
       />
 
       <SpecificationsCard
         book={book}
-        onSubjectClick={(subject) => navigate(`/search?subject=${encodeURIComponent(subject)}`)}
+        onSubjectClick={(subject) =>
+          navigate(`/search?q=${encodeURIComponent(`${subject} books`)}&subject=${encodeURIComponent(subject)}`)
+        }
       />
 
       <Tabs active={tab} hasNote={Boolean(libraryEntry?.notes)} onChange={setTab} />
