@@ -1,6 +1,7 @@
 .loader {
   width: 40px;
   aspect-ratio: 1;
+  transform: scale(1.4);
   --c: no-repeat linear-gradient(var(--ink) 0 0);
   --m: no-repeat radial-gradient(circle closest-side, #0000 92%, var(--ink) 100%);
   background:
