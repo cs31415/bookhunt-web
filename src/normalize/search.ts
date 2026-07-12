@@ -32,6 +32,7 @@ export interface SearchResultItem {
   googleBooksId: string | null;
   openLibraryId: string | null;
   categories: string[];
+  raw: RawAiSearchBook;
 }
 
 export interface SearchResults {
@@ -58,6 +59,7 @@ export function normalizeAiSearchBook(raw: RawAiSearchBook): SearchResultItem {
     googleBooksId: raw.googleBooksId,
     openLibraryId: raw.openLibraryId,
     categories: raw.categories,
+    raw,
   };
 }
 

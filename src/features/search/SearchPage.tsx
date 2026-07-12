@@ -5,6 +5,7 @@ import { FilterSidebar } from './components/FilterSidebar/FilterSidebar';
 import { ResultsGrid } from './components/ResultsGrid/ResultsGrid';
 import { AiInterpretationBanner } from './components/AiInterpretationBanner/AiInterpretationBanner';
 import { useSearchResults } from './hooks/useSearchResults';
+import { resolveOrCreateBook } from '../../api/books/resolve-or-create';
 import { parseSearchParams, withParamChange } from './search-params';
 import type { SearchResultItem } from '../../normalize/search';
 import type { LibraryStatus } from '../../shared/types/library-status';
@@ -86,11 +87,36 @@ export function SearchPage() {
     update({ q: query || null, theme: null, mood: null, subject: null });
   }
 
-  function handleSelectResult(item: SearchResultItem) {
+  async function handleSelectResult(item: SearchResultItem) {
     if (item.book.slug) {
       navigate(`/books/${item.book.slug}`);
       return;
     }
+
+    if (item.googleBooksId || item.openLibraryId) {
+      try {
+        const { book } = await resolveOrCreateBook({
+          googleBooksId: item.googleBooksId,
+          openLibraryId: item.openLibraryId,
+          title: item.raw.title,
+          authorName: item.book.authorName,
+          year: item.raw.year,
+          publisher: item.raw.publisher,
+          pages: item.raw.pages,
+          rating: item.raw.rating,
+          subjects: item.raw.categories,
+          blurb: item.raw.blurb,
+          coverUrl: item.raw.coverUrl,
+          isbn13: item.raw.isbn13,
+          language: item.raw.language,
+        });
+        navigate(`/books/${book.slug}`);
+        return;
+      } catch {
+        // Not logged in, or the catalog write failed — fall back to viewing externally.
+      }
+    }
+
     const href = resultHref(item);
     if (href) window.open(href, '_blank', 'noopener,noreferrer');
   }
