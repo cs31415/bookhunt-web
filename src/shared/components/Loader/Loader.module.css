@@ -2,8 +2,8 @@
   width: 40px;
   aspect-ratio: 1;
   transform: scale(1.4);
-  --c: no-repeat linear-gradient(var(--ink) 0 0);
-  --m: no-repeat radial-gradient(circle closest-side, #0000 92%, var(--ink) 100%);
+  --c: no-repeat linear-gradient(var(--rust) 0 0);
+  --m: no-repeat radial-gradient(circle closest-side, #0000 92%, var(--rust) 100%);
   background:
     var(--c) 0 50%,
     var(--c) 50% 50%,
