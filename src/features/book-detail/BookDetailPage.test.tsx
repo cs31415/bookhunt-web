@@ -159,6 +159,17 @@ describe('BookDetailPage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/search?q=Thriller&theme=true');
   });
 
+  it('backfills moods via generateThemes when genres/themes exist but moods is empty (pre-feature data)', async () => {
+    mockedGetBook.mockResolvedValue({ book: { ...rawBook, moods: [] }, inLibrary: false });
+    mockedGenerateThemes.mockResolvedValue({ genres: ['Thriller'], themes: ['Suspense'], moods: ['Tense'] });
+
+    renderBookDetailPage('night-watch');
+    await screen.findByRole('heading', { name: 'Night Watch' });
+
+    expect(await screen.findByRole('button', { name: 'Tense' })).toBeInTheDocument();
+    expect(mockedGenerateThemes).toHaveBeenCalledWith(95);
+  });
+
   it('adds the book to the library when the cover +/- button is clicked', async () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });

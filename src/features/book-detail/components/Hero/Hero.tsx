@@ -11,6 +11,7 @@ export interface HeroProps {
   libraryEntry?: LibraryEntrySummary;
   themes: string[];
   themesLoading: boolean;
+  moods: string[];
   onToggleLibrary: () => void;
   onStatusChange: (status: LibraryStatus) => void;
   onRate: (rating: number) => void;
@@ -24,6 +25,7 @@ export function Hero({
   libraryEntry,
   themes,
   themesLoading,
+  moods,
   onToggleLibrary,
   onStatusChange,
   onRate,
@@ -126,11 +128,11 @@ export function Hero({
           )}
         </div>
 
-        {book.moods.length > 0 && (
+        {moods.length > 0 && (
           <div>
             <span className={styles.eyebrow}>Mood</span>
             <div className={styles.pillRow}>
-              {book.moods.map((mood) => (
+              {moods.map((mood) => (
                 <button key={mood} type="button" className={styles.pill} onClick={() => onMoodClick(mood)}>
                   {mood}
                 </button>
