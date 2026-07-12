@@ -30,10 +30,11 @@ export function BookDetailPage() {
   const libraryEntry = detail?.libraryEntry;
 
   const { summary, loading: summaryLoading, error: summaryError, regenerate } = useSummary(book?.id ?? null);
-  const { themes, loading: themesLoading } = useThemes(
+  const { themes, moods, loading: themesLoading } = useThemes(
     book?.id ?? null,
     book?.genres ?? [],
     book?.themes ?? [],
+    book?.moods ?? [],
   );
   const relatedReads = useRelatedReads(
     relatedBooks,
@@ -119,6 +120,7 @@ export function BookDetailPage() {
         libraryEntry={libraryEntry}
         themes={themes}
         themesLoading={themesLoading}
+        moods={moods}
         onToggleLibrary={handleToggleLibrary}
         onStatusChange={handleStatusChange}
         onRate={handleRate}
