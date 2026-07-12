@@ -20,3 +20,16 @@ export interface RawGetBooksByIdsResponse {
 export function normalizeBooksByIds(raw: RawGetBooksByIdsResponse): BookSummary[] {
   return raw.books.map((b) => ({ ...b, source: 'catalog' }));
 }
+
+export interface RawBookSummaryWithGoogleId extends RawBookSummary {
+  googleBooksId: string;
+}
+
+export interface RawGetBooksByGoogleIdsResponse {
+  books: RawBookSummaryWithGoogleId[];
+}
+
+/** Maps googleBooksId -> catalog slug, for resolving search results to an internal detail page. */
+export function normalizeBooksByGoogleIds(raw: RawGetBooksByGoogleIdsResponse): Map<string, string> {
+  return new Map(raw.books.map((b) => [b.googleBooksId, b.slug]));
+}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
 import { FilterSidebar } from './components/FilterSidebar/FilterSidebar';
 import { ResultsGrid } from './components/ResultsGrid/ResultsGrid';
@@ -67,6 +67,7 @@ function resultHref(item: SearchResultItem): string | null {
 }
 
 export function SearchPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const parsed = parseSearchParams(searchParams);
   const { results, loading, error } = useSearchResults(searchParams);
@@ -86,6 +87,10 @@ export function SearchPage() {
   }
 
   function handleSelectResult(item: SearchResultItem) {
+    if (item.book.slug) {
+      navigate(`/books/${item.book.slug}`);
+      return;
+    }
     const href = resultHref(item);
     if (href) window.open(href, '_blank', 'noopener,noreferrer');
   }

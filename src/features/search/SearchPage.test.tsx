@@ -4,13 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from './SearchPage';
 import { aiSearch } from '../../api/ai/search';
 import { getMetadata } from '../../api/search/get-metadata';
+import { getBooksByGoogleIds } from '../../api/books/get-books-by-ids';
 import type { RawAiSearchBook } from '../../normalize/search';
 
 vi.mock('../../api/ai/search');
 vi.mock('../../api/search/get-metadata');
+vi.mock('../../api/books/get-books-by-ids');
 
 const mockedAiSearch = vi.mocked(aiSearch);
 const mockedGetMetadata = vi.mocked(getMetadata);
+const mockedGetBooksByGoogleIds = vi.mocked(getBooksByGoogleIds);
 
 function LocationProbe() {
   const location = useLocation();
@@ -61,6 +64,8 @@ describe('SearchPage', () => {
   beforeEach(() => {
     mockedAiSearch.mockReset();
     mockedGetMetadata.mockReset();
+    mockedGetBooksByGoogleIds.mockReset();
+    mockedGetBooksByGoogleIds.mockResolvedValue({ books: [] });
   });
 
   afterEach(() => {
@@ -226,6 +231,34 @@ describe('SearchPage', () => {
     renderSearchPage('/search?q=stoicism');
 
     expect(await screen.findByRole('button', { name: /Meditations/ })).toBeInTheDocument();
+  });
+
+  it('navigates internally when the result resolves to a catalog slug', async () => {
+    mockedAiSearch.mockResolvedValue({ books: [makeBook({ googleBooksId: 'abc123' })], query: 'thriller' });
+    mockedGetBooksByGoogleIds.mockResolvedValue({
+      books: [
+        {
+          id: 4,
+          slug: 'night-watch',
+          title: 'Night Watch',
+          authorName: 'Lucille Fletcher',
+          authorSlug: 'lucille-fletcher',
+          year: 2026,
+          rating: null,
+          coverUrl: null,
+          hue: '#6f7a55',
+          googleBooksId: 'abc123',
+        },
+      ],
+    });
+
+    renderSearchPage('/search?q=thriller');
+
+    expect(await screen.findByRole('button', { name: /Night Watch/ })).toBeInTheDocument();
+    await waitFor(() => expect(mockedGetBooksByGoogleIds).toHaveBeenCalledWith(['abc123']));
+
+    fireEvent.click(screen.getByRole('button', { name: /Night Watch/ }));
+    expect(await screen.findByTestId('location')).toHaveTextContent('/books/night-watch');
   });
 
   it('opens the Google Books page when a result is clicked', async () => {
