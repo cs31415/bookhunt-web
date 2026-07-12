@@ -10,9 +10,10 @@ export interface GetMetadataResponse {
   books: (RawAiSearchBook | null)[];
 }
 
-export function getMetadata(books: MetadataQuery[]): Promise<GetMetadataResponse> {
+export function getMetadata(books: MetadataQuery[], signal?: AbortSignal): Promise<GetMetadataResponse> {
   return apiFetch('/search/metadata', {
     method: 'POST',
     body: JSON.stringify({ books }),
+    signal,
   });
 }

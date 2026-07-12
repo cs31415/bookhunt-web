@@ -7,9 +7,10 @@ export interface AiSearchParams {
   limit?: number;
 }
 
-export function aiSearch(params: AiSearchParams): Promise<RawAiSearchResponse> {
+export function aiSearch(params: AiSearchParams, signal?: AbortSignal): Promise<RawAiSearchResponse> {
   return apiFetch('/ai/search', {
     method: 'POST',
     body: JSON.stringify(params),
+    signal,
   });
 }

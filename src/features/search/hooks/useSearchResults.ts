@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { aiSearch } from '../../../api/ai/search';
 import { getMetadata } from '../../../api/search/get-metadata';
+import { isAbortError } from '../../../api/client';
 import { normalizeAiSearchResponse } from '../../../normalize/search';
 import type { RawAiSearchBook, SearchResultItem } from '../../../normalize/search';
 import { parseSearchParams } from '../search-params';
@@ -16,7 +17,10 @@ const RESULT_LIMIT = 20;
  * covers. Best-effort: if this fails, the original suggestions still render,
  * just without covers or a click target.
  */
-async function enrichWithMetadata(books: RawAiSearchBook[]): Promise<RawAiSearchBook[]> {
+async function enrichWithMetadata(
+  books: RawAiSearchBook[],
+  signal: AbortSignal,
+): Promise<RawAiSearchBook[]> {
   const unresolved = books
     .map((book, index) => ({ book, index }))
     .filter(({ book }) => !book.googleBooksId && !book.openLibraryId);
@@ -25,6 +29,7 @@ async function enrichWithMetadata(books: RawAiSearchBook[]): Promise<RawAiSearch
   try {
     const response = await getMetadata(
       unresolved.map(({ book }) => ({ title: book.title, author: book.authors[0] })),
+      signal,
     );
     const merged = [...books];
     unresolved.forEach(({ index }, metaIndex) => {
@@ -32,7 +37,8 @@ async function enrichWithMetadata(books: RawAiSearchBook[]): Promise<RawAiSearch
       if (match) merged[index] = match;
     });
     return merged;
-  } catch {
+  } catch (err) {
+    if (isAbortError(err)) throw err;
     return books;
   }
 }
@@ -76,31 +82,33 @@ export function useSearchResults(searchParams: URLSearchParams): UseSearchResult
 
   useEffect(() => {
     if (!parsed.q) return;
-    let cancelled = false;
+    const controller = new AbortController();
 
     async function load() {
       setLoading(true);
       setError(null);
       try {
-        const raw = await aiSearch({
-          query: parsed.q,
-          inLibraryOnly: parsed.inLibraryOnly,
-          limit: RESULT_LIMIT,
-        });
-        if (cancelled) return;
-        const enrichedBooks = await enrichWithMetadata(raw.books);
-        if (cancelled) return;
+        const raw = await aiSearch(
+          {
+            query: parsed.q,
+            inLibraryOnly: parsed.inLibraryOnly,
+            limit: RESULT_LIMIT,
+          },
+          controller.signal,
+        );
+        const enrichedBooks = await enrichWithMetadata(raw.books, controller.signal);
         setRawResults(normalizeAiSearchResponse({ ...raw, books: enrichedBooks }).results);
-      } catch {
-        if (!cancelled) setError('Could not load search results. Please try again.');
+      } catch (err) {
+        if (isAbortError(err)) return;
+        setError('Could not load search results. Please try again.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
 
     load();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchKey]);

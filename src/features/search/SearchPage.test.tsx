@@ -84,6 +84,7 @@ describe('SearchPage', () => {
     expect(screen.getByText('1 book')).toBeInTheDocument();
     expect(mockedAiSearch).toHaveBeenCalledWith(
       expect.objectContaining({ query: 'thriller', inLibraryOnly: false }),
+      expect.anything(),
     );
   });
 
@@ -105,6 +106,7 @@ describe('SearchPage', () => {
     await waitFor(() =>
       expect(mockedAiSearch).toHaveBeenCalledWith(
         expect.objectContaining({ query: 'books that feel Lyrical' }),
+        expect.anything(),
       ),
     );
   });
@@ -126,7 +128,10 @@ describe('SearchPage', () => {
     fireEvent.click(screen.getByText('In my library only'));
 
     await waitFor(() =>
-      expect(mockedAiSearch).toHaveBeenCalledWith(expect.objectContaining({ inLibraryOnly: true })),
+      expect(mockedAiSearch).toHaveBeenCalledWith(
+        expect.objectContaining({ inLibraryOnly: true }),
+        expect.anything(),
+      ),
     );
   });
 
@@ -196,7 +201,10 @@ describe('SearchPage', () => {
     renderSearchPage('/search?q=stoicism');
 
     await screen.findByRole('button', { name: /Meditations/ });
-    expect(mockedGetMetadata).toHaveBeenCalledWith([{ title: 'Meditations', author: 'Marcus Aurelius' }]);
+    expect(mockedGetMetadata).toHaveBeenCalledWith(
+      [{ title: 'Meditations', author: 'Marcus Aurelius' }],
+      expect.anything(),
+    );
   });
 
   it('skips the metadata call entirely when all results already have an id', async () => {
