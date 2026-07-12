@@ -4,6 +4,10 @@ const LOG_API_CALLS = import.meta.env.VITE_LOG_API_CALLS === 'true';
 // Kept in sync with the key useAuth (added in Ticket 1C) writes the JWT under.
 const TOKEN_STORAGE_KEY = 'bookhunt_token';
 
+export function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
 export class ApiError extends Error {
   status: number;
 
