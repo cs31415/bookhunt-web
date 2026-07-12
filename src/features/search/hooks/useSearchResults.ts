@@ -1,11 +1,41 @@
 import { useEffect, useState } from 'react';
 import { aiSearch } from '../../../api/ai/search';
+import { getMetadata } from '../../../api/search/get-metadata';
 import { normalizeAiSearchResponse } from '../../../normalize/search';
-import type { SearchResultItem } from '../../../normalize/search';
+import type { RawAiSearchBook, SearchResultItem } from '../../../normalize/search';
 import { parseSearchParams } from '../search-params';
 import type { LibraryStatus } from '../../../shared/types/library-status';
 
-const RESULT_LIMIT = 40;
+const RESULT_LIMIT = 20;
+
+/**
+ * /ai/search tries Claude first, which almost always succeeds — so most
+ * results come back as bare title/author suggestions with no googleBooksId,
+ * openLibraryId, or coverUrl at all. Resolve those against the real book APIs
+ * via POST /search/metadata so results are viewable/clickable and show real
+ * covers. Best-effort: if this fails, the original suggestions still render,
+ * just without covers or a click target.
+ */
+async function enrichWithMetadata(books: RawAiSearchBook[]): Promise<RawAiSearchBook[]> {
+  const unresolved = books
+    .map((book, index) => ({ book, index }))
+    .filter(({ book }) => !book.googleBooksId && !book.openLibraryId);
+  if (unresolved.length === 0) return books;
+
+  try {
+    const response = await getMetadata(
+      unresolved.map(({ book }) => ({ title: book.title, author: book.authors[0] })),
+    );
+    const merged = [...books];
+    unresolved.forEach(({ index }, metaIndex) => {
+      const match = response.books[metaIndex];
+      if (match) merged[index] = match;
+    });
+    return merged;
+  } catch {
+    return books;
+  }
+}
 
 export interface UseSearchResultsResult {
   results: SearchResultItem[];
@@ -58,7 +88,9 @@ export function useSearchResults(searchParams: URLSearchParams): UseSearchResult
           limit: RESULT_LIMIT,
         });
         if (cancelled) return;
-        setRawResults(normalizeAiSearchResponse(raw).results);
+        const enrichedBooks = await enrichWithMetadata(raw.books);
+        if (cancelled) return;
+        setRawResults(normalizeAiSearchResponse({ ...raw, books: enrichedBooks }).results);
       } catch {
         if (!cancelled) setError('Could not load search results. Please try again.');
       } finally {

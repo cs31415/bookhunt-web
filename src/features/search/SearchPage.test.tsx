@@ -3,11 +3,14 @@ import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-do
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from './SearchPage';
 import { aiSearch } from '../../api/ai/search';
+import { getMetadata } from '../../api/search/get-metadata';
 import type { RawAiSearchBook } from '../../normalize/search';
 
 vi.mock('../../api/ai/search');
+vi.mock('../../api/search/get-metadata');
 
 const mockedAiSearch = vi.mocked(aiSearch);
+const mockedGetMetadata = vi.mocked(getMetadata);
 
 function LocationProbe() {
   const location = useLocation();
@@ -57,6 +60,7 @@ function makeBook(overrides: Partial<RawAiSearchBook> = {}): RawAiSearchBook {
 describe('SearchPage', () => {
   beforeEach(() => {
     mockedAiSearch.mockReset();
+    mockedGetMetadata.mockReset();
   });
 
   afterEach(() => {
@@ -162,6 +166,66 @@ describe('SearchPage', () => {
     const buttons = await screen.findAllByRole('button', { name: /Rated/ });
     expect(buttons[0]).toHaveTextContent('High Rated');
     expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves Claude-suggested results (no id) via the metadata endpoint for covers/click targets', async () => {
+    mockedAiSearch.mockResolvedValue({
+      books: [
+        makeBook({
+          googleBooksId: null,
+          openLibraryId: null,
+          title: 'Meditations',
+          authors: ['Marcus Aurelius'],
+          coverUrl: null,
+          source: 'gemini-3.1-flash-lite',
+        }),
+      ],
+      query: 'stoicism',
+    });
+    mockedGetMetadata.mockResolvedValue({
+      books: [
+        makeBook({
+          googleBooksId: 'resolved123',
+          title: 'Meditations',
+          authors: ['Marcus Aurelius'],
+          coverUrl: 'https://covers.example.com/meditations.jpg',
+        }),
+      ],
+    });
+
+    renderSearchPage('/search?q=stoicism');
+
+    await screen.findByRole('button', { name: /Meditations/ });
+    expect(mockedGetMetadata).toHaveBeenCalledWith([{ title: 'Meditations', author: 'Marcus Aurelius' }]);
+
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    fireEvent.click(screen.getByRole('button', { name: /Meditations/ }));
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://books.google.com/books?id=resolved123',
+      '_blank',
+      'noopener,noreferrer',
+    );
+  });
+
+  it('skips the metadata call entirely when all results already have an id', async () => {
+    mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'thriller' });
+
+    renderSearchPage('/search?q=thriller');
+    await screen.findByRole('button', { name: /Night Watch/ });
+
+    expect(mockedGetMetadata).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the unresolved suggestion when metadata lookup fails', async () => {
+    mockedAiSearch.mockResolvedValue({
+      books: [makeBook({ googleBooksId: null, openLibraryId: null, title: 'Meditations' })],
+      query: 'stoicism',
+    });
+    mockedGetMetadata.mockRejectedValue(new Error('rate limited'));
+
+    renderSearchPage('/search?q=stoicism');
+
+    expect(await screen.findByRole('button', { name: /Meditations/ })).toBeInTheDocument();
   });
 
   it('opens the Google Books page when a result is clicked', async () => {
