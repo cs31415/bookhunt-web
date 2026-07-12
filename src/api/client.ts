@@ -19,23 +19,30 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+export interface ApiFetchOptions extends RequestInit {
+  // Background enrichment calls (e.g. theme generation) that shouldn't make
+  // the global loading indicator appear over an already-rendered page.
+  silent?: boolean;
+}
+
+export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  const { silent, ...fetchOptions } = options;
   const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-  const headers = new Headers(options.headers);
+  const headers = new Headers(fetchOptions.headers);
   headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const method = options.method ?? 'GET';
+  const method = fetchOptions.method ?? 'GET';
   if (LOG_API_CALLS) {
-    console.log(`[api] → ${method} ${path}`, options.body ?? '');
+    console.log(`[api] → ${method} ${path}`, fetchOptions.body ?? '');
   }
 
-  beginRequest();
+  if (!silent) beginRequest();
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { ...options, headers });
+    response = await fetch(`${API_URL}${path}`, { ...fetchOptions, headers });
   } finally {
-    endRequest();
+    if (!silent) endRequest();
   }
 
   if (!response.ok) {
