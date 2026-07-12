@@ -7,12 +7,13 @@ export interface GenerateThemesResponse {
 }
 
 export function generateThemes(bookId: number): Promise<GenerateThemesResponse> {
-  return apiFetch(`/ai/themes/${bookId}`, { method: 'POST' });
+  return apiFetch(`/ai/themes/${bookId}`, { method: 'POST', silent: true });
 }
 
 export function generateThemesExternal(title: string, authorName: string): Promise<GenerateThemesResponse> {
   return apiFetch('/ai/themes/external', {
     method: 'POST',
     body: JSON.stringify({ title, authorName }),
+    silent: true,
   });
 }
