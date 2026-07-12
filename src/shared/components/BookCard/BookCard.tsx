@@ -31,20 +31,8 @@ export function BookCard({ book, status, reason, onClick }: BookCardProps) {
           {book.year ? ` · ${book.year}` : ''}
         </div>
         <div className={styles.rating}>
-          {book.rating != null ? (
-            <>
-              <Stars value={book.rating} mode="display" />
-              <span className={styles.ratingValue}>{book.rating.toFixed(1)}</span>
-            </>
-          ) : (
-            <span className={styles.label}>
-              {book.source === 'google_books'
-                ? 'GOOGLE BOOKS'
-                : book.source === 'open_library'
-                  ? 'OPEN LIBRARY'
-                  : 'Unrated'}
-            </span>
-          )}
+          <Stars value={book.rating ?? 0} mode="display" />
+          {book.rating != null && <span className={styles.ratingValue}>{book.rating.toFixed(1)}</span>}
         </div>
       </div>
     </button>
