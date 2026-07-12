@@ -21,7 +21,7 @@ export interface UseBookDetailDataResult {
   reload: () => void;
 }
 
-export function useBookDetailData(slug: string): UseBookDetailDataResult {
+export function useBookDetailData(slug: string, authorSlug?: string): UseBookDetailDataResult {
   const [detail, setDetail] = useState<BookDetailResult | null>(null);
   const [authorBio, setAuthorBio] = useState<string | null>(null);
   const [authorWorks, setAuthorWorks] = useState<AuthorWork[]>([]);
@@ -42,7 +42,7 @@ export function useBookDetailData(slug: string): UseBookDetailDataResult {
 
       let bookResult: BookDetailResult;
       try {
-        const raw = await getBook(slug);
+        const raw = await getBook(slug, authorSlug);
         if (cancelled) return;
         bookResult = normalizeBookDetail(raw);
         setDetail(bookResult);
@@ -53,6 +53,13 @@ export function useBookDetailData(slug: string): UseBookDetailDataResult {
         } else {
           setError('Could not load this book. Please try again.');
         }
+        setLoading(false);
+        return;
+      }
+
+      // A not-yet-cataloged (ephemeral) book has no real author page or
+      // related-books data to fetch yet — nothing to attach them to.
+      if (!bookResult.book.cataloged) {
         setLoading(false);
         return;
       }
@@ -85,7 +92,7 @@ export function useBookDetailData(slug: string): UseBookDetailDataResult {
     return () => {
       cancelled = true;
     };
-  }, [slug, reloadToken]);
+  }, [slug, authorSlug, reloadToken]);
 
   return {
     detail,

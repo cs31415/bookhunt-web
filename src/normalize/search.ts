@@ -29,10 +29,6 @@ export interface RawAiSearchResponse {
 export interface SearchResultItem {
   book: BookSummary;
   status?: LibraryStatus;
-  googleBooksId: string | null;
-  openLibraryId: string | null;
-  categories: string[];
-  raw: RawAiSearchBook;
 }
 
 export interface SearchResults {
@@ -56,10 +52,6 @@ export function normalizeAiSearchBook(raw: RawAiSearchBook): SearchResultItem {
       source: raw.googleBooksId ? 'google_books' : raw.openLibraryId ? 'open_library' : 'catalog',
     },
     ...(raw.inLibrary && raw.libraryStatus ? { status: raw.libraryStatus } : {}),
-    googleBooksId: raw.googleBooksId,
-    openLibraryId: raw.openLibraryId,
-    categories: raw.categories,
-    raw,
   };
 }
 

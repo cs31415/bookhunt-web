@@ -4,19 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from './SearchPage';
 import { aiSearch } from '../../api/ai/search';
 import { getMetadata } from '../../api/search/get-metadata';
-import { getBooksByGoogleIds } from '../../api/books/get-books-by-ids';
-import { resolveOrCreateBook } from '../../api/books/resolve-or-create';
 import type { RawAiSearchBook } from '../../normalize/search';
 
 vi.mock('../../api/ai/search');
 vi.mock('../../api/search/get-metadata');
-vi.mock('../../api/books/get-books-by-ids');
-vi.mock('../../api/books/resolve-or-create');
 
 const mockedAiSearch = vi.mocked(aiSearch);
 const mockedGetMetadata = vi.mocked(getMetadata);
-const mockedGetBooksByGoogleIds = vi.mocked(getBooksByGoogleIds);
-const mockedResolveOrCreateBook = vi.mocked(resolveOrCreateBook);
 
 function LocationProbe() {
   const location = useLocation();
@@ -67,10 +61,6 @@ describe('SearchPage', () => {
   beforeEach(() => {
     mockedAiSearch.mockReset();
     mockedGetMetadata.mockReset();
-    mockedGetBooksByGoogleIds.mockReset();
-    mockedGetBooksByGoogleIds.mockResolvedValue({ books: [] });
-    mockedResolveOrCreateBook.mockReset();
-    mockedResolveOrCreateBook.mockRejectedValue(new Error('not authenticated'));
   });
 
   afterEach(() => {
@@ -178,7 +168,7 @@ describe('SearchPage', () => {
     expect(mockedAiSearch).toHaveBeenCalledTimes(1);
   });
 
-  it('resolves Claude-suggested results (no id) via the metadata endpoint for covers/click targets', async () => {
+  it('resolves Claude-suggested results (no id) via the metadata endpoint for covers', async () => {
     mockedAiSearch.mockResolvedValue({
       books: [
         makeBook({
@@ -207,16 +197,6 @@ describe('SearchPage', () => {
 
     await screen.findByRole('button', { name: /Meditations/ });
     expect(mockedGetMetadata).toHaveBeenCalledWith([{ title: 'Meditations', author: 'Marcus Aurelius' }]);
-
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-    fireEvent.click(screen.getByRole('button', { name: /Meditations/ }));
-    await waitFor(() =>
-      expect(openSpy).toHaveBeenCalledWith(
-        'https://books.google.com/books?id=resolved123',
-        '_blank',
-        'noopener,noreferrer',
-      ),
-    );
   });
 
   it('skips the metadata call entirely when all results already have an id', async () => {
@@ -240,72 +220,17 @@ describe('SearchPage', () => {
     expect(await screen.findByRole('button', { name: /Meditations/ })).toBeInTheDocument();
   });
 
-  it('navigates internally when the result resolves to a catalog slug', async () => {
-    mockedAiSearch.mockResolvedValue({ books: [makeBook({ googleBooksId: 'abc123' })], query: 'thriller' });
-    mockedGetBooksByGoogleIds.mockResolvedValue({
-      books: [
-        {
-          id: 4,
-          slug: 'night-watch',
-          title: 'Night Watch',
-          authorName: 'Lucille Fletcher',
-          authorSlug: 'lucille-fletcher',
-          year: 2026,
-          rating: null,
-          coverUrl: null,
-          hue: '#6f7a55',
-          googleBooksId: 'abc123',
-        },
-      ],
-    });
-
-    renderSearchPage('/search?q=thriller');
-
-    expect(await screen.findByRole('button', { name: /Night Watch/ })).toBeInTheDocument();
-    await waitFor(() => expect(mockedGetBooksByGoogleIds).toHaveBeenCalledWith(['abc123']));
-
-    fireEvent.click(screen.getByRole('button', { name: /Night Watch/ }));
-    expect(await screen.findByTestId('location')).toHaveTextContent('/books/night-watch');
-  });
-
-  it('creates a catalog entry and navigates internally when a result has no existing catalog match', async () => {
+  it('navigates synchronously to a slugified book/author reference when a result is clicked', async () => {
     mockedAiSearch.mockResolvedValue({
-      books: [makeBook({ googleBooksId: 'newbook1', title: 'A New Book', authors: ['New Author'] })],
+      books: [makeBook({ title: 'Night Watch', authors: ['Lucille Fletcher'] })],
       query: 'thriller',
     });
-    mockedResolveOrCreateBook.mockResolvedValue({ book: { id: 9, slug: 'a-new-book' } });
-
-    renderSearchPage('/search?q=thriller');
-
-    fireEvent.click(await screen.findByRole('button', { name: /A New Book/ }));
-
-    await waitFor(() =>
-      expect(mockedResolveOrCreateBook).toHaveBeenCalledWith(
-        expect.objectContaining({
-          googleBooksId: 'newbook1',
-          title: 'A New Book',
-          authorName: 'New Author',
-        }),
-      ),
-    );
-    expect(await screen.findByTestId('location')).toHaveTextContent('/books/a-new-book');
-  });
-
-  it('opens the Google Books page when a result is clicked', async () => {
-    mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'thriller' });
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
     renderSearchPage('/search?q=thriller');
 
     fireEvent.click(await screen.findByRole('button', { name: /Night Watch/ }));
 
-    await waitFor(() =>
-      expect(openSpy).toHaveBeenCalledWith(
-        'https://books.google.com/books?id=abc123',
-        '_blank',
-        'noopener,noreferrer',
-      ),
-    );
+    expect(screen.getByTestId('location')).toHaveTextContent('/books/night-watch?a=lucille-fletcher');
   });
 
   it('shows an error message when the search fails', async () => {

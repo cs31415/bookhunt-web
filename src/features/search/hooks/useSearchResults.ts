@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { aiSearch } from '../../../api/ai/search';
 import { getMetadata } from '../../../api/search/get-metadata';
-import { getBooksByGoogleIds } from '../../../api/books/get-books-by-ids';
-import { normalizeBooksByGoogleIds } from '../../../normalize/books-by-ids';
 import { normalizeAiSearchResponse } from '../../../normalize/search';
 import type { RawAiSearchBook, SearchResultItem } from '../../../normalize/search';
 import { parseSearchParams } from '../search-params';
@@ -36,28 +34,6 @@ async function enrichWithMetadata(books: RawAiSearchBook[]): Promise<RawAiSearch
     return merged;
   } catch {
     return books;
-  }
-}
-
-/**
- * A result can have a real googleBooksId and still not have a catalog slug —
- * /ai/search and /search/metadata never carry one. Look up which of these
- * books are already cataloged so clicking one routes to its real detail page
- * instead of always opening an external link. Best-effort, same as enrichment.
- */
-async function resolveCatalogSlugs(results: SearchResultItem[]): Promise<SearchResultItem[]> {
-  const googleBooksIds = [...new Set(results.map((r) => r.googleBooksId).filter((id): id is string => Boolean(id)))];
-  if (googleBooksIds.length === 0) return results;
-
-  try {
-    const raw = await getBooksByGoogleIds(googleBooksIds);
-    const slugByGoogleId = normalizeBooksByGoogleIds(raw);
-    return results.map((item) => {
-      const slug = item.googleBooksId ? slugByGoogleId.get(item.googleBooksId) : undefined;
-      return slug ? { ...item, book: { ...item.book, slug } } : item;
-    });
-  } catch {
-    return results;
   }
 }
 
@@ -114,10 +90,7 @@ export function useSearchResults(searchParams: URLSearchParams): UseSearchResult
         if (cancelled) return;
         const enrichedBooks = await enrichWithMetadata(raw.books);
         if (cancelled) return;
-        const normalized = normalizeAiSearchResponse({ ...raw, books: enrichedBooks }).results;
-        const withSlugs = await resolveCatalogSlugs(normalized);
-        if (cancelled) return;
-        setRawResults(withSlugs);
+        setRawResults(normalizeAiSearchResponse({ ...raw, books: enrichedBooks }).results);
       } catch {
         if (!cancelled) setError('Could not load search results. Please try again.');
       } finally {

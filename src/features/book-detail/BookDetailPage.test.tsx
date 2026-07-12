@@ -6,7 +6,7 @@ import { getBook } from '../../api/books/get-book';
 import { getAuthor } from '../../api/authors/get-author';
 import { getBooksByIds } from '../../api/books/get-books-by-ids';
 import { getSummary } from '../../api/ai/get-summary';
-import { generateThemes } from '../../api/ai/generate-themes';
+import { generateThemes, generateThemesExternal } from '../../api/ai/generate-themes';
 import { getLibrary } from '../../api/library/get-library';
 import { addToLibrary } from '../../api/library/add-to-library';
 import { updateEntry } from '../../api/library/update-entry';
@@ -30,6 +30,7 @@ const mockedGetAuthor = vi.mocked(getAuthor);
 const mockedGetBooksByIds = vi.mocked(getBooksByIds);
 const mockedGetSummary = vi.mocked(getSummary);
 const mockedGenerateThemes = vi.mocked(generateThemes);
+const mockedGenerateThemesExternal = vi.mocked(generateThemesExternal);
 const mockedGetLibrary = vi.mocked(getLibrary);
 const mockedAddToLibrary = vi.mocked(addToLibrary);
 const mockedUpdateEntry = vi.mocked(updateEntry);
@@ -81,6 +82,7 @@ const rawBook = {
   related: [],
   author_name: 'Lucille Fletcher',
   author_slug: 'lucille-fletcher',
+  cataloged: true,
 };
 
 const rawAuthor = {
@@ -102,13 +104,14 @@ function setupHappyPathMocks() {
   mockedGetSummary.mockResolvedValue({ bookId: 95, summary: 'A gripping summary.', generatedAt: null });
   mockedGenerateThemes.mockResolvedValue({ genres: [], themes: [], moods: [] });
   mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
-  mockedAddToLibrary.mockResolvedValue({ entry: {} });
+  mockedAddToLibrary.mockResolvedValue({ entry: {}, book: { id: 95, slug: 'night-watch' } });
   mockedUpdateEntry.mockResolvedValue({ entry: {} });
   mockedRemoveEntry.mockResolvedValue(undefined);
 }
 
 describe('BookDetailPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     setupHappyPathMocks();
   });
 
@@ -187,7 +190,7 @@ describe('BookDetailPage', () => {
 
     fireEvent.click(screen.getByTitle('Add to library'));
 
-    await waitFor(() => expect(mockedAddToLibrary).toHaveBeenCalledWith(95, 'queued'));
+    await waitFor(() => expect(mockedAddToLibrary).toHaveBeenCalledWith('night-watch', 'queued', undefined));
   });
 
   it('adds the book to the library before saving a note (AC12), in order', async () => {
@@ -205,5 +208,78 @@ describe('BookDetailPage', () => {
     const addOrder = mockedAddToLibrary.mock.invocationCallOrder[0];
     const updateOrder = mockedUpdateEntry.mock.invocationCallOrder[mockedUpdateEntry.mock.calls.length - 1];
     expect(addOrder).toBeLessThan(updateOrder);
+  });
+
+  describe('ephemeral (not-yet-cataloged) book', () => {
+    const rawEphemeralBook = {
+      id: 0,
+      slug: 'sapiens',
+      title: 'Sapiens',
+      author_id: 0,
+      year: 2015,
+      publisher: 'Harper',
+      pages: 443,
+      rating: 4.5,
+      subjects: ['History'],
+      moods: [],
+      genres: [],
+      themes: [],
+      hue: '#6f7a55',
+      blurb: 'A brief history of humankind.',
+      cover_url: 'https://x/y.jpg',
+      google_books_id: 'gid123',
+      isbn13: '9780062316097',
+      language: 'en',
+      related: [],
+      author_name: 'Yuval Noah Harari',
+      author_slug: 'yuval-noah-harari',
+      cataloged: false,
+    };
+
+    beforeEach(() => {
+      mockedGetBook.mockResolvedValue({ book: rawEphemeralBook, inLibrary: false });
+      mockedGenerateThemesExternal.mockResolvedValue({ genres: [], themes: [], moods: [] });
+    });
+
+    it('renders using the live-resolved data, skips author/related fetches, and shows the blurb as the summary', async () => {
+      renderBookDetailPage('sapiens?a=yuval-noah-harari');
+
+      expect(await screen.findByRole('heading', { name: 'Sapiens' })).toBeInTheDocument();
+      // Renders both in Hero's blurb paragraph and as the Summary tab's content
+      // (since the summary equals the blurb when ephemeral), same duplication
+      // pattern the author name already has between Hero and Sidebar.
+      expect((await screen.findAllByText('A brief history of humankind.')).length).toBeGreaterThan(0);
+      expect(mockedGetSummary).not.toHaveBeenCalled();
+      expect(mockedGetAuthor).not.toHaveBeenCalled();
+      expect(mockedGetBooksByIds).not.toHaveBeenCalled();
+    });
+
+    it('generates themes via the external endpoint instead of the bookId-based one', async () => {
+      renderBookDetailPage('sapiens?a=yuval-noah-harari');
+      await screen.findByRole('heading', { name: 'Sapiens' });
+
+      await waitFor(() =>
+        expect(mockedGenerateThemesExternal).toHaveBeenCalledWith('Sapiens', 'Yuval Noah Harari'),
+      );
+      expect(mockedGenerateThemes).not.toHaveBeenCalled();
+    });
+
+    it('creates the catalog row on "+" and canonicalizes the URL to the real slug', async () => {
+      mockedAddToLibrary.mockResolvedValue({ entry: {}, book: { id: 42, slug: 'sapiens' } });
+
+      renderBookDetailPage('sapiens?a=yuval-noah-harari');
+      await screen.findByRole('heading', { name: 'Sapiens' });
+
+      fireEvent.click(screen.getByTitle('Add to library'));
+
+      await waitFor(() =>
+        expect(mockedAddToLibrary).toHaveBeenCalledWith(
+          'sapiens',
+          'queued',
+          expect.objectContaining({ title: 'Sapiens', authorName: 'Yuval Noah Harari', googleBooksId: 'gid123' }),
+        ),
+      );
+      expect(await screen.findByTestId('location')).toHaveTextContent('/books/sapiens');
+    });
   });
 });

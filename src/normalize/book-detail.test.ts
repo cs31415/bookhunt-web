@@ -24,6 +24,7 @@ const rawBook: RawGetBookResponse['book'] = {
   related: [12, 34],
   author_name: 'Lucille Fletcher',
   author_slug: 'lucille-fletcher',
+  cataloged: true,
 };
 
 describe('normalizeBookDetail', () => {
@@ -54,6 +55,7 @@ describe('normalizeBookDetail', () => {
       isbn13: '9780822208266',
       language: 'en',
       relatedIds: [12, 34],
+      cataloged: true,
     });
   });
 

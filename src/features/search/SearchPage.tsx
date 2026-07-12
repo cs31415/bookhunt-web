@@ -5,7 +5,7 @@ import { FilterSidebar } from './components/FilterSidebar/FilterSidebar';
 import { ResultsGrid } from './components/ResultsGrid/ResultsGrid';
 import { AiInterpretationBanner } from './components/AiInterpretationBanner/AiInterpretationBanner';
 import { useSearchResults } from './hooks/useSearchResults';
-import { resolveOrCreateBook } from '../../api/books/resolve-or-create';
+import { slugify } from '../../shared/lib/slugify';
 import { parseSearchParams, withParamChange } from './search-params';
 import type { SearchResultItem } from '../../normalize/search';
 import type { LibraryStatus } from '../../shared/types/library-status';
@@ -61,12 +61,6 @@ function ResultsHeading({
   return <h2 className={styles.heading}>Search for a book</h2>;
 }
 
-function resultHref(item: SearchResultItem): string | null {
-  if (item.googleBooksId) return `https://books.google.com/books?id=${item.googleBooksId}`;
-  if (item.openLibraryId) return `https://openlibrary.org/books/${item.openLibraryId}`;
-  return null;
-}
-
 export function SearchPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -87,38 +81,13 @@ export function SearchPage() {
     update({ q: query || null, theme: null, mood: null, subject: null });
   }
 
-  async function handleSelectResult(item: SearchResultItem) {
-    if (item.book.slug) {
-      navigate(`/books/${item.book.slug}`);
-      return;
-    }
-
-    if (item.googleBooksId || item.openLibraryId) {
-      try {
-        const { book } = await resolveOrCreateBook({
-          googleBooksId: item.googleBooksId,
-          openLibraryId: item.openLibraryId,
-          title: item.raw.title,
-          authorName: item.book.authorName,
-          year: item.raw.year,
-          publisher: item.raw.publisher,
-          pages: item.raw.pages,
-          rating: item.raw.rating,
-          subjects: item.raw.categories,
-          blurb: item.raw.blurb,
-          coverUrl: item.raw.coverUrl,
-          isbn13: item.raw.isbn13,
-          language: item.raw.language,
-        });
-        navigate(`/books/${book.slug}`);
-        return;
-      } catch {
-        // Not logged in, or the catalog write failed — fall back to viewing externally.
-      }
-    }
-
-    const href = resultHref(item);
-    if (href) window.open(href, '_blank', 'noopener,noreferrer');
+  function handleSelectResult(item: SearchResultItem) {
+    // Book Detail resolves this by slug first, falling back to a live lookup
+    // by title/author if it's not cataloged yet (see LOS-127/128) — so this
+    // is a synchronous navigation, no network round-trip needed before it.
+    const bookSlug = slugify(item.book.title);
+    const authorSlug = slugify(item.book.authorName);
+    navigate(`/books/${bookSlug}?a=${authorSlug}`);
   }
 
   return (

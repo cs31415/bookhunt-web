@@ -34,8 +34,6 @@ describe('normalizeAiSearchBook', () => {
       source: 'google_books',
     });
     expect(result.status).toBeUndefined();
-    expect(result.googleBooksId).toBe('abc123');
-    expect(result.categories).toEqual(['Drama']);
   });
 
   it('derives a stable id/hue from the same seed across calls', () => {
@@ -53,7 +51,6 @@ describe('normalizeAiSearchBook', () => {
   it('sources from open_library when there is an openLibraryId but no googleBooksId', () => {
     const result = normalizeAiSearchBook({ ...rawBook, googleBooksId: null, openLibraryId: 'OL123M' });
     expect(result.book.source).toBe('open_library');
-    expect(result.openLibraryId).toBe('OL123M');
   });
 
   it('joins multiple authors', () => {
