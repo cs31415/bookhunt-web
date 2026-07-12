@@ -25,6 +25,7 @@ export interface RawBookDetail {
   related: number[];
   author_name: string;
   author_slug: string;
+  cataloged: boolean;
 }
 
 export interface RawBookLibraryEntry {
@@ -53,6 +54,7 @@ export interface BookDetail extends BookSummary {
   isbn13: string | null;
   language: string | null;
   relatedIds: number[];
+  cataloged: boolean;
 }
 
 export interface LibraryEntrySummary {
@@ -94,6 +96,7 @@ export function normalizeBookDetail(raw: RawGetBookResponse): BookDetailResult {
       isbn13: b.isbn13,
       language: b.language,
       relatedIds: b.related,
+      cataloged: b.cataloged,
     },
     ...(raw.libraryEntry && {
       libraryEntry: {

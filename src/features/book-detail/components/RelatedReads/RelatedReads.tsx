@@ -11,7 +11,7 @@ export interface RelatedReadsProps {
   onOpenBook: (slug: string) => void;
   onRemoveRelated: (bookId: number) => void;
   onAddRelated: (bookId: number) => void;
-  onAddToLibrary: (bookId: number) => void;
+  onAddToLibrary: (slug: string) => void;
   onRemoveFromLibrary: (bookId: number) => void;
 }
 
@@ -69,7 +69,7 @@ export function RelatedReads({
               onOpen={() => onOpenBook(book.slug)}
               onRemove={source === 'you' ? () => onRemoveRelated(book.id) : undefined}
               onToggleLibrary={() =>
-                bookInLibrary ? onRemoveFromLibrary(book.id) : onAddToLibrary(book.id)
+                bookInLibrary ? onRemoveFromLibrary(book.id) : onAddToLibrary(book.slug)
               }
             />
           ))}

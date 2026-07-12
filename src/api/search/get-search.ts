@@ -1,5 +1,5 @@
 import { apiFetch } from '../client';
-import type { RawSearchResponse } from '../../normalize/search';
+import type { RawCatalogSearchResponse } from '../../normalize/catalog-search';
 
 export interface GetSearchParams {
   q?: string;
@@ -14,7 +14,7 @@ export interface GetSearchParams {
   limit?: number;
 }
 
-export function getSearch(params: GetSearchParams = {}): Promise<RawSearchResponse> {
+export function getSearch(params: GetSearchParams = {}): Promise<RawCatalogSearchResponse> {
   const query = new URLSearchParams();
   if (params.q) query.set('q', params.q);
   for (const subject of params.subjects ?? []) query.append('subjects', subject);

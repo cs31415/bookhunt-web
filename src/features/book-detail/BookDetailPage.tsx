@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Hero } from './components/Hero/Hero';
 import { SpecificationsCard } from './components/SpecificationsCard/SpecificationsCard';
 import { Tabs } from './components/Tabs/Tabs';
@@ -13,28 +13,59 @@ import { useSummary } from './hooks/useSummary';
 import { useThemes } from './hooks/useThemes';
 import { useRelatedReads } from './hooks/useRelatedReads';
 import { addToLibrary } from '../../api/library/add-to-library';
+import type { AddToLibraryRawFields } from '../../api/library/add-to-library';
 import { updateEntry } from '../../api/library/update-entry';
 import { removeEntry } from '../../api/library/remove-entry';
 import { addRelated } from '../../api/library/add-related';
 import { removeRelated } from '../../api/library/remove-related';
+import type { BookDetail } from '../../normalize/book-detail';
 import type { LibraryStatus } from '../../shared/types/library-status';
 import styles from './BookDetailPage.module.css';
 
+function rawFieldsFor(book: BookDetail): AddToLibraryRawFields {
+  return {
+    title: book.title,
+    authorName: book.authorName,
+    googleBooksId: book.googleBooksId,
+    year: book.year,
+    publisher: book.publisher,
+    pages: book.pages,
+    rating: book.rating,
+    subjects: book.subjects,
+    blurb: book.blurb,
+    coverUrl: book.coverUrl,
+    isbn13: book.isbn13,
+    language: book.language,
+  };
+}
+
 export function BookDetailPage() {
   const { slug = '' } = useParams();
+  const [searchParams] = useSearchParams();
+  const authorSlug = searchParams.get('a') ?? undefined;
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>('summary');
 
-  const { detail, authorBio, authorWorks, relatedBooks, notFound, error, reload } = useBookDetailData(slug);
+  const { detail, authorBio, authorWorks, relatedBooks, notFound, error, reload } = useBookDetailData(
+    slug,
+    authorSlug,
+  );
   const book = detail?.book ?? null;
   const libraryEntry = detail?.libraryEntry;
 
-  const { summary, loading: summaryLoading, error: summaryError, regenerate } = useSummary(book?.id ?? null);
+  const { summary, loading: summaryLoading, error: summaryError, regenerate } = useSummary(
+    book?.cataloged ? book.id : null,
+    book?.cataloged ?? true,
+    book?.blurb ?? '',
+  );
   const { themes, moods, loading: themesLoading } = useThemes(
-    book?.id ?? null,
+    book?.cataloged ? book.id : null,
     book?.genres ?? [],
     book?.themes ?? [],
     book?.moods ?? [],
+    book?.cataloged ?? true,
+    book?.title ?? '',
+    book?.authorName ?? '',
   );
   const relatedReads = useRelatedReads(
     relatedBooks,
@@ -57,14 +88,35 @@ export function BookDetailPage() {
     return <div className={styles.page} />;
   }
 
+  // Ensures the book has a real catalog row before an action that needs one
+  // (rating, notes, toggling into the library) — the only place a
+  // not-yet-cataloged book gets written to the catalog, distinct from just
+  // viewing it. Returns the real {id, slug}, which may differ from the
+  // pseudo reference the ephemeral page was viewed under.
+  async function ensureAddedToLibrary(status: LibraryStatus = 'queued') {
+    if (!book) throw new Error('No book loaded');
+    const { book: realBook } = await addToLibrary(
+      book.slug,
+      status,
+      book.cataloged ? undefined : rawFieldsFor(book),
+    );
+    return realBook;
+  }
+
   async function handleToggleLibrary() {
     if (!book) return;
     if (libraryEntry) {
       await removeEntry(book.id);
-    } else {
-      await addToLibrary(book.id, 'queued');
+      reload();
+      return;
     }
-    reload();
+    const wasEphemeral = !book.cataloged;
+    const real = await ensureAddedToLibrary('queued');
+    if (wasEphemeral) {
+      navigate(`/books/${real.slug}`, { replace: true });
+    } else {
+      reload();
+    }
   }
 
   async function handleStatusChange(status: LibraryStatus) {
@@ -74,19 +126,31 @@ export function BookDetailPage() {
   }
 
   // PUT /library/:bookId 404s if the entry doesn't exist yet, so rating/notes
-  // changes add the book first (idempotent) before updating it (AC12).
+  // changes add the book first (idempotent) before updating it (AC12) — and
+  // for a not-yet-cataloged book, that add is also what creates its catalog
+  // row, so we canonicalize the URL to the real slug afterward.
   async function handleRate(rating: number) {
     if (!book) return;
-    await addToLibrary(book.id, 'queued');
-    await updateEntry(book.id, { userRating: rating });
-    reload();
+    const wasEphemeral = !book.cataloged;
+    const real = await ensureAddedToLibrary('queued');
+    await updateEntry(real.id, { userRating: rating });
+    if (wasEphemeral) {
+      navigate(`/books/${real.slug}`, { replace: true });
+    } else {
+      reload();
+    }
   }
 
   async function handleSaveNotes(notes: string) {
     if (!book) return;
-    await addToLibrary(book.id, 'queued');
-    await updateEntry(book.id, { notes });
-    reload();
+    const wasEphemeral = !book.cataloged;
+    const real = await ensureAddedToLibrary('queued');
+    await updateEntry(real.id, { notes });
+    if (wasEphemeral) {
+      navigate(`/books/${real.slug}`, { replace: true });
+    } else {
+      reload();
+    }
   }
 
   async function handleAddRelated(relatedBookId: number) {
@@ -103,8 +167,8 @@ export function BookDetailPage() {
     relatedReads.reload();
   }
 
-  async function handleAddRelatedBookToLibrary(relatedBookId: number) {
-    await addToLibrary(relatedBookId, 'queued');
+  async function handleAddRelatedBookToLibrary(relatedBookSlug: string) {
+    await addToLibrary(relatedBookSlug, 'queued');
     relatedReads.reload();
   }
 
@@ -126,12 +190,16 @@ export function BookDetailPage() {
         onRate={handleRate}
         onOpenAuthor={() => navigate(`/authors/${book.authorSlug}`)}
         onThemeClick={(theme) => navigate(`/search?q=${encodeURIComponent(theme)}&theme=true`)}
-        onMoodClick={(mood) => navigate(`/search?mood=${encodeURIComponent(mood)}`)}
+        onMoodClick={(mood) =>
+          navigate(`/search?q=${encodeURIComponent(`books that feel ${mood}`)}&mood=${encodeURIComponent(mood)}`)
+        }
       />
 
       <SpecificationsCard
         book={book}
-        onSubjectClick={(subject) => navigate(`/search?subject=${encodeURIComponent(subject)}`)}
+        onSubjectClick={(subject) =>
+          navigate(`/search?q=${encodeURIComponent(`${subject} books`)}&subject=${encodeURIComponent(subject)}`)
+        }
       />
 
       <Tabs active={tab} hasNote={Boolean(libraryEntry?.notes)} onChange={setTab} />

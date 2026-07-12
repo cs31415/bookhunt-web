@@ -9,14 +9,19 @@ export interface UseSummaryResult {
   regenerate: () => void;
 }
 
-export function useSummary(bookId: number | null): UseSummaryResult {
+/**
+ * A not-yet-cataloged (ephemeral) book has no bookId to fetch/cache an AI
+ * summary against — show its blurb directly instead, matching what
+ * GET /ai/summary/:bookId itself already prefers when one is stored.
+ */
+export function useSummary(bookId: number | null, cataloged: boolean, blurb: string): UseSummaryResult {
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [regenerateToken, setRegenerateToken] = useState(0);
 
   useEffect(() => {
-    if (bookId == null) return;
+    if (bookId == null || !cataloged) return;
     let cancelled = false;
 
     async function load() {
@@ -38,7 +43,11 @@ export function useSummary(bookId: number | null): UseSummaryResult {
     return () => {
       cancelled = true;
     };
-  }, [bookId, regenerateToken]);
+  }, [bookId, cataloged, regenerateToken]);
+
+  if (!cataloged) {
+    return { summary: blurb, loading: false, error: false, regenerate: () => {} };
+  }
 
   return { summary, loading, error, regenerate: () => setRegenerateToken((t) => t + 1) };
 }

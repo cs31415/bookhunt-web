@@ -1,25 +1,28 @@
 import type { BookSummary } from '../shared/types/book';
 import type { LibraryStatus } from '../shared/types/library-status';
+import { hashToHue, hashToId } from '../shared/lib/hash';
 
-export interface RawSearchBook {
-  book_id: number;
-  slug: string;
+export interface RawAiSearchBook {
+  googleBooksId: string | null;
+  openLibraryId: string | null;
   title: string;
-  author_name: string;
-  author_slug: string;
+  authors: string[];
   year: number | null;
+  publisher: string | null;
+  pages: number | null;
   rating: number | null;
-  cover_url: string | null;
-  hue: string;
-  in_library: boolean;
-  library_status: LibraryStatus | null;
+  coverUrl: string | null;
+  isbn13: string | null;
+  language: string | null;
+  blurb: string | null;
+  categories: string[];
+  inLibrary: boolean;
+  libraryStatus: LibraryStatus | null;
+  source: string;
 }
 
-export interface RawSearchResponse {
-  books: RawSearchBook[];
-  total: number;
-  page: number;
-  pageSize: number;
+export interface RawAiSearchResponse {
+  books: RawAiSearchBook[];
   query: string;
 }
 
@@ -30,36 +33,31 @@ export interface SearchResultItem {
 
 export interface SearchResults {
   results: SearchResultItem[];
-  total: number;
-  page: number;
-  pageSize: number;
   query: string;
 }
 
-export function normalizeSearchBook(raw: RawSearchBook): SearchResultItem {
+export function normalizeAiSearchBook(raw: RawAiSearchBook): SearchResultItem {
+  const seed = raw.googleBooksId ?? raw.openLibraryId ?? raw.isbn13 ?? raw.title;
   return {
     book: {
-      id: raw.book_id,
-      slug: raw.slug,
+      id: hashToId(seed),
+      slug: '',
       title: raw.title,
-      authorName: raw.author_name,
-      authorSlug: raw.author_slug,
+      authorName: raw.authors.join(', ') || 'Unknown',
+      authorSlug: '',
       year: raw.year,
-      coverUrl: raw.cover_url,
-      hue: raw.hue,
+      coverUrl: raw.coverUrl,
+      hue: hashToHue(seed),
       rating: raw.rating,
-      source: 'catalog',
+      source: raw.googleBooksId ? 'google_books' : raw.openLibraryId ? 'open_library' : 'catalog',
     },
-    ...(raw.in_library && raw.library_status ? { status: raw.library_status } : {}),
+    ...(raw.inLibrary && raw.libraryStatus ? { status: raw.libraryStatus } : {}),
   };
 }
 
-export function normalizeSearchResponse(raw: RawSearchResponse): SearchResults {
+export function normalizeAiSearchResponse(raw: RawAiSearchResponse): SearchResults {
   return {
-    results: raw.books.map(normalizeSearchBook),
-    total: raw.total,
-    page: raw.page,
-    pageSize: raw.pageSize,
+    results: raw.books.map(normalizeAiSearchBook),
     query: raw.query,
   };
 }
