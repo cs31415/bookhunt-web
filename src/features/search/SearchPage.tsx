@@ -65,7 +65,7 @@ export function SearchPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const parsed = parseSearchParams(searchParams);
-  const { results, loading, error } = useSearchResults(searchParams);
+  const { results, loading, error, availableCategories, availableMoods } = useSearchResults(searchParams);
   const [queryInput, setQueryInput] = useState(parsed.q);
   const [syncedQ, setSyncedQ] = useState(parsed.q);
   if (parsed.q !== syncedQ) {
@@ -99,9 +99,13 @@ export function SearchPage() {
       <div className={styles.layout}>
         <FilterSidebar
           parsed={parsed}
+          availableCategories={availableCategories}
+          availableMoods={availableMoods}
           onToggleInLibraryOnly={() => update({ inLibraryOnly: parsed.inLibraryOnly ? null : 'true' })}
+          onSelectCategory={(subject) => update({ subject: parsed.subject === subject ? null : subject })}
+          onSelectMood={(mood) => update({ mood: parsed.mood === mood ? null : mood })}
           onSelectStatus={(status: LibraryStatus) => update({ status: parsed.status === status ? null : status })}
-          onClearFilters={() => update({ status: null, inLibraryOnly: null })}
+          onClearFilters={() => update({ status: null, inLibraryOnly: null, subject: null, mood: null })}
         />
 
         <div className={styles.results}>

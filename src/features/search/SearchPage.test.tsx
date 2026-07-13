@@ -50,6 +50,7 @@ function makeBook(overrides: Partial<RawAiSearchBook> = {}): RawAiSearchBook {
     language: 'en',
     blurb: null,
     categories: [],
+    moods: [],
     inLibrary: false,
     libraryStatus: null,
     source: 'google_books',
@@ -154,6 +155,57 @@ describe('SearchPage', () => {
     expect(mockedAiSearch).toHaveBeenCalledTimes(1);
   });
 
+  it('filters to a category client-side without refetching', async () => {
+    mockedAiSearch.mockResolvedValue({
+      books: [
+        makeBook({ googleBooksId: 'a', title: 'Memoir Book', categories: ['Memoir'] }),
+        makeBook({ googleBooksId: 'b', title: 'Fiction Book', categories: ['Fiction'] }),
+      ],
+      query: 'thriller',
+    });
+
+    renderSearchPage('/search?q=thriller');
+    await screen.findByRole('button', { name: /Memoir Book/ });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Memoir' }));
+
+    expect(await screen.findByRole('button', { name: /Memoir Book/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Fiction Book/ })).not.toBeInTheDocument();
+    expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it('filters to a mood client-side without refetching', async () => {
+    mockedAiSearch.mockResolvedValue({
+      books: [
+        makeBook({ googleBooksId: 'a', title: 'Rigorous Book', moods: ['Rigorous'] }),
+        makeBook({ googleBooksId: 'b', title: 'Tender Book', moods: ['Tender'] }),
+      ],
+      query: 'thriller',
+    });
+
+    renderSearchPage('/search?q=thriller');
+    await screen.findByRole('button', { name: /Rigorous Book/ });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rigorous' }));
+
+    expect(await screen.findByRole('button', { name: /Rigorous Book/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Tender Book/ })).not.toBeInTheDocument();
+    expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes subject/mood params through to aiSearch as seedCategory/seedMood', async () => {
+    mockedAiSearch.mockResolvedValue({ books: [], query: '' });
+
+    renderSearchPage('/search?q=Stoicism+books&subject=Stoicism');
+
+    await waitFor(() =>
+      expect(mockedAiSearch).toHaveBeenCalledWith(
+        expect.objectContaining({ seedCategory: 'Stoicism', seedMood: undefined }),
+        expect.anything(),
+      ),
+    );
+  });
+
   it('sorts by highest rated client-side without refetching', async () => {
     mockedAiSearch.mockResolvedValue({
       books: [
@@ -205,6 +257,40 @@ describe('SearchPage', () => {
       [{ title: 'Meditations', author: 'Marcus Aurelius' }],
       expect.anything(),
     );
+  });
+
+  it('keeps the richer /ai/search categories/moods rather than the sparser metadata match', async () => {
+    mockedAiSearch.mockResolvedValue({
+      books: [
+        makeBook({
+          googleBooksId: null,
+          openLibraryId: null,
+          title: 'Meditations',
+          authors: ['Marcus Aurelius'],
+          categories: ['Philosophy', 'Ancient Philosophy'],
+          moods: ['Rigorous', 'Contemplative'],
+        }),
+      ],
+      query: 'stoicism',
+    });
+    mockedGetMetadata.mockResolvedValue({
+      books: [
+        makeBook({
+          googleBooksId: 'resolved123',
+          title: 'Meditations',
+          authors: ['Marcus Aurelius'],
+          categories: ['Nonfiction'],
+          moods: [],
+        }),
+      ],
+    });
+
+    renderSearchPage('/search?q=stoicism');
+    await screen.findByRole('button', { name: /Meditations/ });
+
+    expect(screen.getByRole('button', { name: 'Philosophy' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rigorous' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nonfiction' })).not.toBeInTheDocument();
   });
 
   it('skips the metadata call entirely when all results already have an id', async () => {

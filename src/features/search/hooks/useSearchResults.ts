@@ -16,6 +16,11 @@ const RESULT_LIMIT = 20;
  * via POST /search/metadata so results are viewable/clickable and show real
  * covers. Best-effort: if this fails, the original suggestions still render,
  * just without covers or a click target.
+ *
+ * /search/metadata only ever hits the Google Books/Open Library fallback
+ * (never Claude), so its categories are comparatively sparse and its moods is
+ * always [] — keep the richer /ai/search categories/moods and only take
+ * identity/cover/rating/etc. fields from the metadata match.
  */
 async function enrichWithMetadata(
   books: RawAiSearchBook[],
@@ -34,7 +39,9 @@ async function enrichWithMetadata(
     const merged = [...books];
     unresolved.forEach(({ index }, metaIndex) => {
       const match = response.books[metaIndex];
-      if (match) merged[index] = match;
+      if (match) {
+        merged[index] = { ...match, categories: books[index].categories, moods: books[index].moods };
+      }
     });
     return merged;
   } catch (err) {
@@ -43,10 +50,27 @@ async function enrichWithMetadata(
   }
 }
 
+const MAX_FILTER_TAGS = 8;
+
+function topTags(results: SearchResultItem[], field: 'categories' | 'moods'): string[] {
+  const counts = new Map<string, number>();
+  for (const item of results) {
+    for (const tag of item[field]) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, MAX_FILTER_TAGS)
+    .map(([tag]) => tag);
+}
+
 export interface UseSearchResultsResult {
   results: SearchResultItem[];
   loading: boolean;
   error: string | null;
+  availableCategories: string[];
+  availableMoods: string[];
 }
 
 function sortResults(results: SearchResultItem[], sort: string): SearchResultItem[] {
@@ -64,12 +88,17 @@ function sortResults(results: SearchResultItem[], sort: string): SearchResultIte
     .map(({ item }) => item);
 }
 
-function applyStatusAndSort(
+function applyFiltersAndSort(
   results: SearchResultItem[],
   status: LibraryStatus | null,
+  category: string | null,
+  mood: string | null,
   sort: string,
 ): SearchResultItem[] {
-  const filtered = status ? results.filter((item) => item.status === status) : results;
+  let filtered = results;
+  if (status) filtered = filtered.filter((item) => item.status === status);
+  if (category) filtered = filtered.filter((item) => item.categories.includes(category));
+  if (mood) filtered = filtered.filter((item) => item.moods.includes(mood));
   return sortResults(filtered, sort);
 }
 
@@ -93,6 +122,8 @@ export function useSearchResults(searchParams: URLSearchParams): UseSearchResult
             query: parsed.q,
             inLibraryOnly: parsed.inLibraryOnly,
             limit: RESULT_LIMIT,
+            seedCategory: parsed.subject ?? undefined,
+            seedMood: parsed.mood ?? undefined,
           },
           controller.signal,
         );
@@ -114,12 +145,14 @@ export function useSearchResults(searchParams: URLSearchParams): UseSearchResult
   }, [fetchKey]);
 
   if (!parsed.q) {
-    return { results: [], loading: false, error: null };
+    return { results: [], loading: false, error: null, availableCategories: [], availableMoods: [] };
   }
 
   return {
-    results: applyStatusAndSort(rawResults, parsed.status, parsed.sort),
+    results: applyFiltersAndSort(rawResults, parsed.status, parsed.subject, parsed.mood, parsed.sort),
     loading,
     error,
+    availableCategories: topTags(rawResults, 'categories'),
+    availableMoods: topTags(rawResults, 'moods'),
   };
 }
