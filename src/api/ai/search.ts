@@ -5,6 +5,8 @@ export interface AiSearchParams {
   query: string;
   inLibraryOnly?: boolean;
   limit?: number;
+  seedCategory?: string;
+  seedMood?: string;
 }
 
 export function aiSearch(params: AiSearchParams, signal?: AbortSignal): Promise<RawAiSearchResponse> {

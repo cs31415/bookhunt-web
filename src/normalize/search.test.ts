@@ -16,6 +16,7 @@ const rawBook: RawAiSearchBook = {
   language: 'en',
   blurb: 'An outstanding Broadway success…',
   categories: ['Drama'],
+  moods: ['Suspenseful'],
   inLibrary: false,
   libraryStatus: null,
   source: 'google_books',
@@ -61,6 +62,12 @@ describe('normalizeAiSearchBook', () => {
   it('falls back to "Unknown" when there are no authors', () => {
     const result = normalizeAiSearchBook({ ...rawBook, authors: [] });
     expect(result.book.authorName).toBe('Unknown');
+  });
+
+  it('carries categories and moods through onto the result item', () => {
+    const result = normalizeAiSearchBook(rawBook);
+    expect(result.categories).toEqual(['Drama']);
+    expect(result.moods).toEqual(['Suspenseful']);
   });
 });
 

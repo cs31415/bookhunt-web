@@ -5,7 +5,11 @@ import styles from './FilterSidebar.module.css';
 
 export interface FilterSidebarProps {
   parsed: ParsedSearchParams;
+  availableCategories: string[];
+  availableMoods: string[];
   onToggleInLibraryOnly: () => void;
+  onSelectCategory: (category: string) => void;
+  onSelectMood: (mood: string) => void;
   onSelectStatus: (status: LibraryStatus) => void;
   onClearFilters: () => void;
 }
@@ -43,11 +47,16 @@ function FilterGroup({
 
 export function FilterSidebar({
   parsed,
+  availableCategories,
+  availableMoods,
   onToggleInLibraryOnly,
+  onSelectCategory,
+  onSelectMood,
   onSelectStatus,
   onClearFilters,
 }: FilterSidebarProps) {
-  const hasActiveFilters = parsed.inLibraryOnly || Boolean(parsed.status);
+  const hasActiveFilters =
+    parsed.inLibraryOnly || Boolean(parsed.status) || Boolean(parsed.subject) || Boolean(parsed.mood);
 
   return (
     <aside className={styles.rail}>
@@ -58,6 +67,18 @@ export function FilterSidebar({
         <span>In my library only</span>
       </label>
 
+      <FilterGroup
+        title="Category"
+        items={availableCategories.map((c) => ({ value: c, label: c }))}
+        activeValue={parsed.subject}
+        onSelect={onSelectCategory}
+      />
+      <FilterGroup
+        title="Mood"
+        items={availableMoods.map((m) => ({ value: m, label: m }))}
+        activeValue={parsed.mood}
+        onSelect={onSelectMood}
+      />
       <FilterGroup
         title="Status"
         items={ALL_LIBRARY_STATUSES.map((s) => ({ value: s, label: LIBRARY_STATUS_LABELS[s] }))}

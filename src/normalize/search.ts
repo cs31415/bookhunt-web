@@ -16,6 +16,7 @@ export interface RawAiSearchBook {
   language: string | null;
   blurb: string | null;
   categories: string[];
+  moods: string[];
   inLibrary: boolean;
   libraryStatus: LibraryStatus | null;
   source: string;
@@ -29,6 +30,8 @@ export interface RawAiSearchResponse {
 export interface SearchResultItem {
   book: BookSummary;
   status?: LibraryStatus;
+  categories: string[];
+  moods: string[];
 }
 
 export interface SearchResults {
@@ -51,6 +54,8 @@ export function normalizeAiSearchBook(raw: RawAiSearchBook): SearchResultItem {
       rating: raw.rating,
       source: raw.googleBooksId ? 'google_books' : raw.openLibraryId ? 'open_library' : 'catalog',
     },
+    categories: raw.categories,
+    moods: raw.moods,
     ...(raw.inLibrary && raw.libraryStatus ? { status: raw.libraryStatus } : {}),
   };
 }
