@@ -41,6 +41,10 @@ export interface SearchResults {
 
 export function normalizeAiSearchBook(raw: RawAiSearchBook): SearchResultItem {
   const seed = raw.googleBooksId ?? raw.openLibraryId ?? raw.isbn13 ?? raw.title;
+  // A cover is only trustworthy when it's backed by a resolved provider match.
+  // Unresolved Claude guesses can carry a hallucinated isbn13 (and thus a
+  // coverUrl derived from it) that points at a completely unrelated book.
+  const isResolved = Boolean(raw.googleBooksId || raw.openLibraryId);
   return {
     book: {
       id: hashToId(seed),
@@ -49,7 +53,7 @@ export function normalizeAiSearchBook(raw: RawAiSearchBook): SearchResultItem {
       authorName: raw.authors.join(', ') || 'Unknown',
       authorSlug: '',
       year: raw.year,
-      coverUrl: raw.coverUrl,
+      coverUrl: isResolved ? raw.coverUrl : null,
       hue: hashToHue(seed),
       rating: raw.rating,
       source: raw.googleBooksId ? 'google_books' : raw.openLibraryId ? 'open_library' : 'catalog',
