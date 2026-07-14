@@ -54,6 +54,23 @@ describe('normalizeAiSearchBook', () => {
     expect(result.book.source).toBe('open_library');
   });
 
+  it('drops an isbn13-derived coverUrl when the result is an unresolved guess', () => {
+    // No googleBooksId/openLibraryId means Claude never verified this match,
+    // so an isbn13/coverUrl it supplied anyway could point at the wrong book.
+    const result = normalizeAiSearchBook({
+      ...rawBook,
+      googleBooksId: null,
+      openLibraryId: null,
+      coverUrl: 'https://covers.openlibrary.org/b/isbn/9780195333169.jpg',
+    });
+    expect(result.book.coverUrl).toBeNull();
+  });
+
+  it('keeps coverUrl when the result has a resolved googleBooksId', () => {
+    const result = normalizeAiSearchBook(rawBook);
+    expect(result.book.coverUrl).toBe('https://covers.example.com/night-watch.jpg');
+  });
+
   it('joins multiple authors', () => {
     const result = normalizeAiSearchBook({ ...rawBook, authors: ['A', 'B'] });
     expect(result.book.authorName).toBe('A, B');

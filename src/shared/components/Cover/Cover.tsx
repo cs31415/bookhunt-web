@@ -45,6 +45,11 @@ export function Cover({ book, width = 132, onClick }: CoverProps) {
           alt={book.title}
           loading="lazy"
           onError={() => setImgOk(false)}
+          onLoad={(event) => {
+            // OpenLibrary's covers-by-ISBN endpoint returns a 1x1 placeholder
+            // (HTTP 200, so onError never fires) when it has no real cover.
+            if (event.currentTarget.naturalWidth <= 1) setImgOk(false);
+          }}
         />
       ) : (
         <ProceduralCover book={book} />

@@ -3,14 +3,11 @@ import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-do
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from './SearchPage';
 import { aiSearch } from '../../api/ai/search';
-import { getMetadata } from '../../api/search/get-metadata';
 import type { RawAiSearchBook } from '../../normalize/search';
 
 vi.mock('../../api/ai/search');
-vi.mock('../../api/search/get-metadata');
 
 const mockedAiSearch = vi.mocked(aiSearch);
-const mockedGetMetadata = vi.mocked(getMetadata);
 
 function LocationProbe() {
   const location = useLocation();
@@ -61,7 +58,6 @@ function makeBook(overrides: Partial<RawAiSearchBook> = {}): RawAiSearchBook {
 describe('SearchPage', () => {
   beforeEach(() => {
     mockedAiSearch.mockReset();
-    mockedGetMetadata.mockReset();
   });
 
   afterEach(() => {
@@ -225,7 +221,7 @@ describe('SearchPage', () => {
     expect(mockedAiSearch).toHaveBeenCalledTimes(1);
   });
 
-  it('resolves Claude-suggested results (no id) via the metadata endpoint for covers', async () => {
+  it('renders a Claude-suggested result (no id, no cover) without an extra metadata fetch', async () => {
     mockedAiSearch.mockResolvedValue({
       books: [
         makeBook({
@@ -239,75 +235,6 @@ describe('SearchPage', () => {
       ],
       query: 'stoicism',
     });
-    mockedGetMetadata.mockResolvedValue({
-      books: [
-        makeBook({
-          googleBooksId: 'resolved123',
-          title: 'Meditations',
-          authors: ['Marcus Aurelius'],
-          coverUrl: 'https://covers.example.com/meditations.jpg',
-        }),
-      ],
-    });
-
-    renderSearchPage('/search?q=stoicism');
-
-    await screen.findByRole('button', { name: /Meditations/ });
-    expect(mockedGetMetadata).toHaveBeenCalledWith(
-      [{ title: 'Meditations', author: 'Marcus Aurelius' }],
-      expect.anything(),
-    );
-  });
-
-  it('keeps the richer /ai/search categories/moods rather than the sparser metadata match', async () => {
-    mockedAiSearch.mockResolvedValue({
-      books: [
-        makeBook({
-          googleBooksId: null,
-          openLibraryId: null,
-          title: 'Meditations',
-          authors: ['Marcus Aurelius'],
-          categories: ['Philosophy', 'Ancient Philosophy'],
-          moods: ['Rigorous', 'Contemplative'],
-        }),
-      ],
-      query: 'stoicism',
-    });
-    mockedGetMetadata.mockResolvedValue({
-      books: [
-        makeBook({
-          googleBooksId: 'resolved123',
-          title: 'Meditations',
-          authors: ['Marcus Aurelius'],
-          categories: ['Nonfiction'],
-          moods: [],
-        }),
-      ],
-    });
-
-    renderSearchPage('/search?q=stoicism');
-    await screen.findByRole('button', { name: /Meditations/ });
-
-    expect(screen.getByRole('button', { name: 'Philosophy' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Rigorous' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Nonfiction' })).not.toBeInTheDocument();
-  });
-
-  it('skips the metadata call entirely when all results already have an id', async () => {
-    mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'thriller' });
-
-    renderSearchPage('/search?q=thriller');
-    await screen.findByRole('button', { name: /Night Watch/ });
-
-    expect(mockedGetMetadata).not.toHaveBeenCalled();
-  });
-
-  it('falls back to the unresolved suggestion when metadata lookup fails', async () => {
-    mockedAiSearch.mockResolvedValue({
-      books: [makeBook({ googleBooksId: null, openLibraryId: null, title: 'Meditations' })],
-      query: 'stoicism',
-    });
-    mockedGetMetadata.mockRejectedValue(new Error('rate limited'));
 
     renderSearchPage('/search?q=stoicism');
 

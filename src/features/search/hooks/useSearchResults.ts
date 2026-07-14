@@ -1,54 +1,12 @@
 import { useEffect, useState } from 'react';
 import { aiSearch } from '../../../api/ai/search';
-import { getMetadata } from '../../../api/search/get-metadata';
 import { isAbortError } from '../../../api/client';
 import { normalizeAiSearchResponse } from '../../../normalize/search';
-import type { RawAiSearchBook, SearchResultItem } from '../../../normalize/search';
+import type { SearchResultItem } from '../../../normalize/search';
 import { parseSearchParams } from '../search-params';
 import type { LibraryStatus } from '../../../shared/types/library-status';
 
 const RESULT_LIMIT = 20;
-
-/**
- * /ai/search tries Claude first, which almost always succeeds — so most
- * results come back as bare title/author suggestions with no googleBooksId,
- * openLibraryId, or coverUrl at all. Resolve those against the real book APIs
- * via POST /search/metadata so results are viewable/clickable and show real
- * covers. Best-effort: if this fails, the original suggestions still render,
- * just without covers or a click target.
- *
- * /search/metadata only ever hits the Google Books/Open Library fallback
- * (never Claude), so its categories are comparatively sparse and its moods is
- * always [] — keep the richer /ai/search categories/moods and only take
- * identity/cover/rating/etc. fields from the metadata match.
- */
-async function enrichWithMetadata(
-  books: RawAiSearchBook[],
-  signal: AbortSignal,
-): Promise<RawAiSearchBook[]> {
-  const unresolved = books
-    .map((book, index) => ({ book, index }))
-    .filter(({ book }) => !book.googleBooksId && !book.openLibraryId);
-  if (unresolved.length === 0) return books;
-
-  try {
-    const response = await getMetadata(
-      unresolved.map(({ book }) => ({ title: book.title, author: book.authors[0] })),
-      signal,
-    );
-    const merged = [...books];
-    unresolved.forEach(({ index }, metaIndex) => {
-      const match = response.books[metaIndex];
-      if (match) {
-        merged[index] = { ...match, categories: books[index].categories, moods: books[index].moods };
-      }
-    });
-    return merged;
-  } catch (err) {
-    if (isAbortError(err)) throw err;
-    return books;
-  }
-}
 
 const MAX_FILTER_TAGS = 8;
 
@@ -127,8 +85,7 @@ export function useSearchResults(searchParams: URLSearchParams): UseSearchResult
           },
           controller.signal,
         );
-        const enrichedBooks = await enrichWithMetadata(raw.books, controller.signal);
-        setRawResults(normalizeAiSearchResponse({ ...raw, books: enrichedBooks }).results);
+        setRawResults(normalizeAiSearchResponse(raw).results);
       } catch (err) {
         if (isAbortError(err)) return;
         setError('Could not load search results. Please try again.');
