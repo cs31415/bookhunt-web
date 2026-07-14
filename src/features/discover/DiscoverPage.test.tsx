@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { DiscoverPage } from './DiscoverPage';
+import { ApiError } from '../../api/client';
 import { getLibrary } from '../../api/library/get-library';
 import { getRecommendations } from '../../api/recommendations/get-recommendations';
 
@@ -162,5 +163,15 @@ describe('DiscoverPage', () => {
     renderDiscoverPage();
 
     expect(await screen.findByText(/Could not load your Discover page/)).toBeInTheDocument();
+  });
+
+  it('stays quiet (no error banner) when the calls 401 because the visitor is logged out', async () => {
+    mockedGetLibrary.mockRejectedValue(new ApiError(401, 'Authentication required'));
+    mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
+
+    renderDiscoverPage();
+
+    await screen.findByText('where should I start with Dostoevsky');
+    expect(screen.queryByText(/Could not load your Discover page/)).not.toBeInTheDocument();
   });
 });

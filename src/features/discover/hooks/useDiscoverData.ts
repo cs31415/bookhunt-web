@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ApiError } from '../../../api/client';
 import { getLibrary } from '../../../api/library/get-library';
 import { getRecommendations } from '../../../api/recommendations/get-recommendations';
 import { normalizeLibraryEntry, normalizeLibraryStatusCounts } from '../../../normalize/library';
@@ -47,8 +48,15 @@ export function useDiscoverData(): UseDiscoverDataResult {
           totalBooks: library.stats.total,
           statusCounts: normalizeLibraryStatusCounts(library.stats.by_status),
         });
-      } catch {
-        if (!cancelled) setError('Could not load your Discover page. Please try again.');
+      } catch (err) {
+        // No login flow exists yet (LOS-144), so every visitor is
+        // unauthenticated and these calls always 401 — that's not a real
+        // failure worth alarming copy over, so stay quiet and just show the
+        // logged-out hero (LOS-145). Any other failure still surfaces.
+        const isLoggedOut = err instanceof ApiError && err.status === 401;
+        if (!cancelled && !isLoggedOut) {
+          setError('Could not load your Discover page. Please try again.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
