@@ -109,6 +109,61 @@
   margin-left: auto;
 }
 
+.avatarButton {
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.account {
+  position: relative;
+}
+
+.accountPushRight {
+  margin-left: auto;
+}
+
+.accountMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  padding: 6px;
+  background: var(--card);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-2);
+  z-index: 40;
+}
+
+.accountName {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+
+.accountItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  border-radius: var(--r-sm);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.accountItem:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
 .avatarIcon {
   width: 18px;
   height: 18px;

@@ -1,10 +1,8 @@
 import { beginRequest, endRequest } from './api-activity';
+import { getToken } from './auth/token';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
 const LOG_API_CALLS = import.meta.env.VITE_LOG_API_CALLS === 'true';
-
-// Kept in sync with the key useAuth (added in Ticket 1C) writes the JWT under.
-const TOKEN_STORAGE_KEY = 'bookhunt_token';
 
 export function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
@@ -27,7 +25,7 @@ export interface ApiFetchOptions extends RequestInit {
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { silent, ...fetchOptions } = options;
-  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+  const token = getToken();
   const headers = new Headers(fetchOptions.headers);
   headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);

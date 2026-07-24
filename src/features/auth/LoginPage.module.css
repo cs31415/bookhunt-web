@@ -1,0 +1,87 @@
+.page {
+  display: flex;
+  justify-content: center;
+  padding: 64px 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 380px;
+  padding: 32px 28px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.heading {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.subheading {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 6px 0 24px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.input {
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 15px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--rust);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--rust-deep);
+  margin: 0 0 16px;
+}
+
+.submit {
+  border: none;
+  border-radius: 999px;
+  background: var(--rust);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 22px;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--rust-deep);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
