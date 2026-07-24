@@ -22,6 +22,8 @@ describe('normalizeLibraryEntry', () => {
     expect(normalizeLibraryEntry(rawEntry)).toEqual({
       status: 'reading',
       notes: 'Slow start but picking up',
+      subjects: [],
+      addedAt: null,
       book: {
         id: 1,
         slug: 'dune',
@@ -45,6 +47,22 @@ describe('normalizeLibraryEntry', () => {
   it('returns null notes when neither notes nor review is set', () => {
     const entry = normalizeLibraryEntry({ ...rawEntry, notes: null, review: null });
     expect(entry.notes).toBeNull();
+  });
+
+  it('maps subjects and date_added when present', () => {
+    const entry = normalizeLibraryEntry({
+      ...rawEntry,
+      subjects: ['Science Fiction', 'Politics'],
+      date_added: '2026-07-01T00:00:00Z',
+    });
+    expect(entry.subjects).toEqual(['Science Fiction', 'Politics']);
+    expect(entry.addedAt).toBe('2026-07-01T00:00:00Z');
+  });
+
+  it('defaults subjects to [] and addedAt to null when absent', () => {
+    const entry = normalizeLibraryEntry(rawEntry);
+    expect(entry.subjects).toEqual([]);
+    expect(entry.addedAt).toBeNull();
   });
 });
 

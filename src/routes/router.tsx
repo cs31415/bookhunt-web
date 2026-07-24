@@ -5,6 +5,8 @@ import { DiscoverPage } from '../features/discover/DiscoverPage';
 import { SearchPage } from '../features/search/SearchPage';
 import { BookDetailPage } from '../features/book-detail/BookDetailPage';
 import { LoginPage } from '../features/auth/LoginPage';
+import { RequireAuth } from '../features/auth/RequireAuth';
+import { LibraryPage } from '../features/library/LibraryPage';
 
 // Plain inline placeholders until Phases 2-6 add the remaining real features/* pages.
 const discoverElement = <DiscoverPage />;
@@ -18,7 +20,14 @@ export const router = createBrowserRouter([
       { path: 'search', element: <SearchPage /> },
       { path: 'books/:slug', element: <BookDetailPage /> },
       { path: 'authors/:slug', element: <div>Author</div> },
-      { path: 'library', element: <div>Library</div> },
+      {
+        path: 'library',
+        element: (
+          <RequireAuth>
+            <LibraryPage />
+          </RequireAuth>
+        ),
+      },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <div>Register</div> },
       // Dev-only visual check for the LOS-76 design system, stripped from production builds.

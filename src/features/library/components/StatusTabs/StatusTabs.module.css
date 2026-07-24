@@ -1,0 +1,40 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.tab {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  background: var(--card);
+  color: var(--ink-2);
+  font-family: var(--sans);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.tab:hover:not(.active) {
+  border-color: var(--line-2);
+  color: var(--ink);
+}
+
+.active {
+  border-color: var(--rust);
+  background: color-mix(in srgb, var(--rust) 10%, transparent);
+  color: var(--rust);
+  font-weight: 600;
+}
+
+.count {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.active .count {
+  color: var(--rust);
+}
