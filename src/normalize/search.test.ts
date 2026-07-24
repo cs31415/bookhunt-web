@@ -86,6 +86,18 @@ describe('normalizeAiSearchBook', () => {
     expect(result.categories).toEqual(['Drama']);
     expect(result.moods).toEqual(['Suspenseful']);
   });
+
+  it('carries the resolved googleBooksId/openLibraryId through onto the book (LOS-135)', () => {
+    const result = normalizeAiSearchBook(rawBook);
+    expect(result.book.googleBooksId).toBe('abc123');
+    expect(result.book.openLibraryId).toBeNull();
+  });
+
+  it('carries openLibraryId through when that is the resolved provider', () => {
+    const result = normalizeAiSearchBook({ ...rawBook, googleBooksId: null, openLibraryId: 'OL123M' });
+    expect(result.book.googleBooksId).toBeNull();
+    expect(result.book.openLibraryId).toBe('OL123M');
+  });
 });
 
 describe('normalizeAiSearchResponse', () => {

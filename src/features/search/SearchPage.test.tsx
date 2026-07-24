@@ -241,9 +241,9 @@ describe('SearchPage', () => {
     expect(await screen.findByRole('button', { name: /Meditations/ })).toBeInTheDocument();
   });
 
-  it('navigates synchronously to a slugified book/author reference when a result is clicked', async () => {
+  it('navigates synchronously to a slugified book/author reference, with the resolved googleBooksId as pid', async () => {
     mockedAiSearch.mockResolvedValue({
-      books: [makeBook({ title: 'Night Watch', authors: ['Lucille Fletcher'] })],
+      books: [makeBook({ title: 'Night Watch', authors: ['Lucille Fletcher'], googleBooksId: 'abc123' })],
       query: 'thriller',
     });
 
@@ -251,7 +251,51 @@ describe('SearchPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Night Watch/ }));
 
-    expect(screen.getByTestId('location')).toHaveTextContent('/books/night-watch?a=lucille-fletcher');
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/books/night-watch?a=lucille-fletcher&pid=g%3Aabc123',
+    );
+  });
+
+  it('encodes an openLibraryId-only result as pid=o:<id>', async () => {
+    mockedAiSearch.mockResolvedValue({
+      books: [
+        makeBook({
+          title: 'Night Watch',
+          authors: ['Lucille Fletcher'],
+          googleBooksId: null,
+          openLibraryId: 'OL123M',
+        }),
+      ],
+      query: 'thriller',
+    });
+
+    renderSearchPage('/search?q=thriller');
+
+    fireEvent.click(await screen.findByRole('button', { name: /Night Watch/ }));
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/books/night-watch?a=lucille-fletcher&pid=o%3AOL123M');
+  });
+
+  it('omits pid entirely for an unresolved guess with no provider id', async () => {
+    mockedAiSearch.mockResolvedValue({
+      books: [
+        makeBook({
+          title: 'Meditations',
+          authors: ['Marcus Aurelius'],
+          googleBooksId: null,
+          openLibraryId: null,
+        }),
+      ],
+      query: 'stoicism',
+    });
+
+    renderSearchPage('/search?q=stoicism');
+
+    fireEvent.click(await screen.findByRole('button', { name: /Meditations/ }));
+
+    const location = screen.getByTestId('location').textContent ?? '';
+    expect(location).toBe('/books/meditations?a=marcus-aurelius');
+    expect(location).not.toContain('pid');
   });
 
   it('shows an error message when the search fails', async () => {

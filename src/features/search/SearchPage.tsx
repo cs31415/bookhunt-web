@@ -85,9 +85,19 @@ export function SearchPage() {
     // Book Detail resolves this by slug first, falling back to a live lookup
     // by title/author if it's not cataloged yet (see LOS-127/128) — so this
     // is a synchronous navigation, no network round-trip needed before it.
+    // The resolved provider id (when known) rides along as `pid` so Book
+    // Detail fetches the exact same edition instead of re-searching by text
+    // and potentially landing on a different one (see LOS-135).
     const bookSlug = slugify(item.book.title);
     const authorSlug = slugify(item.book.authorName);
-    navigate(`/books/${bookSlug}?a=${authorSlug}`);
+    const params = new URLSearchParams({ a: authorSlug });
+    const pid = item.book.googleBooksId
+      ? `g:${item.book.googleBooksId}`
+      : item.book.openLibraryId
+        ? `o:${item.book.openLibraryId}`
+        : null;
+    if (pid) params.set('pid', pid);
+    navigate(`/books/${bookSlug}?${params.toString()}`);
   }
 
   return (

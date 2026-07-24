@@ -57,6 +57,8 @@ export function normalizeAiSearchBook(raw: RawAiSearchBook): SearchResultItem {
       hue: hashToHue(seed),
       rating: raw.rating,
       source: raw.googleBooksId ? 'google_books' : raw.openLibraryId ? 'open_library' : 'catalog',
+      googleBooksId: raw.googleBooksId,
+      openLibraryId: raw.openLibraryId,
     },
     categories: raw.categories,
     moods: raw.moods,
