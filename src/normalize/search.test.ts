@@ -55,7 +55,7 @@ describe('normalizeAiSearchBook', () => {
   });
 
   it('drops an isbn13-derived coverUrl when the result is an unresolved guess', () => {
-    // No googleBooksId/openLibraryId means Claude never verified this match,
+    // No googleBooksId/openLibraryId means the LLM never verified this match,
     // so an isbn13/coverUrl it supplied anyway could point at the wrong book.
     const result = normalizeAiSearchBook({
       ...rawBook,
