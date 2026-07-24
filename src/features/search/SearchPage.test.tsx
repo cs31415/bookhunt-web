@@ -221,7 +221,7 @@ describe('SearchPage', () => {
     expect(mockedAiSearch).toHaveBeenCalledTimes(1);
   });
 
-  it('renders a Claude-suggested result (no id, no cover) without an extra metadata fetch', async () => {
+  it('renders an LLM-suggested result (no id, no cover) without an extra metadata fetch', async () => {
     mockedAiSearch.mockResolvedValue({
       books: [
         makeBook({
