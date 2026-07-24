@@ -254,6 +254,26 @@ describe('BookDetailPage', () => {
       expect(mockedGetBooksByIds).not.toHaveBeenCalled();
     });
 
+    it('passes the pid query param through to getBook (LOS-135)', async () => {
+      renderBookDetailPage('sapiens?a=yuval-noah-harari&pid=g%3Agid123');
+      await screen.findByRole('heading', { name: 'Sapiens' });
+
+      expect(mockedGetBook).toHaveBeenCalledWith('sapiens', {
+        authorSlug: 'yuval-noah-harari',
+        pid: 'g:gid123',
+      });
+    });
+
+    it('omits pid when the URL has none', async () => {
+      renderBookDetailPage('sapiens?a=yuval-noah-harari');
+      await screen.findByRole('heading', { name: 'Sapiens' });
+
+      expect(mockedGetBook).toHaveBeenCalledWith('sapiens', {
+        authorSlug: 'yuval-noah-harari',
+        pid: undefined,
+      });
+    });
+
     it('generates themes via the external endpoint instead of the bookId-based one', async () => {
       renderBookDetailPage('sapiens?a=yuval-noah-harari');
       await screen.findByRole('heading', { name: 'Sapiens' });

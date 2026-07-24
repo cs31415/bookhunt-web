@@ -11,4 +11,6 @@ export interface BookSummary {
   hue: string;
   rating: number | null;
   source: BookSource;
+  googleBooksId?: string | null;
+  openLibraryId?: string | null;
 }

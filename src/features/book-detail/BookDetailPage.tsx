@@ -43,13 +43,14 @@ export function BookDetailPage() {
   const { slug = '' } = useParams();
   const [searchParams] = useSearchParams();
   const authorSlug = searchParams.get('a') ?? undefined;
+  const pid = searchParams.get('pid') ?? undefined;
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>('summary');
 
-  const { detail, authorBio, authorWorks, relatedBooks, notFound, error, reload } = useBookDetailData(
-    slug,
+  const { detail, authorBio, authorWorks, relatedBooks, notFound, error, reload } = useBookDetailData(slug, {
     authorSlug,
-  );
+    pid,
+  });
   const book = detail?.book ?? null;
   const libraryEntry = detail?.libraryEntry;
 

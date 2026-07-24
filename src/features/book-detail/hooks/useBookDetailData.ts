@@ -21,7 +21,15 @@ export interface UseBookDetailDataResult {
   reload: () => void;
 }
 
-export function useBookDetailData(slug: string, authorSlug?: string): UseBookDetailDataResult {
+export interface UseBookDetailDataOptions {
+  authorSlug?: string;
+  pid?: string;
+}
+
+export function useBookDetailData(
+  slug: string,
+  { authorSlug, pid }: UseBookDetailDataOptions = {},
+): UseBookDetailDataResult {
   const [detail, setDetail] = useState<BookDetailResult | null>(null);
   const [authorBio, setAuthorBio] = useState<string | null>(null);
   const [authorWorks, setAuthorWorks] = useState<AuthorWork[]>([]);
@@ -42,7 +50,7 @@ export function useBookDetailData(slug: string, authorSlug?: string): UseBookDet
 
       let bookResult: BookDetailResult;
       try {
-        const raw = await getBook(slug, authorSlug);
+        const raw = await getBook(slug, { authorSlug, pid });
         if (cancelled) return;
         bookResult = normalizeBookDetail(raw);
         setDetail(bookResult);
@@ -92,7 +100,7 @@ export function useBookDetailData(slug: string, authorSlug?: string): UseBookDet
     return () => {
       cancelled = true;
     };
-  }, [slug, authorSlug, reloadToken]);
+  }, [slug, authorSlug, pid, reloadToken]);
 
   return {
     detail,
