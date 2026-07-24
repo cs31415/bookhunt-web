@@ -14,6 +14,9 @@ export interface RawLibraryEntry {
   rating: number | null;
   cover_url: string | null;
   hue: string;
+  // Optional: only the Library page (LOS-81) consumes these; Discover's fixtures omit them.
+  subjects?: string[] | null;
+  date_added?: string | null;
 }
 
 export interface RawLibraryStats {
@@ -25,12 +28,16 @@ export interface LibraryEntry {
   book: BookSummary;
   status: LibraryStatus;
   notes: string | null;
+  subjects: string[];
+  addedAt: string | null;
 }
 
 export function normalizeLibraryEntry(raw: RawLibraryEntry): LibraryEntry {
   return {
     status: raw.status,
     notes: raw.notes ?? raw.review ?? null,
+    subjects: raw.subjects ?? [],
+    addedAt: raw.date_added ?? null,
     book: {
       id: raw.book_id,
       slug: raw.book_slug,

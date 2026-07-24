@@ -1,17 +1,11 @@
 import { PieChart } from '../../../../shared/components/PieChart/PieChart';
 import {
   ALL_LIBRARY_STATUSES,
+  LIBRARY_STATUS_COLORS,
   LIBRARY_STATUS_LABELS,
 } from '../../../../shared/types/library-status';
 import type { LibraryStatus } from '../../../../shared/types/library-status';
 import styles from './LibrarySnapshotCard.module.css';
-
-const STATUS_COLORS: Record<LibraryStatus, string> = {
-  queued: 'var(--slate)',
-  reading: 'var(--rust)',
-  finished: 'var(--sage)',
-  abandoned: 'var(--muted)',
-};
 
 const STATUS_BY_LABEL = new Map<string, LibraryStatus>(
   ALL_LIBRARY_STATUSES.map((status) => [LIBRARY_STATUS_LABELS[status], status]),
@@ -37,7 +31,7 @@ export function LibrarySnapshotCard({
   const slices = ALL_LIBRARY_STATUSES.filter((status) => counts[status] > 0).map((status) => ({
     label: LIBRARY_STATUS_LABELS[status],
     value: counts[status],
-    color: STATUS_COLORS[status],
+    color: LIBRARY_STATUS_COLORS[status],
   }));
 
   function handlePick(label: string) {

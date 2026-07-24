@@ -1,0 +1,21 @@
+.page {
+  padding-top: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 26px;
+}
+
+.error {
+  color: var(--rust-deep);
+  text-align: center;
+  margin: 40px 0;
+}
+
+.noMatch {
+  color: var(--ink-2);
+  text-align: center;
+  margin: 40px 0;
+}
