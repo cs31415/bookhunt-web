@@ -5,7 +5,8 @@ import { FilterSidebar } from './components/FilterSidebar/FilterSidebar';
 import { ResultsGrid } from './components/ResultsGrid/ResultsGrid';
 import { AiInterpretationBanner } from './components/AiInterpretationBanner/AiInterpretationBanner';
 import { useSearchResults } from './hooks/useSearchResults';
-import { slugify } from '../../shared/lib/slugify';
+import { buildBookHref } from '../../shared/lib/build-book-href';
+import { pluralize } from '../../shared/lib/text';
 import { parseSearchParams, withParamChange } from './search-params';
 import type { SearchResultItem } from '../../normalize/search';
 import type { LibraryStatus } from '../../shared/types/library-status';
@@ -82,22 +83,10 @@ export function SearchPage() {
   }
 
   function handleSelectResult(item: SearchResultItem) {
-    // Book Detail resolves this by slug first, falling back to a live lookup
-    // by title/author if it's not cataloged yet (see LOS-127/128) — so this
-    // is a synchronous navigation, no network round-trip needed before it.
-    // The resolved provider id (when known) rides along as `pid` so Book
-    // Detail fetches the exact same edition instead of re-searching by text
-    // and potentially landing on a different one (see LOS-135).
-    const bookSlug = slugify(item.book.title);
-    const authorSlug = slugify(item.book.authorName);
-    const params = new URLSearchParams({ a: authorSlug });
-    const pid = item.book.googleBooksId
-      ? `g:${item.book.googleBooksId}`
-      : item.book.openLibraryId
-        ? `o:${item.book.openLibraryId}`
-        : null;
-    if (pid) params.set('pid', pid);
-    navigate(`/books/${bookSlug}?${params.toString()}`);
+    // Synchronous navigation — Book Detail resolves the book itself (by slug,
+    // falling back to a live lookup by title/author when uncataloged, plus the
+    // `pid` for the exact edition). See buildBookHref / LOS-127/128/135.
+    navigate(buildBookHref(item.book));
   }
 
   return (
@@ -124,7 +113,7 @@ export function SearchPage() {
               <ResultsHeading q={parsed.q} theme={parsed.theme} mood={parsed.mood} subject={parsed.subject} />
               {!loading && parsed.q && (
                 <div className={styles.count}>
-                  {results.length} {results.length === 1 ? 'book' : 'books'}
+                  {results.length} {pluralize(results.length, 'book')}
                 </div>
               )}
             </div>

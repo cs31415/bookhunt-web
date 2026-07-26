@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { getSurname, wrapTitle } from './text';
+import { getSurname, pluralize, wrapTitle } from './text';
+
+describe('pluralize', () => {
+  it('returns the singular form for a count of 1', () => {
+    expect(pluralize(1, 'book')).toBe('book');
+  });
+
+  it('returns the plural form for any other count', () => {
+    expect(pluralize(0, 'book')).toBe('books');
+    expect(pluralize(3, 'book')).toBe('books');
+  });
+
+  it('uses an explicit plural when the default -s is wrong', () => {
+    expect(pluralize(2, 'entry', 'entries')).toBe('entries');
+  });
+});
 
 describe('getSurname', () => {
   it('returns the last token of a multi-word name', () => {
