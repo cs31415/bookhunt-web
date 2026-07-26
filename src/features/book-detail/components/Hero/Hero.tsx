@@ -46,14 +46,6 @@ export function Hero({
       <div className={styles.left}>
         <div className={styles.coverWrap}>
           <Cover book={book} width={144} />
-          <button
-            type="button"
-            title={libraryEntry ? 'Remove from library' : 'Add to library'}
-            className={libraryEntry ? styles.libButton : `${styles.libButton} ${styles.libButtonAdd}`}
-            onClick={onToggleLibrary}
-          >
-            {libraryEntry ? '–' : '+'}
-          </button>
         </div>
 
         {libraryEntry ? (

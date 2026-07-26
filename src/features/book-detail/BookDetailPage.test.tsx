@@ -184,11 +184,11 @@ describe('BookDetailPage', () => {
     );
   });
 
-  it('adds the book to the library when the cover +/- button is clicked', async () => {
+  it('adds the book to the library when the "Add to library" button is clicked', async () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });
 
-    fireEvent.click(screen.getByTitle('Add to library'));
+    fireEvent.click(screen.getByRole('button', { name: '+ Add to library' }));
 
     await waitFor(() => expect(mockedAddToLibrary).toHaveBeenCalledWith('night-watch', 'queued', undefined));
   });
@@ -284,13 +284,13 @@ describe('BookDetailPage', () => {
       expect(mockedGenerateThemes).not.toHaveBeenCalled();
     });
 
-    it('creates the catalog row on "+" and canonicalizes the URL to the real slug', async () => {
+    it('creates the catalog row on add and canonicalizes the URL to the real slug', async () => {
       mockedAddToLibrary.mockResolvedValue({ entry: {}, book: { id: 42, slug: 'sapiens' } });
 
       renderBookDetailPage('sapiens?a=yuval-noah-harari');
       await screen.findByRole('heading', { name: 'Sapiens' });
 
-      fireEvent.click(screen.getByTitle('Add to library'));
+      fireEvent.click(screen.getByRole('button', { name: '+ Add to library' }));
 
       await waitFor(() =>
         expect(mockedAddToLibrary).toHaveBeenCalledWith(
