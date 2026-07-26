@@ -4,6 +4,7 @@ import { ComponentGallery } from '../features/dev-gallery/ComponentGallery';
 import { DiscoverPage } from '../features/discover/DiscoverPage';
 import { SearchPage } from '../features/search/SearchPage';
 import { BookDetailPage } from '../features/book-detail/BookDetailPage';
+import { AuthorPage } from '../features/author/AuthorPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { LibraryPage } from '../features/library/LibraryPage';
@@ -19,7 +20,7 @@ export const router = createBrowserRouter([
       { index: true, element: discoverElement },
       { path: 'search', element: <SearchPage /> },
       { path: 'books/:slug', element: <BookDetailPage /> },
-      { path: 'authors/:slug', element: <div>Author</div> },
+      { path: 'authors/:slug', element: <AuthorPage /> },
       {
         path: 'library',
         element: (

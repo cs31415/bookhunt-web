@@ -85,9 +85,9 @@ export function useBookDetailData(
       if (cancelled) return;
 
       if (authorRaw.status === 'fulfilled') {
-        const { author, catalogWorks } = normalizeAuthor(authorRaw.value);
+        const { author, works } = normalizeAuthor(authorRaw.value);
         setAuthorBio(author.bio);
-        setAuthorWorks(catalogWorks.filter((work) => work.book.id !== bookResult.book.id));
+        setAuthorWorks(works.filter((work) => work.book.id !== bookResult.book.id));
       }
       if (relatedRaw.status === 'fulfilled') {
         setRelatedBooks(normalizeBooksByIds(relatedRaw.value));

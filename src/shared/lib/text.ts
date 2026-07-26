@@ -1,3 +1,7 @@
+export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return count === 1 ? singular : plural;
+}
+
 export function getSurname(authorName: string): string {
   const parts = authorName.trim().split(/\s+/);
   return parts[parts.length - 1];

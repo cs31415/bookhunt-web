@@ -1,0 +1,85 @@
+.page {
+  padding-top: 8px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 30px;
+  align-items: start;
+  margin-bottom: 46px;
+}
+
+.portrait {
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  line-height: 1.4;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.name {
+  font-size: clamp(30px, 4vw, 46px);
+  margin-bottom: 16px;
+}
+
+.bio {
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--ink);
+  font-family: var(--serif);
+  max-width: 680px;
+}
+
+.count {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-top: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 26px;
+}
+
+.notFound {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 20px;
+}
+
+.error {
+  color: var(--rust-deep);
+  text-align: center;
+  padding: 40px 0;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}

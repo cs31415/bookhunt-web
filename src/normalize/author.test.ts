@@ -23,13 +23,15 @@ const raw: RawGetAuthorResponse = {
       libraryStatus: null,
     },
     {
-      // External work: no bookId/slug — should be filtered out (LOS-83 territory).
+      // Provider work: no bookId/slug, resolved server-side from a provider.
       title: 'Sorry, Wrong Number, and The Hitch-hiker',
       year: 1974,
       rating: null,
       coverUrl: null,
       inLibrary: false,
       libraryStatus: null,
+      googleBooksId: 'gb-xyz',
+      openLibraryId: null,
     },
   ],
 };
@@ -47,15 +49,26 @@ describe('normalizeAuthor', () => {
     });
   });
 
-  it('filters out non-catalog works (no bookId/slug)', () => {
+  it('keeps both catalog and provider works (provider-agnostic)', () => {
     const result = normalizeAuthor(raw);
-    expect(result.catalogWorks).toHaveLength(1);
-    expect(result.catalogWorks[0].book.slug).toBe('night-watch');
+    expect(result.works).toHaveLength(2);
+    expect(result.works[0].book.slug).toBe('night-watch');
+    expect(result.works[0].book.source).toBe('catalog');
+  });
+
+  it('normalizes a provider work with a derived slug, source and provider id', () => {
+    const providerWork = normalizeAuthor(raw).works[1];
+    expect(providerWork.book.slug).toBe('sorry-wrong-number-and-the-hitch-hiker');
+    expect(providerWork.book.source).toBe('google_books');
+    expect(providerWork.book.googleBooksId).toBe('gb-xyz');
+    // A provider work gets a stable pseudo-id and hue rather than a catalog one.
+    expect(typeof providerWork.book.id).toBe('number');
+    expect(providerWork.book.hue).toMatch(/^hsl\(/);
   });
 
   it('attaches the author name/slug to each catalog work and a default hue', () => {
     const result = normalizeAuthor(raw);
-    expect(result.catalogWorks[0].book).toMatchObject({
+    expect(result.works[0].book).toMatchObject({
       authorName: 'Lucille Fletcher',
       authorSlug: 'lucille-fletcher',
       hue: '#6f7a55',
@@ -67,9 +80,9 @@ describe('normalizeAuthor', () => {
       ...raw,
       books: [{ ...raw.books[0], inLibrary: true, libraryStatus: 'reading' }],
     });
-    expect(inLib.catalogWorks[0].status).toBe('reading');
+    expect(inLib.works[0].status).toBe('reading');
 
     const notInLib = normalizeAuthor(raw);
-    expect(notInLib.catalogWorks[0].status).toBeUndefined();
+    expect(notInLib.works[0].status).toBeUndefined();
   });
 });
