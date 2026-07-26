@@ -1,5 +1,6 @@
 import type { BookSummary } from '../shared/types/book';
 import type { LibraryStatus } from '../shared/types/library-status';
+import { toNumber } from '../shared/lib/to-number';
 
 /**
  * Normalizes GET /search (catalog-only text search via fn_search_books).
@@ -53,7 +54,7 @@ export function normalizeCatalogSearchBook(raw: RawCatalogSearchBook): CatalogSe
       year: raw.year,
       coverUrl: raw.cover_url,
       hue: raw.hue,
-      rating: raw.rating,
+      rating: toNumber(raw.rating),
       source: 'catalog',
     },
     ...(raw.in_library && raw.library_status ? { status: raw.library_status } : {}),

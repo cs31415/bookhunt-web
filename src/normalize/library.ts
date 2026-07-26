@@ -1,5 +1,6 @@
 import type { BookSummary } from '../shared/types/book';
 import type { LibraryStatus } from '../shared/types/library-status';
+import { toNumber } from '../shared/lib/to-number';
 
 export interface RawLibraryEntry {
   book_id: number;
@@ -47,7 +48,7 @@ export function normalizeLibraryEntry(raw: RawLibraryEntry): LibraryEntry {
       year: raw.year,
       coverUrl: raw.cover_url,
       hue: raw.hue,
-      rating: raw.rating,
+      rating: toNumber(raw.rating),
       source: 'catalog',
     },
   };

@@ -2,6 +2,7 @@ import type { BookSummary, BookSource } from '../shared/types/book';
 import type { LibraryStatus } from '../shared/types/library-status';
 import { hashToHue, hashToId } from '../shared/lib/hash';
 import { slugify } from '../shared/lib/slugify';
+import { toNumber } from '../shared/lib/to-number';
 
 // GET /authors/:slug's `author` object is snake_case, but its `books` array
 // is already camelCase (mapped in the controller). Catalog works carry a
@@ -79,7 +80,7 @@ function normalizeWork(work: RawAuthorWork, author: AuthorDetail): AuthorWork {
     year: work.year,
     coverUrl: work.coverUrl,
     hue: isCatalog ? DEFAULT_HUE : hashToHue(seed),
-    rating: work.rating,
+    rating: toNumber(work.rating),
     source,
     googleBooksId: work.googleBooksId ?? null,
     openLibraryId: work.openLibraryId ?? null,

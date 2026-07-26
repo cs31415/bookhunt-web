@@ -1,6 +1,7 @@
 import type { BookSummary } from '../shared/types/book';
 import type { LibraryStatus } from '../shared/types/library-status';
 import { hashToHue, hashToId } from '../shared/lib/hash';
+import { toNumber } from '../shared/lib/to-number';
 
 export interface RawAiSearchBook {
   googleBooksId: string | null;
@@ -55,7 +56,7 @@ export function normalizeAiSearchBook(raw: RawAiSearchBook): SearchResultItem {
       year: raw.year,
       coverUrl: isResolved ? raw.coverUrl : null,
       hue: hashToHue(seed),
-      rating: raw.rating,
+      rating: toNumber(raw.rating),
       source: raw.googleBooksId ? 'google_books' : raw.openLibraryId ? 'open_library' : 'catalog',
       googleBooksId: raw.googleBooksId,
       openLibraryId: raw.openLibraryId,
