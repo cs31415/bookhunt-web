@@ -1,4 +1,5 @@
 import type { BookSummary } from '../shared/types/book';
+import { toNumber } from '../shared/lib/to-number';
 
 export interface RawRecommendation {
   book: {
@@ -32,7 +33,7 @@ export function normalizeRecommendation(raw: RawRecommendation): Recommendation 
       year: raw.book.year,
       coverUrl: raw.book.coverUrl,
       hue: raw.book.hue,
-      rating: raw.book.rating,
+      rating: toNumber(raw.book.rating),
       source: 'catalog',
     },
   };

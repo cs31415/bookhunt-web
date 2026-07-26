@@ -1,4 +1,5 @@
 import type { BookSummary } from '../shared/types/book';
+import { toNumber } from '../shared/lib/to-number';
 
 // GET /books?ids=... already camelCases its rows in the controller.
 export interface RawBookSummary {
@@ -18,5 +19,5 @@ export interface RawGetBooksByIdsResponse {
 }
 
 export function normalizeBooksByIds(raw: RawGetBooksByIdsResponse): BookSummary[] {
-  return raw.books.map((b) => ({ ...b, source: 'catalog' }));
+  return raw.books.map((b) => ({ ...b, rating: toNumber(b.rating), source: 'catalog' }));
 }

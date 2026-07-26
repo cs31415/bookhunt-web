@@ -1,5 +1,6 @@
 import type { BookSummary } from '../shared/types/book';
 import type { LibraryStatus } from '../shared/types/library-status';
+import { toNumber } from '../shared/lib/to-number';
 
 // GET /books/:slug does not camelCase its response (unlike /recommendations),
 // so these Raw types reflect the actual snake_case shape returned by the API.
@@ -83,7 +84,7 @@ export function normalizeBookDetail(raw: RawGetBookResponse): BookDetailResult {
       year: b.year,
       coverUrl: b.cover_url,
       hue: b.hue,
-      rating: b.rating,
+      rating: toNumber(b.rating),
       source: 'catalog',
       publisher: b.publisher,
       pages: b.pages,

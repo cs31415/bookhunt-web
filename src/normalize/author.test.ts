@@ -75,6 +75,17 @@ describe('normalizeAuthor', () => {
     });
   });
 
+  it('coerces a string rating (Postgres NUMERIC) to a number so BookCard can format it', () => {
+    // The API serializes NUMERIC ratings as strings ("4.5"); a raw pass-through
+    // makes BookCard's rating.toFixed(1) throw and crashes the Author page.
+    const result = normalizeAuthor({
+      ...raw,
+      books: [{ ...raw.books[0], rating: '4.5' as unknown as number }],
+    });
+    expect(result.works[0].book.rating).toBe(4.5);
+    expect(typeof result.works[0].book.rating).toBe('number');
+  });
+
   it('includes status only when the work is in the library', () => {
     const inLib = normalizeAuthor({
       ...raw,
