@@ -1,5 +1,6 @@
 import { BookRow } from '../../../../shared/components/BookRow/BookRow';
 import { getSurname } from '../../../../shared/lib/text';
+import { RichText } from '../../../../shared/lib/rich-text';
 import type { AuthorWork } from '../../../../normalize/author';
 import styles from './Sidebar.module.css';
 
@@ -32,7 +33,7 @@ export function Sidebar({ authorName, authorBio, works, onOpenAuthor, onSelectBo
         <button type="button" className={styles.authorLink} onClick={onOpenAuthor}>
           {authorName}
         </button>
-        {authorBio && <p className={styles.bio}>{authorBio}</p>}
+        {authorBio && <RichText className={styles.bio} text={authorBio} />}
       </div>
     </aside>
   );

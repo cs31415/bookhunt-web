@@ -1,0 +1,10 @@
+/* Paragraph spacing lives here so callers can pass their own text styling
+   (font, color, max-width) via the wrapper className and inherit it, while
+   multi-paragraph blocks still get consistent spacing. */
+.paragraph {
+  margin: 0;
+}
+
+.paragraph + .paragraph {
+  margin-top: 0.9em;
+}
