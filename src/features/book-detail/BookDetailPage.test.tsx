@@ -5,7 +5,6 @@ import { BookDetailPage } from './BookDetailPage';
 import { getBook } from '../../api/books/get-book';
 import { getAuthor } from '../../api/authors/get-author';
 import { getBooksByIds } from '../../api/books/get-books-by-ids';
-import { getSummary } from '../../api/ai/get-summary';
 import { generateThemes, generateThemesExternal } from '../../api/ai/generate-themes';
 import { getLibrary } from '../../api/library/get-library';
 import { addToLibrary } from '../../api/library/add-to-library';
@@ -16,7 +15,6 @@ import { ApiError } from '../../api/client';
 vi.mock('../../api/books/get-book');
 vi.mock('../../api/authors/get-author');
 vi.mock('../../api/books/get-books-by-ids');
-vi.mock('../../api/ai/get-summary');
 vi.mock('../../api/ai/generate-themes');
 vi.mock('../../api/library/get-library');
 vi.mock('../../api/library/add-to-library');
@@ -28,7 +26,6 @@ vi.mock('../../api/library/remove-related');
 const mockedGetBook = vi.mocked(getBook);
 const mockedGetAuthor = vi.mocked(getAuthor);
 const mockedGetBooksByIds = vi.mocked(getBooksByIds);
-const mockedGetSummary = vi.mocked(getSummary);
 const mockedGenerateThemes = vi.mocked(generateThemes);
 const mockedGenerateThemesExternal = vi.mocked(generateThemesExternal);
 const mockedGetLibrary = vi.mocked(getLibrary);
@@ -101,7 +98,6 @@ function setupHappyPathMocks() {
   mockedGetBook.mockResolvedValue({ book: rawBook, inLibrary: false });
   mockedGetAuthor.mockResolvedValue(rawAuthor);
   mockedGetBooksByIds.mockResolvedValue({ books: [] });
-  mockedGetSummary.mockResolvedValue({ bookId: 95, summary: 'A gripping summary.', generatedAt: null });
   mockedGenerateThemes.mockResolvedValue({ genres: [], themes: [], moods: [] });
   mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
   mockedAddToLibrary.mockResolvedValue({ entry: {}, book: { id: 95, slug: 'night-watch' } });
@@ -134,17 +130,9 @@ describe('BookDetailPage', () => {
     expect(await screen.findByText('Book not found.')).toBeInTheDocument();
   });
 
-  it('shows the AI summary once loaded on the Summary tab', async () => {
-    renderBookDetailPage('night-watch');
-
-    expect(await screen.findByText('A gripping summary.')).toBeInTheDocument();
-  });
-
-  it('switches to the My Notes tab and shows the rating control', async () => {
+  it('shows the notes section with the rating control', async () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });
-
-    fireEvent.click(screen.getByRole('button', { name: 'My notes' }));
 
     expect(await screen.findByText('Your rating')).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Quotes, page references/)).toBeInTheDocument();
@@ -198,7 +186,6 @@ describe('BookDetailPage', () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'My notes' }));
     const textarea = await screen.findByPlaceholderText(/Quotes, page references/);
     fireEvent.change(textarea, { target: { value: 'A note' } });
 
@@ -241,15 +228,12 @@ describe('BookDetailPage', () => {
       mockedGenerateThemesExternal.mockResolvedValue({ genres: [], themes: [], moods: [] });
     });
 
-    it('renders using the live-resolved data, skips author/related fetches, and shows the blurb as the summary', async () => {
+    it('renders using the live-resolved data and skips author/related fetches', async () => {
       renderBookDetailPage('sapiens?a=yuval-noah-harari');
 
       expect(await screen.findByRole('heading', { name: 'Sapiens' })).toBeInTheDocument();
-      // Renders both in Hero's blurb paragraph and as the Summary tab's content
-      // (since the summary equals the blurb when ephemeral), same duplication
-      // pattern the author name already has between Hero and Sidebar.
+      // The blurb is rendered in Hero.
       expect((await screen.findAllByText('A brief history of humankind.')).length).toBeGreaterThan(0);
-      expect(mockedGetSummary).not.toHaveBeenCalled();
       expect(mockedGetAuthor).not.toHaveBeenCalled();
       expect(mockedGetBooksByIds).not.toHaveBeenCalled();
     });

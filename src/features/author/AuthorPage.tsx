@@ -3,6 +3,7 @@ import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { SectionHead } from '../../shared/components/SectionHead/SectionHead';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { pluralize } from '../../shared/lib/text';
+import { RichText } from '../../shared/lib/rich-text';
 import { useAuthorData } from './hooks/useAuthorData';
 import styles from './AuthorPage.module.css';
 
@@ -51,7 +52,7 @@ export function AuthorPage() {
         <div>
           <div className={styles.eyebrow}>{metaLine(author.country, author.birthYear)}</div>
           <h1 className={styles.name}>{author.name}</h1>
-          {author.bio && <p className={styles.bio}>{author.bio}</p>}
+          {author.bio && <RichText className={styles.bio} text={author.bio} />}
           <div className={styles.count}>
             {works.length} {pluralize(works.length, 'book')}
           </div>

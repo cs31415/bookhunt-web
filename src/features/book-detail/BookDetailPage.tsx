@@ -1,15 +1,10 @@
-import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Hero } from './components/Hero/Hero';
 import { SpecificationsCard } from './components/SpecificationsCard/SpecificationsCard';
-import { Tabs } from './components/Tabs/Tabs';
-import type { TabId } from './components/Tabs/Tabs';
-import { SummaryTab } from './components/SummaryTab/SummaryTab';
 import { NotesTab } from './components/NotesTab/NotesTab';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { RelatedReads } from './components/RelatedReads/RelatedReads';
 import { useBookDetailData } from './hooks/useBookDetailData';
-import { useSummary } from './hooks/useSummary';
 import { useThemes } from './hooks/useThemes';
 import { useRelatedReads } from './hooks/useRelatedReads';
 import { addToLibrary } from '../../api/library/add-to-library';
@@ -45,7 +40,6 @@ export function BookDetailPage() {
   const authorSlug = searchParams.get('a') ?? undefined;
   const pid = searchParams.get('pid') ?? undefined;
   const navigate = useNavigate();
-  const [tab, setTab] = useState<TabId>('summary');
 
   const { detail, authorBio, authorWorks, relatedBooks, notFound, error, reload } = useBookDetailData(slug, {
     authorSlug,
@@ -54,11 +48,6 @@ export function BookDetailPage() {
   const book = detail?.book ?? null;
   const libraryEntry = detail?.libraryEntry;
 
-  const { summary, loading: summaryLoading, error: summaryError, regenerate } = useSummary(
-    book?.cataloged ? book.id : null,
-    book?.cataloged ?? true,
-    book?.blurb ?? '',
-  );
   const { themes, moods, loading: themesLoading } = useThemes(
     book?.cataloged ? book.id : null,
     book?.genres ?? [],
@@ -203,28 +192,16 @@ export function BookDetailPage() {
         }
       />
 
-      <Tabs active={tab} hasNote={Boolean(libraryEntry?.notes)} onChange={setTab} />
-
       <div className={styles.body}>
         <div className={styles.main}>
-          {tab === 'summary' && (
-            <SummaryTab
-              loading={summaryLoading}
-              error={summaryError}
-              summary={summary}
-              blurb={book.blurb}
-              onRegenerate={regenerate}
-            />
-          )}
-          {tab === 'notes' && (
-            <NotesTab
-              userRating={libraryEntry?.userRating ?? 0}
-              initialNotes={libraryEntry?.notes ?? ''}
-              inLibrary={Boolean(libraryEntry)}
-              onRatingChange={handleRate}
-              onSaveNotes={handleSaveNotes}
-            />
-          )}
+          <h2 className={styles.sectionHeading}>My notes</h2>
+          <NotesTab
+            userRating={libraryEntry?.userRating ?? 0}
+            initialNotes={libraryEntry?.notes ?? ''}
+            inLibrary={Boolean(libraryEntry)}
+            onRatingChange={handleRate}
+            onSaveNotes={handleSaveNotes}
+          />
         </div>
 
         <Sidebar

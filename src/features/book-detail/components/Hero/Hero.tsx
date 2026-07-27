@@ -4,6 +4,7 @@ import { Stars } from '../../../../shared/components/Stars/Stars';
 import type { BookDetail, LibraryEntrySummary } from '../../../../normalize/book-detail';
 import type { LibraryStatus } from '../../../../shared/types/library-status';
 import { readTime } from '../../../../shared/lib/read-time';
+import { RichText } from '../../../../shared/lib/rich-text';
 import styles from './Hero.module.css';
 
 export interface HeroProps {
@@ -99,7 +100,7 @@ export function Hero({
         </div>
 
         {meta && <div className={styles.meta}>{meta}</div>}
-        <p className={styles.blurb}>{book.blurb}</p>
+        <RichText className={styles.blurb} text={book.blurb} />
 
         <div className={styles.themesBlock}>
           <span className={styles.eyebrow}>Themes</span>

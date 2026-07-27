@@ -16,6 +16,15 @@
   padding: 40px 0;
 }
 
+.sectionHeading {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  padding: 0 0 12px;
+  margin: 32px 0 20px;
+}
+
 .body {
   display: grid;
   grid-template-columns: 1fr 300px;
