@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/AuthContext';
-import { SearchBar } from '../../components/SearchBar/SearchBar';
 import { BackArrowIcon, LogoMark, UserIcon } from '../icons';
 import { NAV_ITEMS } from '../nav-items';
 import styles from './TopBar.module.css';
@@ -10,7 +9,7 @@ function isActivePath(pathname: string, path: string): boolean {
   return path === '/' ? pathname === '/' : pathname.startsWith(path);
 }
 
-function AccountMenu({ pushRight }: { pushRight: boolean }) {
+function AccountMenu() {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -37,11 +36,9 @@ function AccountMenu({ pushRight }: { pushRight: boolean }) {
     };
   }, [open]);
 
-  const avatarClass = pushRight ? `${styles.avatar} ${styles.avatarPushRight}` : styles.avatar;
-
   if (!isAuthenticated) {
     return (
-      <Link to="/login" className={avatarClass} aria-label="Sign in">
+      <Link to="/login" className={`${styles.avatar} ${styles.avatarPushRight}`} aria-label="Sign in">
         <UserIcon className={styles.avatarIcon} />
       </Link>
     );
@@ -54,10 +51,7 @@ function AccountMenu({ pushRight }: { pushRight: boolean }) {
   }
 
   return (
-    <div
-      className={pushRight ? `${styles.account} ${styles.accountPushRight}` : styles.account}
-      ref={containerRef}
-    >
+    <div className={`${styles.account} ${styles.accountPushRight}`} ref={containerRef}>
       <button
         type="button"
         className={`${styles.avatar} ${styles.avatarButton}`}
@@ -80,27 +74,9 @@ function AccountMenu({ pushRight }: { pushRight: boolean }) {
   );
 }
 
-function SearchField({
-  initialQuery,
-  onSubmit,
-}: {
-  initialQuery: string;
-  onSubmit: (query: string) => void;
-}) {
-  const [query, setQuery] = useState(initialQuery);
-
-  return (
-    <div className={styles.searchForm}>
-      <SearchBar value={query} onChange={setQuery} onSubmit={onSubmit} placeholder="Search…" />
-    </div>
-  );
-}
-
 export function TopBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const initialQuery = searchParams.get('q') ?? '';
 
   return (
     <header className={styles.bar}>
@@ -129,15 +105,7 @@ export function TopBar() {
         })}
       </nav>
 
-      {pathname !== '/' && (
-        <SearchField
-          key={initialQuery}
-          initialQuery={initialQuery}
-          onSubmit={(query) => navigate(`/search?q=${encodeURIComponent(query)}`)}
-        />
-      )}
-
-      <AccountMenu pushRight={pathname === '/'} />
+      <AccountMenu />
     </header>
   );
 }

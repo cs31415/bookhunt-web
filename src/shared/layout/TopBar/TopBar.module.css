@@ -87,12 +87,6 @@
   border-radius: 2px;
 }
 
-.searchForm {
-  flex: 1;
-  max-width: 380px;
-  margin-left: auto;
-}
-
 .avatar {
   display: flex;
   align-items: center;

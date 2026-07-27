@@ -47,23 +47,17 @@ afterEach(() => {
 });
 
 describe('TopBar', () => {
-  it('marks Discover active and hides the search field on the index route', () => {
+  it('marks Discover active on the index route', () => {
     renderAt('/');
     expect(screen.getByRole('link', { name: 'Discover' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Search' })).not.toHaveAttribute('aria-current');
-    expect(screen.queryByLabelText('Search')).not.toBeInTheDocument();
   });
 
-  it('marks Search active and shows the search field on /search', () => {
+  it('marks Search active on /search and renders no header search field', () => {
     renderAt('/search');
     expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Discover' })).not.toHaveAttribute('aria-current');
-    expect(screen.getByLabelText('Search')).toBeInTheDocument();
-  });
-
-  it('pre-fills the search field from the q search param', () => {
-    renderAt('/search?q=dune');
-    expect(screen.getByLabelText('Search')).toHaveValue('dune');
+    expect(screen.queryByLabelText('Search')).not.toBeInTheDocument();
   });
 
   it('navigates to /search when the Search nav link is clicked', () => {
@@ -71,13 +65,6 @@ describe('TopBar', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Search' }));
     expect(screen.getByTestId('location')).toHaveTextContent('/search');
     expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
-  });
-
-  it('submits the header search field to /search?q=...', () => {
-    renderAt('/search');
-    fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'dune' } });
-    fireEvent.submit(screen.getByLabelText('Search').closest('form')!);
-    expect(screen.getByTestId('location')).toHaveTextContent('/search?q=dune');
   });
 
   it('shows a Sign in link to /login when logged out', () => {
