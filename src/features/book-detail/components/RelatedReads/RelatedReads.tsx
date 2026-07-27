@@ -3,12 +3,13 @@ import { SectionHead } from '../../../../shared/components/SectionHead/SectionHe
 import { RelatedCard } from './RelatedCard';
 import { RelatedPicker } from './RelatedPicker';
 import type { RelatedWork } from '../../hooks/useRelatedReads';
+import type { BookSummary } from '../../../../shared/types/book';
 import styles from './RelatedReads.module.css';
 
 export interface RelatedReadsProps {
   works: RelatedWork[];
   inLibrary: boolean;
-  onOpenBook: (slug: string) => void;
+  onOpenBook: (book: BookSummary) => void;
   onRemoveRelated: (bookId: number) => void;
   onAddRelated: (bookId: number) => void;
   onAddToLibrary: (slug: string) => void;
@@ -66,7 +67,7 @@ export function RelatedReads({
               source={source}
               inLibrary={bookInLibrary}
               status={status}
-              onOpen={() => onOpenBook(book.slug)}
+              onOpen={() => onOpenBook(book)}
               onRemove={source === 'you' ? () => onRemoveRelated(book.id) : undefined}
               onToggleLibrary={() =>
                 bookInLibrary ? onRemoveFromLibrary(book.id) : onAddToLibrary(book.slug)

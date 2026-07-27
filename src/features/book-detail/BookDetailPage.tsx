@@ -15,6 +15,7 @@ import { addRelated } from '../../api/library/add-related';
 import { removeRelated } from '../../api/library/remove-related';
 import type { BookDetail } from '../../normalize/book-detail';
 import type { LibraryStatus } from '../../shared/types/library-status';
+import { buildBookHref } from '../../shared/lib/build-book-href';
 import styles from './BookDetailPage.module.css';
 
 function rawFieldsFor(book: BookDetail): AddToLibraryRawFields {
@@ -103,7 +104,7 @@ export function BookDetailPage() {
     const wasEphemeral = !book.cataloged;
     const real = await ensureAddedToLibrary('queued');
     if (wasEphemeral) {
-      navigate(`/books/${real.slug}`, { replace: true });
+      navigate(buildBookHref({ ...book, slug: real.slug }), { replace: true });
     } else {
       reload();
     }
@@ -125,7 +126,7 @@ export function BookDetailPage() {
     const real = await ensureAddedToLibrary('queued');
     await updateEntry(real.id, { userRating: rating });
     if (wasEphemeral) {
-      navigate(`/books/${real.slug}`, { replace: true });
+      navigate(buildBookHref({ ...book, slug: real.slug }), { replace: true });
     } else {
       reload();
     }
@@ -137,7 +138,7 @@ export function BookDetailPage() {
     const real = await ensureAddedToLibrary('queued');
     await updateEntry(real.id, { notes });
     if (wasEphemeral) {
-      navigate(`/books/${real.slug}`, { replace: true });
+      navigate(buildBookHref({ ...book, slug: real.slug }), { replace: true });
     } else {
       reload();
     }
@@ -209,14 +210,14 @@ export function BookDetailPage() {
           authorBio={authorBio}
           works={authorWorks}
           onOpenAuthor={() => navigate(`/authors/${book.authorSlug}`)}
-          onSelectBook={(bookSlug) => navigate(`/books/${bookSlug}`)}
+          onSelectBook={(selected) => navigate(buildBookHref(selected))}
         />
       </div>
 
       <RelatedReads
         works={relatedReads.works}
         inLibrary={Boolean(libraryEntry)}
-        onOpenBook={(bookSlug) => navigate(`/books/${bookSlug}`)}
+        onOpenBook={(opened) => navigate(buildBookHref(opened))}
         onAddRelated={handleAddRelated}
         onRemoveRelated={handleRemoveRelated}
         onAddToLibrary={handleAddRelatedBookToLibrary}

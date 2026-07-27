@@ -2,6 +2,7 @@ import { BookRow } from '../../../../shared/components/BookRow/BookRow';
 import { getSurname } from '../../../../shared/lib/text';
 import { RichText } from '../../../../shared/lib/rich-text';
 import type { AuthorWork } from '../../../../normalize/author';
+import type { BookSummary } from '../../../../shared/types/book';
 import styles from './Sidebar.module.css';
 
 export interface SidebarProps {
@@ -9,7 +10,7 @@ export interface SidebarProps {
   authorBio: string | null;
   works: AuthorWork[];
   onOpenAuthor: () => void;
-  onSelectBook: (slug: string) => void;
+  onSelectBook: (book: BookSummary) => void;
 }
 
 export function Sidebar({ authorName, authorBio, works, onOpenAuthor, onSelectBook }: SidebarProps) {
@@ -19,7 +20,7 @@ export function Sidebar({ authorName, authorBio, works, onOpenAuthor, onSelectBo
         <div className={styles.eyebrow}>More by {getSurname(authorName)}</div>
         <div className={styles.list}>
           {works.map(({ book, status }) => (
-            <BookRow key={book.id} book={book} status={status} onClick={() => onSelectBook(book.slug)} />
+            <BookRow key={book.id} book={book} status={status} onClick={() => onSelectBook(book)} />
           ))}
         </div>
       </aside>

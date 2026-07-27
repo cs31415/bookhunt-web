@@ -1,11 +1,12 @@
 import { Cover } from '../../../../shared/components/Cover/Cover';
 import { SectionHead } from '../../../../shared/components/SectionHead/SectionHead';
 import type { LibraryEntry } from '../../../../normalize/library';
+import type { BookSummary } from '../../../../shared/types/book';
 import styles from './CurrentlyReadingSection.module.css';
 
 export interface CurrentlyReadingSectionProps {
   entries: LibraryEntry[];
-  onSelectBook: (slug: string) => void;
+  onSelectBook: (book: BookSummary) => void;
 }
 
 export function CurrentlyReadingSection({ entries, onSelectBook }: CurrentlyReadingSectionProps) {
@@ -19,9 +20,9 @@ export function CurrentlyReadingSection({ entries, onSelectBook }: CurrentlyRead
             className={styles.card}
             role="button"
             tabIndex={0}
-            onClick={() => onSelectBook(entry.book.slug)}
+            onClick={() => onSelectBook(entry.book)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') onSelectBook(entry.book.slug);
+              if (event.key === 'Enter' || event.key === ' ') onSelectBook(entry.book);
             }}
           >
             <Cover book={entry.book} width={78} />
