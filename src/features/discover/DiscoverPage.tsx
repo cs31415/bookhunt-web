@@ -6,6 +6,8 @@ import { CurrentlyReadingSection } from './components/CurrentlyReadingSection/Cu
 import { RecommendedSection } from './components/RecommendedSection/RecommendedSection';
 import { LibrarySnapshotCard } from './components/LibrarySnapshotCard/LibrarySnapshotCard';
 import { useDiscoverData } from './hooks/useDiscoverData';
+import { buildBookHref } from '../../shared/lib/build-book-href';
+import type { BookSummary } from '../../shared/types/book';
 import { EXAMPLE_QUERIES } from './example-queries';
 import styles from './DiscoverPage.module.css';
 
@@ -37,8 +39,8 @@ export function DiscoverPage() {
     navigate(`/search?q=${encodeURIComponent(query)}`);
   }
 
-  function goToBook(slug: string) {
-    navigate(`/books/${slug}`);
+  function goToBook(book: BookSummary) {
+    navigate(buildBookHref(book));
   }
 
   return (

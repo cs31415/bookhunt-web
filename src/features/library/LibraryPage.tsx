@@ -5,6 +5,7 @@ import { Loader } from '../../shared/components/Loader/Loader';
 import { Pagination } from '../../shared/components/Pagination/Pagination';
 import { ALL_LIBRARY_STATUSES } from '../../shared/types/library-status';
 import type { LibraryStatus } from '../../shared/types/library-status';
+import { buildBookHref } from '../../shared/lib/build-book-href';
 import { LibraryHeader } from './components/LibraryHeader/LibraryHeader';
 import { LibraryCharts } from './components/LibraryCharts/LibraryCharts';
 import { StatusTabs } from './components/StatusTabs/StatusTabs';
@@ -128,7 +129,7 @@ export function LibraryPage() {
               key={entry.book.id}
               book={entry.book}
               status={entry.status}
-              onClick={() => navigate(`/books/${entry.book.slug}`)}
+              onClick={() => navigate(buildBookHref(entry.book))}
             />
           ))}
         </div>
