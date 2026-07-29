@@ -7,6 +7,8 @@ export interface FilterSidebarProps {
   parsed: ParsedSearchParams;
   availableCategories: string[];
   availableMoods: string[];
+  /** False when signed out — there's no library to filter against. */
+  canFilterByLibrary: boolean;
   onToggleInLibraryOnly: () => void;
   onSelectCategory: (category: string) => void;
   onSelectMood: (mood: string) => void;
@@ -49,6 +51,7 @@ export function FilterSidebar({
   parsed,
   availableCategories,
   availableMoods,
+  canFilterByLibrary,
   onToggleInLibraryOnly,
   onSelectCategory,
   onSelectMood,
@@ -60,12 +63,23 @@ export function FilterSidebar({
 
   return (
     <aside className={styles.rail}>
-      <label className={styles.toggleRow} onClick={onToggleInLibraryOnly}>
+      {/* A real switch rather than a click-handling label: `disabled` then blocks
+          both pointer and keyboard activation, and screen readers announce the
+          on/off state and why it's unavailable. */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={parsed.inLibraryOnly}
+        disabled={!canFilterByLibrary}
+        title={canFilterByLibrary ? undefined : 'Sign in to filter by your library'}
+        className={styles.toggleRow}
+        onClick={onToggleInLibraryOnly}
+      >
         <span className={parsed.inLibraryOnly ? `${styles.toggle} ${styles.toggleOn}` : styles.toggle}>
           <span className={styles.toggleKnob} />
         </span>
         <span>In my library only</span>
-      </label>
+      </button>
 
       <FilterGroup
         title="Category"

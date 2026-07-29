@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
 import { FilterSidebar } from './components/FilterSidebar/FilterSidebar';
 import { ResultsGrid } from './components/ResultsGrid/ResultsGrid';
@@ -64,9 +65,23 @@ function ResultsHeading({
 
 export function SearchPage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const parsed = parseSearchParams(searchParams);
-  const { results, loading, error, availableCategories, availableMoods } = useSearchResults(searchParams);
+
+  // A signed-out visitor can still arrive at ?inLibraryOnly=true — a shared
+  // link, a bookmark, or a session that expired mid-search. Ignore the param
+  // rather than stripping it from the URL: the toggle is disabled, so honouring
+  // it would filter every result away with no way to switch it back off. Left in
+  // the URL, the intent is restored as soon as they sign in.
+  const effectiveParams = useMemo(() => {
+    if (isAuthenticated || !searchParams.has('inLibraryOnly')) return searchParams;
+    const next = new URLSearchParams(searchParams);
+    next.delete('inLibraryOnly');
+    return next;
+  }, [isAuthenticated, searchParams]);
+
+  const parsed = parseSearchParams(effectiveParams);
+  const { results, loading, error, availableCategories, availableMoods } = useSearchResults(effectiveParams);
   const [queryInput, setQueryInput] = useState(parsed.q);
   const [syncedQ, setSyncedQ] = useState(parsed.q);
   if (parsed.q !== syncedQ) {
@@ -100,6 +115,7 @@ export function SearchPage() {
           parsed={parsed}
           availableCategories={availableCategories}
           availableMoods={availableMoods}
+          canFilterByLibrary={isAuthenticated}
           onToggleInLibraryOnly={() => update({ inLibraryOnly: parsed.inLibraryOnly ? null : 'true' })}
           onSelectCategory={(subject) => update({ subject: parsed.subject === subject ? null : subject })}
           onSelectMood={(mood) => update({ mood: parsed.mood === mood ? null : mood })}
