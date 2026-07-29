@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { uploadToPresigned } from './upload-to-presigned';
+import { UploadError, uploadToPresigned } from './upload-to-presigned';
 import type { PresignedUpload } from './presign';
 
 const policy: PresignedUpload = {
@@ -25,7 +25,7 @@ describe('uploadToPresigned', () => {
   });
 
   it('POSTs a multipart form to the policy url with every field replayed', async () => {
-    fetchMock.mockResolvedValue({ ok: true, status: 204 });
+    fetchMock.mockResolvedValue({ ok: true, status: 204, text: async () => '' });
 
     await uploadToPresigned(policy, makeFile());
 
@@ -41,7 +41,7 @@ describe('uploadToPresigned', () => {
   });
 
   it('appends the file last, since S3 ignores fields that follow it', async () => {
-    fetchMock.mockResolvedValue({ ok: true, status: 204 });
+    fetchMock.mockResolvedValue({ ok: true, status: 204, text: async () => '' });
 
     await uploadToPresigned(policy, makeFile());
 
@@ -51,16 +51,44 @@ describe('uploadToPresigned', () => {
   });
 
   it('sends no headers, so the auth token and JSON content-type never break the signature', async () => {
-    fetchMock.mockResolvedValue({ ok: true, status: 204 });
+    fetchMock.mockResolvedValue({ ok: true, status: 204, text: async () => '' });
 
     await uploadToPresigned(policy, makeFile());
 
     expect(fetchMock.mock.calls[0][1].headers).toBeUndefined();
   });
 
-  it('throws when S3 rejects the upload', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 403 });
+  it('surfaces S3’s own explanation when it rejects the upload', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => '<Error><Code>AccessDenied</Code></Error>',
+    });
 
-    await expect(uploadToPresigned(policy, makeFile())).rejects.toThrow('403');
+    // The XML body is the only thing distinguishing an expired policy from a
+    // content-type mismatch from a size violation — all of them 403.
+    await expect(uploadToPresigned(policy, makeFile())).rejects.toThrow('AccessDenied');
+    await expect(uploadToPresigned(policy, makeFile())).rejects.toThrow('shelf.jpg');
+  });
+
+  it('reports a status and key on an S3 rejection', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 403, text: async () => '' });
+
+    await expect(uploadToPresigned(policy, makeFile())).rejects.toMatchObject({
+      name: 'UploadError',
+      status: 403,
+      key: 'uploads/7/abc',
+    });
+  });
+
+  it('names CORS as the likely cause when the request never reaches S3', async () => {
+    // fetch rejects rather than resolving: no response, no status, and nothing
+    // logged server-side because this request never touches the API.
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    const error = await uploadToPresigned(policy, makeFile()).catch((e) => e);
+    expect(error).toBeInstanceOf(UploadError);
+    expect(error.status).toBeNull();
+    expect(error.message).toContain('CORS');
   });
 });

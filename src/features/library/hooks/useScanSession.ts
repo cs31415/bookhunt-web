@@ -10,7 +10,7 @@ import {
   presignUploads,
 } from '../../../api/upload/presign';
 import { mapWithConcurrency } from '../../../shared/lib/map-with-concurrency';
-import { uploadToPresigned } from '../../../api/upload/upload-to-presigned';
+import { UploadError, uploadToPresigned } from '../../../api/upload/upload-to-presigned';
 import { scanShelves } from '../../../api/upload/scan';
 import type { RawDetectedBook } from '../../../api/upload/scan';
 import { normalizeDetectedBook, rawFieldsForDetected } from '../../../normalize/detected-book';
@@ -24,6 +24,7 @@ export type ScanPhase = 'upload' | 'processing' | 'results' | 'error';
 export const SCAN_STATUS_CYCLE: LibraryStatus[] = ['queued', 'reading', 'finished'];
 
 const GENERIC_ERROR = "Couldn't read your photos — please try again.";
+const UPLOAD_ERROR = "Couldn't upload your photos — please try again.";
 const RATE_LIMIT_ERROR = 'Too many scans right now — try again in a minute.';
 const HEIC_ERROR =
   "HEIC photos aren't supported yet — pick from your photo library, or set Settings › Camera › Formats to “Most Compatible”.";
@@ -50,6 +51,10 @@ export interface UseScanSessionResult {
 }
 
 function messageFor(error: unknown): string {
+  // Distinct copy per phase: an upload that never reached S3 leaves no trace on
+  // the API, so telling the user we couldn't "read" their photos points whoever
+  // debugs it at entirely the wrong half of the flow.
+  if (error instanceof UploadError) return UPLOAD_ERROR;
   if (!(error instanceof ApiError)) return GENERIC_ERROR;
   if (error.status === 429) return RATE_LIMIT_ERROR;
   // 400s are validation messages meant to be actionable — notably the photo-count
@@ -191,6 +196,9 @@ export function useScanSession(options: UseScanSessionOptions): UseScanSessionRe
       setPhase('results');
       completeRef.current?.(next.length);
     } catch (e) {
+      // Always logged: the on-screen copy is deliberately vague, and an S3
+      // failure produces no server-side record to cross-reference.
+      console.error('[scan] failed', e);
       if (runId !== runIdRef.current) return;
       setError(messageFor(e));
       setPhase('error');

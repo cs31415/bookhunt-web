@@ -1,8 +1,8 @@
 import { beginRequest, endRequest } from './api-activity';
 import { getToken } from './auth/token';
+import { logFailure, logRequest, logResponse } from './log';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
-const LOG_API_CALLS = import.meta.env.VITE_LOG_API_CALLS === 'true';
 
 export function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
@@ -31,32 +31,34 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   const method = fetchOptions.method ?? 'GET';
-  if (LOG_API_CALLS) {
-    console.log(`[api] → ${method} ${path}`, fetchOptions.body ?? '');
-  }
+  logRequest(method, path, fetchOptions.body);
 
   if (!silent) beginRequest();
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, { ...fetchOptions, headers });
+  } catch (error) {
+    // fetch only rejects when no response arrived at all — DNS, connection
+    // refused, or a CORS block. None of those reach the server, so this is the
+    // only place they're visible.
+    if (!isAbortError(error)) logFailure(method, `${API_URL}${path}`, error);
+    throw error;
   } finally {
     if (!silent) endRequest();
   }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({ error: response.statusText }));
-    if (LOG_API_CALLS) {
-      console.log(`[api] ← ${method} ${path} ${response.status}`, body);
-    }
+    logResponse(method, path, response.status, body);
     throw new ApiError(response.status, body.error ?? response.statusText);
   }
 
   if (response.status === 204) {
-    if (LOG_API_CALLS) console.log(`[api] ← ${method} ${path} ${response.status}`);
+    logResponse(method, path, response.status);
     return undefined as T;
   }
 
   const data = await response.json();
-  if (LOG_API_CALLS) console.log(`[api] ← ${method} ${path} ${response.status}`, data);
+  logResponse(method, path, response.status, data);
   return data as T;
 }
