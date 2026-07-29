@@ -107,8 +107,8 @@ export function ScanModal({ session, onClose }: ScanModalProps) {
               <div className={styles.dropIcon}>📷</div>
               <div className={styles.dropTitle}>Drop a photo of your bookshelf</div>
               <p className={styles.dropHint}>
-                We’ll read the spines and match them to the catalog. Click to choose photos — add
-                several shelf angles at once.
+                We’ll read the spines and find each book. Click to choose photos — add several
+                shelf angles at once.
               </p>
               <input
                 ref={fileRef}
