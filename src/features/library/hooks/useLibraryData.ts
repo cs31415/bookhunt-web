@@ -8,6 +8,7 @@ export interface UseLibraryDataResult {
   total: number;
   loading: boolean;
   error: string | null;
+  reload: () => void;
 }
 
 // The whole library comes back in one call (the API does not paginate — LOS-65),
@@ -17,12 +18,15 @@ export function useLibraryData(): UseLibraryDataResult {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      setLoading(true);
+      // Only the first load blanks the page; a reload after a photo import keeps
+      // the existing grid on screen until the fresh list arrives.
+      if (reloadToken === 0) setLoading(true);
       setError(null);
       try {
         const library = await getLibrary();
@@ -43,7 +47,7 @@ export function useLibraryData(): UseLibraryDataResult {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
 
-  return { entries, total, loading, error };
+  return { entries, total, loading, error, reload: () => setReloadToken((t) => t + 1) };
 }

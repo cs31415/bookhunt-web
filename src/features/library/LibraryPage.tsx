@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
@@ -11,7 +11,10 @@ import { LibraryCharts } from './components/LibraryCharts/LibraryCharts';
 import { StatusTabs } from './components/StatusTabs/StatusTabs';
 import { FilterPill } from './components/FilterPill/FilterPill';
 import { LibraryEmptyState } from './components/LibraryEmptyState/LibraryEmptyState';
+import { ScanModal } from './components/ScanModal/ScanModal';
 import { useLibraryData } from './hooks/useLibraryData';
+import { useScanSession } from './hooks/useScanSession';
+import { toast } from '../../shared/toast/toast-store';
 import { filterEntries, sortByAddedDesc, statusCounts } from './lib/breakdowns';
 import styles from './LibraryPage.module.css';
 
@@ -26,8 +29,30 @@ function asStatus(value: string | null): LibraryStatus | null {
 export function LibraryPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { entries, total, loading, error } = useLibraryData();
+  const { entries, total, loading, error, reload } = useLibraryData();
   const [page, setPage] = useState(1);
+  const [scanOpen, setScanOpen] = useState(false);
+
+  // The scan session lives here, not in ScanModal, so closing the modal mid-scan
+  // doesn't abandon the in-flight promise. scanOpenRef lets the completion
+  // callback tell "still watching" from "closed and needs a toast" without
+  // re-running the session on every open/close.
+  const scanOpenRef = useRef(false);
+  useEffect(() => {
+    scanOpenRef.current = scanOpen;
+  }, [scanOpen]);
+
+  const scanSession = useScanSession({
+    excludeBookIds: useMemo(() => entries.map((e) => e.book.id), [entries]),
+    onScanComplete: (count) => {
+      if (scanOpenRef.current) return;
+      toast({
+        text: `Found ${count} ${count === 1 ? 'book' : 'books'} from your photos`,
+        action: { label: 'Review', onClick: () => setScanOpen(true) },
+      });
+    },
+    onAdded: reload,
+  });
 
   const status = asStatus(searchParams.get('status'));
   const subject = searchParams.get('subject');
@@ -64,9 +89,16 @@ export function LibraryPage() {
     updateParams({ subject: null, author: null });
   }
 
+  // A finished or failed session is stale by the time the button is clicked again;
+  // an in-flight one is left alone so reopening shows its progress.
   function addFromPhoto() {
-    // TODO(LOS-82): open the Scan modal (photo import) — not yet built.
+    if (scanSession.phase === 'results' || scanSession.phase === 'error') scanSession.reset();
+    setScanOpen(true);
   }
+
+  const scanModal = scanOpen ? (
+    <ScanModal session={scanSession} onClose={() => setScanOpen(false)} />
+  ) : null;
 
   const sorted = useMemo(
     () => sortByAddedDesc(filterEntries(entries, { status, subject, author })),
@@ -95,6 +127,7 @@ export function LibraryPage() {
     return (
       <div className={styles.page}>
         <LibraryEmptyState onDiscover={() => navigate('/')} onAddFromPhoto={addFromPhoto} />
+        {scanModal}
       </div>
     );
   }
@@ -136,6 +169,7 @@ export function LibraryPage() {
       )}
 
       <Pagination page={page} pageCount={pageCount} onChange={setPage} />
+      {scanModal}
     </div>
   );
 }
