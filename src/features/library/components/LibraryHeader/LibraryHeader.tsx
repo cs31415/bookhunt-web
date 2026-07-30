@@ -2,7 +2,8 @@ import styles from './LibraryHeader.module.css';
 
 export interface LibraryHeaderProps {
   total: number;
-  onAddFromPhoto: () => void;
+  /** Omitted when photo import is disabled — the button is then not rendered. */
+  onAddFromPhoto?: () => void;
 }
 
 export function LibraryHeader({ total, onAddFromPhoto }: LibraryHeaderProps) {
@@ -14,9 +15,15 @@ export function LibraryHeader({ total, onAddFromPhoto }: LibraryHeaderProps) {
           {total} {total === 1 ? 'book' : 'books'}
         </h1>
       </div>
-      <button type="button" className={styles.addButton} onClick={onAddFromPhoto}>
-        Add from a photo
-      </button>
+      {/* Wrapper so a second import source (LOS-169) can sit alongside without
+          the max-width:560px column stack going ragged. */}
+      <div className={styles.actions}>
+        {onAddFromPhoto && (
+          <button type="button" className={styles.addButton} onClick={onAddFromPhoto}>
+            Add from a photo
+          </button>
+        )}
+      </div>
     </header>
   );
 }
