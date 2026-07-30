@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from './SearchPage';
+import { AuthProvider } from '../auth/AuthContext';
+import { setSession } from '../../api/auth/token';
 import { aiSearch } from '../../api/ai/search';
 import type { RawAiSearchBook } from '../../normalize/search';
 
@@ -12,6 +14,11 @@ const mockedAiSearch = vi.mocked(aiSearch);
 function LocationProbe() {
   const location = useLocation();
   return <div data-testid="location">{location.pathname + location.search}</div>;
+}
+
+/** AuthProvider hydrates from localStorage, so seeding it is enough to sign in. */
+function signIn() {
+  setSession('test-token', { id: 1, email: 'reader@example.com', displayName: 'Reader' });
 }
 
 function renderSearchPage(initialEntry: string) {
@@ -28,7 +35,11 @@ function renderSearchPage(initialEntry: string) {
     ],
     { initialEntries: [initialEntry] },
   );
-  render(<RouterProvider router={router} />);
+  render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  );
   return router;
 }
 
@@ -58,9 +69,14 @@ function makeBook(overrides: Partial<RawAiSearchBook> = {}): RawAiSearchBook {
 describe('SearchPage', () => {
   beforeEach(() => {
     mockedAiSearch.mockReset();
+    localStorage.clear();
+    // Most cases exercise the signed-in path; the library-filter cases below
+    // override this by clearing storage before rendering.
+    signIn();
   });
 
   afterEach(() => {
+    localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -130,6 +146,69 @@ describe('SearchPage', () => {
         expect.anything(),
       ),
     );
+  });
+
+  describe('when signed out', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('disables the "In my library only" toggle', async () => {
+      mockedAiSearch.mockResolvedValue({ books: [], query: 'thriller' });
+      renderSearchPage('/search?q=thriller');
+
+      const toggle = await screen.findByRole('switch', { name: /In my library only/ });
+      expect(toggle).toBeDisabled();
+      expect(toggle).toHaveAttribute('title', 'Sign in to filter by your library');
+    });
+
+    it('does not toggle the filter when the disabled control is clicked', async () => {
+      mockedAiSearch.mockResolvedValue({ books: [], query: 'thriller' });
+      renderSearchPage('/search?q=thriller');
+      await waitFor(() => expect(mockedAiSearch).toHaveBeenCalledTimes(1));
+
+      fireEvent.click(screen.getByText('In my library only'));
+
+      expect(screen.getByRole('switch', { name: /In my library only/ })).toHaveAttribute(
+        'aria-checked',
+        'false',
+      );
+      expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+    });
+
+    // Otherwise the filter strands them: every result is filtered away and the
+    // only control that could undo it is disabled.
+    it('ignores inLibraryOnly arriving in the URL', async () => {
+      mockedAiSearch.mockResolvedValue({ books: [], query: 'thriller' });
+      renderSearchPage('/search?q=thriller&inLibraryOnly=true');
+
+      await waitFor(() => expect(mockedAiSearch).toHaveBeenCalledTimes(1));
+      expect(mockedAiSearch).toHaveBeenCalledWith(
+        expect.objectContaining({ inLibraryOnly: false }),
+        expect.anything(),
+      );
+      expect(screen.getByRole('switch', { name: /In my library only/ })).toHaveAttribute(
+        'aria-checked',
+        'false',
+      );
+    });
+
+    it('leaves the param in the URL so signing in restores the intent', async () => {
+      mockedAiSearch.mockResolvedValue({ books: [], query: 'thriller' });
+      renderSearchPage('/search?q=thriller&inLibraryOnly=true');
+
+      await waitFor(() => expect(mockedAiSearch).toHaveBeenCalledTimes(1));
+      expect(screen.getByTestId('location')).toHaveTextContent('inLibraryOnly=true');
+    });
+  });
+
+  it('leaves the toggle enabled when signed in', async () => {
+    mockedAiSearch.mockResolvedValue({ books: [], query: 'thriller' });
+    renderSearchPage('/search?q=thriller');
+
+    const toggle = await screen.findByRole('switch', { name: /In my library only/ });
+    expect(toggle).toBeEnabled();
+    expect(toggle).not.toHaveAttribute('title');
   });
 
   it('filters to a status client-side without refetching', async () => {

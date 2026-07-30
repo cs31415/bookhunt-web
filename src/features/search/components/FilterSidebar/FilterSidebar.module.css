@@ -12,8 +12,19 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 22px;
-  cursor: pointer;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toggleRow:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .toggle {
