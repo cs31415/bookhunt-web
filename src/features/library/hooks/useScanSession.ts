@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../../api/client';
-import { addToLibrary } from '../../../api/library/add-to-library';
 import { getBooksByIds } from '../../../api/books/get-books-by-ids';
 import { normalizeBooksByIds } from '../../../normalize/books-by-ids';
 import {
@@ -16,12 +15,10 @@ import type { RawDetectedBook } from '../../../api/upload/scan';
 import { normalizeDetectedBook, rawFieldsForDetected } from '../../../normalize/detected-book';
 import type { DetectedBook } from '../../../normalize/detected-book';
 import type { BookSummary } from '../../../shared/types/book';
-import type { LibraryStatus } from '../../../shared/types/library-status';
+import { useImportReview } from './useImportReview';
+import type { UseImportReviewResult } from './useImportReview';
 
 export type ScanPhase = 'upload' | 'processing' | 'results' | 'error';
-
-/** AC4: the cycle button walks these three; 'abandoned' isn't offered at import time. */
-export const SCAN_STATUS_CYCLE: LibraryStatus[] = ['queued', 'reading', 'finished'];
 
 const GENERIC_ERROR = "Couldn't read your photos — please try again.";
 const UPLOAD_ERROR = "Couldn't upload your photos — please try again.";
@@ -34,19 +31,13 @@ export interface ScanRow {
   raw: RawDetectedBook;
 }
 
-export interface UseScanSessionResult {
+export interface UseScanSessionResult extends UseImportReviewResult<ScanRow> {
   phase: ScanPhase;
   previews: string[];
   rows: ScanRow[];
+  /** Failure of the scan itself; add failures surface as addError. */
   error: string | null;
-  adding: boolean;
-  statusFor: (key: string) => LibraryStatus;
-  isTicked: (key: string) => boolean;
-  selectedCount: number;
   start: (files: File[]) => void;
-  cycleStatus: (key: string) => void;
-  toggle: (key: string) => void;
-  confirm: () => Promise<void>;
   reset: () => void;
 }
 
@@ -105,9 +96,12 @@ export interface UseScanSessionOptions {
 }
 
 /**
- * Owns the whole photo-import flow. Deliberately lives in LibraryPage rather
- * than inside ScanModal: closing the modal must not abort an in-flight scan
- * (AC7), so the promise has to be held by a component that stays mounted.
+ * Owns the photo-import flow: validate, upload, scan. Review and commit are
+ * delegated to useImportReview, which CSV import shares.
+ *
+ * Deliberately lives in LibraryPage rather than inside ScanModal: closing the
+ * modal must not abort an in-flight scan (AC7), so the promise has to be held by
+ * a component that stays mounted.
  */
 export function useScanSession(options: UseScanSessionOptions): UseScanSessionResult {
   const { excludeBookIds, onScanComplete, onAdded } = options;
@@ -116,18 +110,30 @@ export function useScanSession(options: UseScanSessionOptions): UseScanSessionRe
   const [previews, setPreviews] = useState<string[]>([]);
   const [rows, setRows] = useState<ScanRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [statusByKey, setStatusByKey] = useState<Record<string, LibraryStatus>>({});
-  const [untickedKeys, setUntickedKeys] = useState<Set<string>>(new Set());
+
+  const review = useImportReview<ScanRow>({
+    rows,
+    keyOf: (row) => row.detected.key,
+    toAddArgs: (row) => ({
+      slug: row.detected.slug,
+      rawFields: rawFieldsForDetected(row.detected, row.raw),
+    }),
+    // Unresolved spines start unticked — adding them creates a catalog row with
+    // nothing but a title and author.
+    startsUnticked: (row) => row.detected.tier === 'unresolved',
+    onAdded,
+  });
 
   // Latest values, read from inside the async run without making it a dependency.
   // Synced in an effect rather than during render: the run only reads them from
   // event handlers and resolved promises, both of which happen after commit.
   const excludeRef = useRef(excludeBookIds);
   const completeRef = useRef(onScanComplete);
+  const resetSelectionRef = useRef(review.resetSelection);
   useEffect(() => {
     excludeRef.current = excludeBookIds;
     completeRef.current = onScanComplete;
+    resetSelectionRef.current = review.resetSelection;
   });
 
   // Only the newest run may write state; an earlier one that resolves late is ignored.
@@ -158,8 +164,7 @@ export function useScanSession(options: UseScanSessionOptions): UseScanSessionRe
 
     setPreviews(urls);
     setRows([]);
-    setStatusByKey({});
-    setUntickedKeys(new Set());
+    resetSelectionRef.current([]);
     setError(null);
     setPhase('processing');
 
@@ -169,7 +174,7 @@ export function useScanSession(options: UseScanSessionOptions): UseScanSessionRe
   async function run(runId: number, files: File[]) {
     try {
       const policies = await presignUploads(files.map((f) => ({ contentType: f.type })));
-      // Bounded rather than all-at-once: a 40-photo batch shouldn't open 40
+      // Bounded rather than all-at-once: a large batch shouldn't open dozens of
       // simultaneous connections and stall the browser's request queue.
       await mapWithConcurrency(policies, UPLOAD_CONCURRENCY, (policy, i) =>
         uploadToPresigned(policy, files[i]),
@@ -195,12 +200,7 @@ export function useScanSession(options: UseScanSessionOptions): UseScanSessionRe
         .map((raw) => ({ raw, detected: normalizeDetectedBook(raw, catalogById) }));
 
       setRows(next);
-      setStatusByKey(Object.fromEntries(next.map((r) => [r.detected.key, 'queued' as LibraryStatus])));
-      // Unresolved spines start unticked — adding them creates a catalog row with
-      // nothing but a title and author.
-      setUntickedKeys(
-        new Set(next.filter((r) => r.detected.tier === 'unresolved').map((r) => r.detected.key)),
-      );
+      resetSelectionRef.current(next);
       setPhase('results');
       completeRef.current?.(next.length);
     } catch (e) {
@@ -213,86 +213,15 @@ export function useScanSession(options: UseScanSessionOptions): UseScanSessionRe
     }
   }
 
-  function statusFor(key: string): LibraryStatus {
-    return statusByKey[key] ?? 'queued';
-  }
-
-  function isTicked(key: string): boolean {
-    return !untickedKeys.has(key);
-  }
-
-  function cycleStatus(key: string) {
-    setStatusByKey((current) => {
-      const index = SCAN_STATUS_CYCLE.indexOf(current[key] ?? 'queued');
-      return { ...current, [key]: SCAN_STATUS_CYCLE[(index + 1) % SCAN_STATUS_CYCLE.length] };
-    });
-  }
-
-  // Tick state is tracked separately from status so unticking and re-ticking
-  // doesn't silently reset a status the user already chose.
-  function toggle(key: string) {
-    setUntickedKeys((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }
-
-  const selected = rows.filter((r) => !untickedKeys.has(r.detected.key));
-
-  async function confirm() {
-    if (selected.length === 0) return;
-    setAdding(true);
-    try {
-      // allSettled, not all: one book that fails to upsert shouldn't discard the rest.
-      const results = await Promise.allSettled(
-        selected.map((row) =>
-          addToLibrary(
-            row.detected.slug,
-            statusFor(row.detected.key),
-            rawFieldsForDetected(row.detected, row.raw),
-          ),
-        ),
-      );
-      const added = results.filter((r) => r.status === 'fulfilled').length;
-      if (added < selected.length) {
-        setError(
-          added === 0
-            ? "Couldn't add those books — please try again."
-            : `Added ${added} of ${selected.length} books; the rest failed.`,
-        );
-      }
-      if (added > 0) onAdded?.(added);
-    } finally {
-      setAdding(false);
-    }
-  }
-
   function reset() {
     runIdRef.current++;
     releasePreviews();
     setPreviews([]);
     setRows([]);
-    setStatusByKey({});
-    setUntickedKeys(new Set());
+    resetSelectionRef.current([]);
     setError(null);
     setPhase('upload');
   }
 
-  return {
-    phase,
-    previews,
-    rows,
-    error,
-    adding,
-    statusFor,
-    isTicked,
-    selectedCount: selected.length,
-    start,
-    cycleStatus,
-    toggle,
-    confirm,
-    reset,
-  };
+  return { ...review, phase, previews, rows, error, start, reset };
 }
