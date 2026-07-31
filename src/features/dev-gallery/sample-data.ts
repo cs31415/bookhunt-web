@@ -67,7 +67,7 @@ export const googleBooksBook: BookSummary = {
 };
 
 export const gallerySlices: PieSlice[] = [
-  { label: 'Queued', value: 5 },
+  { label: 'New', value: 5 },
   { label: 'Reading', value: 3 },
   { label: 'Finished', value: 9 },
   { label: 'Abandoned', value: 2 },

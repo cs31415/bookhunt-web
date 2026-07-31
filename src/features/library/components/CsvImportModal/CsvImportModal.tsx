@@ -179,11 +179,17 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
             </div>
           ) : (
             <p className={styles.summary}>
-              Found matches for <strong>{importable.length}</strong>{' '}
-              {importable.length === 1 ? 'book' : 'books'}.
-              {alreadyOwned > 0 && ` ${alreadyOwned} already in your library.`}
-              {importable.length > 0 &&
-                ' Pick a different match, change a status, or untick to skip.'}
+              {importable.length === 0 && alreadyOwned > 0 ? (
+                <>All {alreadyOwned === 1 ? 'this book is' : 'these books are'} already in your library.</>
+              ) : (
+                <>
+                  Found matches for <strong>{importable.length}</strong>{' '}
+                  {importable.length === 1 ? 'book' : 'books'}.
+                  {alreadyOwned > 0 && ` ${alreadyOwned} already in your library.`}
+                  {importable.length > 0 &&
+                    ' Pick a different match, change a status, or untick to skip.'}
+                </>
+              )}
             </p>
           )}
 

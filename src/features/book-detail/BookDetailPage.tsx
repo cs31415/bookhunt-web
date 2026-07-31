@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Hero } from './components/Hero/Hero';
 import { SpecificationsCard } from './components/SpecificationsCard/SpecificationsCard';
@@ -48,6 +49,7 @@ export function BookDetailPage() {
   });
   const book = detail?.book ?? null;
   const libraryEntry = detail?.libraryEntry;
+  const [addingToLibrary, setAddingToLibrary] = useState(false);
 
   const { themes, moods, loading: themesLoading } = useThemes(
     book?.cataloged ? book.id : null,
@@ -101,12 +103,17 @@ export function BookDetailPage() {
       reload();
       return;
     }
-    const wasEphemeral = !book.cataloged;
-    const real = await ensureAddedToLibrary('queued');
-    if (wasEphemeral) {
-      navigate(buildBookHref({ ...book, slug: real.slug }), { replace: true });
-    } else {
-      reload();
+    setAddingToLibrary(true);
+    try {
+      const wasEphemeral = !book.cataloged;
+      const real = await ensureAddedToLibrary('queued');
+      if (wasEphemeral) {
+        navigate(buildBookHref({ ...book, slug: real.slug }), { replace: true });
+      } else {
+        reload();
+      }
+    } finally {
+      setAddingToLibrary(false);
     }
   }
 
@@ -176,6 +183,7 @@ export function BookDetailPage() {
         themes={themes}
         themesLoading={themesLoading}
         moods={moods}
+        addingToLibrary={addingToLibrary}
         onToggleLibrary={handleToggleLibrary}
         onStatusChange={handleStatusChange}
         onRate={handleRate}

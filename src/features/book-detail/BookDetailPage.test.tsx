@@ -181,6 +181,29 @@ describe('BookDetailPage', () => {
     await waitFor(() => expect(mockedAddToLibrary).toHaveBeenCalledWith('night-watch', 'queued', undefined));
   });
 
+  it('disables the "Add to library" button and shows a pending label while the add is in flight', async () => {
+    let resolveAdd!: (value: Awaited<ReturnType<typeof addToLibrary>>) => void;
+    mockedAddToLibrary.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveAdd = resolve;
+      }),
+    );
+
+    renderBookDetailPage('night-watch');
+    await screen.findByRole('heading', { name: 'Night Watch' });
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Add to library' }));
+
+    const pendingButton = await screen.findByRole('button', { name: 'Adding…' });
+    expect(pendingButton).toBeDisabled();
+
+    resolveAdd({ entry: {}, book: { id: 95, slug: 'night-watch' } });
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '+ Add to library' })).not.toBeDisabled(),
+    );
+  });
+
   it('adds the book to the library before saving a note (AC12), in order', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     renderBookDetailPage('night-watch');

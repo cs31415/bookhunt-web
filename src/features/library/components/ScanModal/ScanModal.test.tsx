@@ -226,7 +226,7 @@ describe('ScanModal', () => {
     expect(screen.getByText('Spine 1')).toBeInTheDocument();
     expect(screen.getByText('Author 1')).toBeInTheDocument();
     expect(screen.getAllByRole('checkbox')).toHaveLength(5);
-    expect(screen.getAllByRole('button', { name: 'Queued' })).toHaveLength(5);
+    expect(screen.getAllByRole('button', { name: 'New' })).toHaveLength(5);
     expect(screen.getByRole('button', { name: 'Add 5 to library' })).toBeInTheDocument();
   });
 
@@ -237,10 +237,10 @@ describe('ScanModal', () => {
     const dialog = await openModal();
     dropFiles(dialog, [makeFile()]);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Queued' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'New' }));
     fireEvent.click(screen.getByRole('button', { name: 'Reading' }));
     fireEvent.click(screen.getByRole('button', { name: 'Finished' }));
-    expect(screen.getByRole('button', { name: 'Queued' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New' })).toBeInTheDocument();
   });
 
   // AC5
@@ -270,7 +270,7 @@ describe('ScanModal', () => {
     const dialog = await openModal();
     dropFiles(dialog, [makeFile()]);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Queued' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'New' }));
     expect(screen.getByRole('button', { name: 'Reading' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Skip Spine 1' }));
@@ -566,6 +566,7 @@ describe('ScanModal', () => {
     expect(await screen.findByText(/Added 1 of 2/)).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(mockedAddToLibrary).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('Imported 1 of 2 books. 1 books had errors.')).toBeInTheDocument();
     // The one that worked still triggers a library refresh.
     await waitFor(() => expect(mockedGetLibrary).toHaveBeenCalledTimes(2));
   });
@@ -580,6 +581,7 @@ describe('ScanModal', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Add 2 to library' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(await screen.findByText('Successfully imported 2 books.')).toBeInTheDocument();
   });
 
   it('refreshes the library after a successful import', async () => {

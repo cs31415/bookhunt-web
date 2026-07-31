@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { addToLibrary } from '../../../api/library/add-to-library';
 import type { AddToLibraryRawFields } from '../../../api/library/add-to-library';
 import { mapWithConcurrency } from '../../../shared/lib/map-with-concurrency';
+import { toast } from '../../../shared/toast/toast-store';
 import type { LibraryStatus } from '../../../shared/types/library-status';
 
 /** AC4: the cycle button walks these three; 'abandoned' isn't offered at import time. */
@@ -143,8 +144,12 @@ export function useImportReview<TRow>(
             ? "Couldn't add those books — please try again."
             : `Added ${added} of ${selected.length}. The rest couldn't be added — you can retry them.`,
         );
+        toast({
+          text: `Imported ${added} of ${selected.length} books. ${selected.length - added} books had errors.`,
+        });
         return false;
       }
+      toast({ text: `Successfully imported ${added} ${added === 1 ? 'book' : 'books'}.` });
       return true;
     } finally {
       setAdding(false);
