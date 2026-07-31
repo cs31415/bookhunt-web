@@ -111,10 +111,20 @@
 
 .account {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .accountPushRight {
   margin-left: auto;
+}
+
+.greeting {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
 }
 
 .accountMenu {

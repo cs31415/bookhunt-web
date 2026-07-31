@@ -82,6 +82,7 @@ describe('TopBar', () => {
     renderAt('/');
 
     expect(screen.queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument();
+    expect(screen.getByText('Hello, Ada')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Account' }));
     expect(screen.getByText('Ada Reader')).toBeInTheDocument();
 
