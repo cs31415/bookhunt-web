@@ -68,11 +68,19 @@ function messageFor(error: unknown): string {
 
 /**
  * Checks what the S3 policy would reject anyway, so an opaque failure becomes an
- * actionable message. Deliberately does not check how many photos: that ceiling
- * depends on vision chunking the client can't see, so the API owns it.
+ * actionable message.
+ *
+ * One photo per scan (LOS-170): a single image gets the whole prompt and the
+ * whole output-token budget, which reads spines materially better than several
+ * sharing them. The API still accepts up to 40 keys and chunks them — that
+ * capability is exercised by scripts/test-photo-import.js and is not torn out
+ * just because this client narrowed its own use of it.
  */
 function validate(files: File[]): string | null {
   if (files.length === 0) return null;
+  if (files.length > 1) {
+    return 'Please choose one photo at a time — a single shelf reads more accurately.';
+  }
   for (const file of files) {
     if (!isAllowedImageType(file.type)) {
       // iOS transcodes HEIC to JPEG when `accept` excludes it, so reaching here

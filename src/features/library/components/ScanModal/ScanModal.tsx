@@ -107,13 +107,12 @@ export function ScanModal({ session, onClose }: ScanModalProps) {
               <div className={styles.dropIcon}>📷</div>
               <div className={styles.dropTitle}>Drop a photo of your bookshelf</div>
               <p className={styles.dropHint}>
-                We’ll read the spines and find each book. Click to choose photos — add several
-                shelf angles at once.
+                We’ll read the spines and find each book. One shelf at a time reads most
+                accurately — click to choose a photo.
               </p>
               <input
                 ref={fileRef}
                 type="file"
-                multiple
                 // Excluding HEIC makes the iOS Photos picker transcode to JPEG on
                 // selection, which the API can actually read (see LOS-161).
                 accept="image/jpeg,image/png,image/webp"
@@ -133,9 +132,7 @@ export function ScanModal({ session, onClose }: ScanModalProps) {
                   </div>
                 ))}
               </div>
-              <div className={styles.scanningLabel}>
-                Scanning {previews.length} {previews.length === 1 ? 'photo' : 'photos'}…
-              </div>
+              <div className={styles.scanningLabel}>Scanning your photo…</div>
             </div>
           )}
 

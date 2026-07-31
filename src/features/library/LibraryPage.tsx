@@ -15,6 +15,7 @@ import { ScanModal } from './components/ScanModal/ScanModal';
 import { useLibraryData } from './hooks/useLibraryData';
 import { useScanSession } from './hooks/useScanSession';
 import { toast } from '../../shared/toast/toast-store';
+import { isPhotoImportEnabled } from '../../shared/config/features';
 import { filterEntries, sortByAddedDesc, statusCounts } from './lib/breakdowns';
 import styles from './LibraryPage.module.css';
 
@@ -47,7 +48,7 @@ export function LibraryPage() {
     onScanComplete: (count) => {
       if (scanOpenRef.current) return;
       toast({
-        text: `Found ${count} ${count === 1 ? 'book' : 'books'} from your photos`,
+        text: `Found ${count} ${count === 1 ? 'book' : 'books'} in your photo`,
         action: { label: 'Review', onClick: () => setScanOpen(true) },
       });
     },
@@ -96,9 +97,16 @@ export function LibraryPage() {
     setScanOpen(true);
   }
 
-  const scanModal = scanOpen ? (
-    <ScanModal session={scanSession} onClose={() => setScanOpen(false)} />
-  ) : null;
+  // Photo import is opt-in (LOS-170): it only works where the upload bucket has a
+  // CORS rule for browser POSTs, so an environment without the flag shouldn't
+  // advertise it. Passing undefined rather than a no-op keeps the button out of
+  // the DOM entirely.
+  const photoImport = isPhotoImportEnabled();
+  const onAddFromPhoto = photoImport ? addFromPhoto : undefined;
+  const scanModal =
+    photoImport && scanOpen ? (
+      <ScanModal session={scanSession} onClose={() => setScanOpen(false)} />
+    ) : null;
 
   const sorted = useMemo(
     () => sortByAddedDesc(filterEntries(entries, { status, subject, author })),
@@ -126,7 +134,7 @@ export function LibraryPage() {
   if (total === 0) {
     return (
       <div className={styles.page}>
-        <LibraryEmptyState onDiscover={() => navigate('/')} onAddFromPhoto={addFromPhoto} />
+        <LibraryEmptyState onDiscover={() => navigate('/')} onAddFromPhoto={onAddFromPhoto} />
         {scanModal}
       </div>
     );
@@ -134,7 +142,7 @@ export function LibraryPage() {
 
   return (
     <div className={styles.page}>
-      <LibraryHeader total={total} onAddFromPhoto={addFromPhoto} />
+      <LibraryHeader total={total} onAddFromPhoto={onAddFromPhoto} />
 
       <LibraryCharts
         entries={entries}

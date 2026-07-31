@@ -121,6 +121,9 @@ describe('ScanModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearToasts();
+    // Stubbed explicitly rather than inherited from .env, which is gitignored —
+    // otherwise every test here would flip off in a fresh checkout or CI.
+    vi.stubEnv('VITE_ENABLE_PHOTO_IMPORT', 'true');
     // jsdom implements neither.
     vi.stubGlobal('URL', {
       ...URL,
@@ -142,18 +145,48 @@ describe('ScanModal', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   // AC1
-  it('opens on "Add from a photo" showing the upload phase with a multi-file picker', async () => {
+  it('opens on "Add from a photo" showing the upload phase and a single-file picker', async () => {
     mockedScan.mockResolvedValue({ detectedBooks: [] });
     renderLibrary();
     const dialog = await openModal();
 
     expect(within(dialog).getByText('Drop a photo of your bookshelf')).toBeInTheDocument();
     const input = dialog.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(input).toHaveAttribute('multiple');
+    // One photo at a time (LOS-170): a single image gets the whole prompt and
+    // token budget, which reads spines better than several sharing them.
+    expect(input).not.toHaveAttribute('multiple');
     expect(input.accept).toBe('image/jpeg,image/png,image/webp');
+  });
+
+  it('hides photo import entirely when the flag is off', async () => {
+    vi.stubEnv('VITE_ENABLE_PHOTO_IMPORT', 'false');
+    renderLibrary();
+
+    await screen.findByText('Your library');
+    expect(screen.queryByRole('button', { name: 'Add from a photo' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('hides photo import when the flag is unset', async () => {
+    vi.stubEnv('VITE_ENABLE_PHOTO_IMPORT', '');
+    renderLibrary();
+
+    await screen.findByText('Your library');
+    expect(screen.queryByRole('button', { name: 'Add from a photo' })).not.toBeInTheDocument();
+  });
+
+  it('hides photo import from the empty state too when the flag is off', async () => {
+    vi.stubEnv('VITE_ENABLE_PHOTO_IMPORT', 'false');
+    mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
+    renderLibrary();
+
+    await screen.findByText('Your shelves are empty');
+    expect(screen.getByRole('button', { name: 'Discover books' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add from a photo' })).not.toBeInTheDocument();
   });
 
   // AC1 — the empty-state button is a separate branch and must open it too.
@@ -168,20 +201,16 @@ describe('ScanModal', () => {
   });
 
   // AC2
-  it('shows a thumbnail per photo with a scanning label while processing', async () => {
+  it('shows a preview of the photo with a scanning label while processing', async () => {
     let resolveScan: (v: { detectedBooks: RawDetectedBook[] }) => void = () => {};
     mockedScan.mockReturnValue(new Promise((resolve) => (resolveScan = resolve)));
-    mockedPresign.mockResolvedValue([
-      { url: 'https://s3.test/', fields: {}, key: 'uploads/1/a' },
-      { url: 'https://s3.test/', fields: {}, key: 'uploads/1/b' },
-    ]);
 
     renderLibrary();
     const dialog = await openModal();
-    dropFiles(dialog, [makeFile('a.jpg'), makeFile('b.jpg')]);
+    dropFiles(dialog, [makeFile('shelf.jpg')]);
 
-    expect(await screen.findByText('Scanning 2 photos…')).toBeInTheDocument();
-    expect(dialog.querySelectorAll('img')).toHaveLength(2);
+    expect(await screen.findByText('Scanning your photo…')).toBeInTheDocument();
+    expect(dialog.querySelectorAll('img')).toHaveLength(1);
 
     await act(async () => resolveScan({ detectedBooks: [] }));
   });
@@ -305,14 +334,14 @@ describe('ScanModal', () => {
     renderLibrary();
     const dialog = await openModal();
     dropFiles(dialog, [makeFile()]);
-    await screen.findByText('Scanning 1 photo…');
+    await screen.findByText('Scanning your photo…');
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     await act(async () => resolveScan({ detectedBooks: detected(4) }));
 
-    expect(await screen.findByText('Found 4 books from your photos')).toBeInTheDocument();
+    expect(await screen.findByText('Found 4 books in your photo')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Review' }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -326,7 +355,7 @@ describe('ScanModal', () => {
     dropFiles(dialog, [makeFile()]);
 
     await screen.findByRole('button', { name: 'Add 2 to library' });
-    expect(screen.queryByText(/from your photos/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/in your photo/)).not.toBeInTheDocument();
   });
 
   // AC8
@@ -479,65 +508,44 @@ describe('ScanModal', () => {
     expect(mockedPresign).not.toHaveBeenCalled();
   });
 
-  it('sends a large batch to the API rather than capping it client-side', async () => {
-    const many = Array.from({ length: 25 }, (_, i) => makeFile(`${i}.jpg`));
-    mockedPresign.mockResolvedValue(
-      many.map((_, i) => ({ url: 'https://s3.test/', fields: {}, key: `uploads/1/${i}` })),
-    );
-    mockedScan.mockResolvedValue({ detectedBooks: detected(1) });
-
+  it('rejects a multi-file selection instead of silently taking the first', async () => {
     renderLibrary();
     const dialog = await openModal();
-    dropFiles(dialog, many);
-
-    await screen.findByRole('button', { name: 'Add 1 to library' });
-    expect(mockedPresign).toHaveBeenCalledTimes(1);
-    expect(mockedPresign.mock.calls[0][0]).toHaveLength(25);
-    expect(mockedUpload).toHaveBeenCalledTimes(25);
-    expect(mockedScan.mock.calls[0][0]).toHaveLength(25);
-  });
-
-  it('surfaces the API’s own photo-count limit when it rejects the batch', async () => {
-    mockedPresign.mockRejectedValue(
-      new ApiError(400, 'files must contain at most 40 items'),
-    );
-
-    renderLibrary();
-    const dialog = await openModal();
-    dropFiles(
-      dialog,
-      Array.from({ length: 41 }, (_, i) => makeFile(`${i}.jpg`)),
-    );
+    dropFiles(dialog, [makeFile('a.jpg'), makeFile('b.jpg')]);
 
     expect(
-      await screen.findByText('Files must contain at most 40 items.'),
+      await screen.findByText(/Please choose one photo at a time/),
     ).toBeInTheDocument();
+    expect(mockedPresign).not.toHaveBeenCalled();
+  });
+
+  it('surfaces the API’s own validation message on a 400', async () => {
+    mockedPresign.mockRejectedValue(new ApiError(400, 'files must contain at most 40 items'));
+
+    renderLibrary();
+    const dialog = await openModal();
+    dropFiles(dialog, [makeFile()]);
+
+    expect(await screen.findByText('Files must contain at most 40 items.')).toBeInTheDocument();
   });
 
   // Batch mechanics
-  it('presigns once, uploads in parallel, and scans every key in a single call', async () => {
-    mockedPresign.mockResolvedValue([
-      { url: 'https://s3.test/', fields: {}, key: 'uploads/1/a' },
-      { url: 'https://s3.test/', fields: {}, key: 'uploads/1/b' },
-      { url: 'https://s3.test/', fields: {}, key: 'uploads/1/c' },
-    ]);
+  // The API's batch shape is unchanged — the client just sends a batch of one,
+  // so the multi-image capability stays available to scripts/test-photo-import.js.
+  it('presigns, uploads, and scans the single photo through the batch API', async () => {
     mockedScan.mockResolvedValue({ detectedBooks: detected(1) });
 
     renderLibrary();
     const dialog = await openModal();
-    dropFiles(dialog, [makeFile('a.jpg'), makeFile('b.jpg'), makeFile('c.jpg')]);
+    dropFiles(dialog, [makeFile('shelf.jpg')]);
 
     await screen.findByRole('button', { name: 'Add 1 to library' });
 
     expect(mockedPresign).toHaveBeenCalledTimes(1);
-    expect(mockedPresign).toHaveBeenCalledWith([
-      { contentType: 'image/jpeg' },
-      { contentType: 'image/jpeg' },
-      { contentType: 'image/jpeg' },
-    ]);
-    expect(mockedUpload).toHaveBeenCalledTimes(3);
+    expect(mockedPresign).toHaveBeenCalledWith([{ contentType: 'image/jpeg' }]);
+    expect(mockedUpload).toHaveBeenCalledTimes(1);
     expect(mockedScan).toHaveBeenCalledTimes(1);
-    expect(mockedScan).toHaveBeenCalledWith(['uploads/1/a', 'uploads/1/b', 'uploads/1/c']);
+    expect(mockedScan).toHaveBeenCalledWith(['uploads/1/a']);
   });
 
   it('reports a partial failure instead of discarding the successful adds', async () => {
