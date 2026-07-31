@@ -9,6 +9,10 @@ function isActivePath(pathname: string, path: string): boolean {
   return path === '/' ? pathname === '/' : pathname.startsWith(path);
 }
 
+function firstNameOf(displayName: string): string {
+  return displayName.trim().split(/\s+/)[0] || displayName;
+}
+
 function AccountMenu() {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
@@ -52,6 +56,7 @@ function AccountMenu() {
 
   return (
     <div className={`${styles.account} ${styles.accountPushRight}`} ref={containerRef}>
+      {user && <span className={styles.greeting}>Hello, {firstNameOf(user.displayName)}</span>}
       <button
         type="button"
         className={`${styles.avatar} ${styles.avatarButton}`}
