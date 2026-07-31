@@ -548,7 +548,10 @@ describe('ScanModal', () => {
     expect(mockedScan).toHaveBeenCalledWith(['uploads/1/a']);
   });
 
-  it('reports a partial failure instead of discarding the successful adds', async () => {
+  // The modal used to close unconditionally after confirm(), so the message
+  // confirm() sets was never rendered and the reader never learned which books
+  // didn't make it.
+  it('stays open and reports the count when only some books are added', async () => {
     mockedScan.mockResolvedValue({ detectedBooks: detected(2) });
     mockedAddToLibrary
       .mockResolvedValueOnce({ entry: {}, book: { id: 9, slug: 'spine-1' } })
@@ -560,10 +563,23 @@ describe('ScanModal', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add 2 to library' }));
 
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(await screen.findByText(/Added 1 of 2/)).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(mockedAddToLibrary).toHaveBeenCalledTimes(2);
     // The one that worked still triggers a library refresh.
-    expect(mockedGetLibrary).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(mockedGetLibrary).toHaveBeenCalledTimes(2));
+  });
+
+  it('closes when every book is added', async () => {
+    mockedScan.mockResolvedValue({ detectedBooks: detected(2) });
+
+    renderLibrary();
+    const dialog = await openModal();
+    dropFiles(dialog, [makeFile()]);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add 2 to library' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('refreshes the library after a successful import', async () => {

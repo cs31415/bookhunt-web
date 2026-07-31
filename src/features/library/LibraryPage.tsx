@@ -12,8 +12,10 @@ import { StatusTabs } from './components/StatusTabs/StatusTabs';
 import { FilterPill } from './components/FilterPill/FilterPill';
 import { LibraryEmptyState } from './components/LibraryEmptyState/LibraryEmptyState';
 import { ScanModal } from './components/ScanModal/ScanModal';
+import { CsvImportModal } from './components/CsvImportModal/CsvImportModal';
 import { useLibraryData } from './hooks/useLibraryData';
 import { useScanSession } from './hooks/useScanSession';
+import { useCsvImportSession } from './hooks/useCsvImportSession';
 import { toast } from '../../shared/toast/toast-store';
 import { isPhotoImportEnabled } from '../../shared/config/features';
 import { filterEntries, sortByAddedDesc, statusCounts } from './lib/breakdowns';
@@ -33,6 +35,7 @@ export function LibraryPage() {
   const { entries, total, loading, error, reload } = useLibraryData();
   const [page, setPage] = useState(1);
   const [scanOpen, setScanOpen] = useState(false);
+  const [csvOpen, setCsvOpen] = useState(false);
 
   // The scan session lives here, not in ScanModal, so closing the modal mid-scan
   // doesn't abandon the in-flight promise. scanOpenRef lets the completion
@@ -43,8 +46,10 @@ export function LibraryPage() {
     scanOpenRef.current = scanOpen;
   }, [scanOpen]);
 
+  const excludeBookIds = useMemo(() => entries.map((e) => e.book.id), [entries]);
+
   const scanSession = useScanSession({
-    excludeBookIds: useMemo(() => entries.map((e) => e.book.id), [entries]),
+    excludeBookIds,
     onScanComplete: (count) => {
       if (scanOpenRef.current) return;
       toast({
@@ -54,6 +59,11 @@ export function LibraryPage() {
     },
     onAdded: reload,
   });
+
+  // No survive-close toast here, unlike the scan: a CSV import is many requests
+  // over minutes, so dismissing it cancels rather than continuing in the
+  // background (LOS-169).
+  const csvSession = useCsvImportSession({ excludeBookIds, onAdded: reload });
 
   const status = asStatus(searchParams.get('status'));
   const subject = searchParams.get('subject');
@@ -97,16 +107,25 @@ export function LibraryPage() {
     setScanOpen(true);
   }
 
+  function importCsv() {
+    if (csvSession.phase === 'review' || csvSession.phase === 'error') csvSession.reset();
+    setCsvOpen(true);
+  }
+
   // Photo import is opt-in (LOS-170): it only works where the upload bucket has a
   // CORS rule for browser POSTs, so an environment without the flag shouldn't
   // advertise it. Passing undefined rather than a no-op keeps the button out of
   // the DOM entirely.
   const photoImport = isPhotoImportEnabled();
   const onAddFromPhoto = photoImport ? addFromPhoto : undefined;
-  const scanModal =
-    photoImport && scanOpen ? (
-      <ScanModal session={scanSession} onClose={() => setScanOpen(false)} />
-    ) : null;
+  const modals = (
+    <>
+      {photoImport && scanOpen && (
+        <ScanModal session={scanSession} onClose={() => setScanOpen(false)} />
+      )}
+      {csvOpen && <CsvImportModal session={csvSession} onClose={() => setCsvOpen(false)} />}
+    </>
+  );
 
   const sorted = useMemo(
     () => sortByAddedDesc(filterEntries(entries, { status, subject, author })),
@@ -134,15 +153,15 @@ export function LibraryPage() {
   if (total === 0) {
     return (
       <div className={styles.page}>
-        <LibraryEmptyState onDiscover={() => navigate('/')} onAddFromPhoto={onAddFromPhoto} />
-        {scanModal}
+        <LibraryEmptyState onDiscover={() => navigate('/')} onAddFromPhoto={onAddFromPhoto} onImportCsv={importCsv} />
+        {modals}
       </div>
     );
   }
 
   return (
     <div className={styles.page}>
-      <LibraryHeader total={total} onAddFromPhoto={onAddFromPhoto} />
+      <LibraryHeader total={total} onAddFromPhoto={onAddFromPhoto} onImportCsv={importCsv} />
 
       <LibraryCharts
         entries={entries}
@@ -177,7 +196,7 @@ export function LibraryPage() {
       )}
 
       <Pagination page={page} pageCount={pageCount} onChange={setPage} />
-      {scanModal}
+      {modals}
     </div>
   );
 }
