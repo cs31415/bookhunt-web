@@ -12,7 +12,7 @@ describe('ActionMenu', () => {
 
     const reading = screen.getByRole('menuitemradio', { name: 'Reading' });
     expect(reading).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('menuitemradio', { name: 'Queued' })).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', { name: 'New' })).toHaveAttribute(
       'aria-checked',
       'false',
     );

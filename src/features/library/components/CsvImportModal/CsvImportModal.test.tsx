@@ -266,6 +266,34 @@ describe('CsvImportModal', () => {
     });
   });
 
+  it('toasts a success summary once the import finishes', async () => {
+    renderLibrary();
+    const dialog = await openModal();
+    dropFile(dialog, csvFile(SIMPLE_CSV));
+
+    await screen.findByText(/Found matches for/);
+    fireEvent.click(screen.getByRole('button', { name: 'Add 1 to library' }));
+
+    expect(await screen.findByText('Successfully imported 1 book.')).toBeInTheDocument();
+  });
+
+  it('toasts a partial summary when some rows fail to add', async () => {
+    mockedResolve.mockResolvedValue({ rows: [resolved(), resolved({ title: 'Ubik' })] });
+    mockedAddToLibrary
+      .mockResolvedValueOnce({ entry: {}, book: { id: 9, slug: 'dune' } })
+      .mockRejectedValueOnce(new ApiError(500, 'nope'));
+
+    renderLibrary();
+    const dialog = await openModal();
+    dropFile(dialog, csvFile('title\nDune\nUbik'));
+
+    await screen.findByRole('button', { name: 'Add 2 to library' });
+    fireEvent.click(screen.getByRole('button', { name: 'Add 2 to library' }));
+
+    expect(await screen.findByText('Imported 1 of 2 books. 1 books had errors.')).toBeInTheDocument();
+    expect(await within(dialog).findByText(/Added 1 of 2/)).toBeInTheDocument();
+  });
+
   // Two identical lines must stay two rows: keying by content would collapse
   // them into one, silently dropping a book the reader listed twice.
   it('keeps identical CSV lines as separate rows', async () => {
@@ -325,6 +353,52 @@ describe('CsvImportModal', () => {
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
+  it('says all books are already in the library when every row matches one already owned', async () => {
+    mockedResolve.mockResolvedValue({
+      rows: [
+        resolved({ title: 'Existing', matchedBookId: 1 }),
+        resolved({ title: 'Existing 2', matchedBookId: 2 }),
+      ],
+    });
+    mockedGetLibrary.mockResolvedValue({
+      entries: [makeEntry({ book_id: 1 }), makeEntry({ book_id: 2 })],
+      stats: { total: 2, by_status: { queued: 2 } },
+    });
+    mockedGetBooksByIds.mockResolvedValue({
+      books: [
+        {
+          id: 1,
+          slug: 'book-1',
+          title: 'Existing',
+          authorName: 'Anon',
+          authorSlug: 'anon',
+          year: 2000,
+          rating: 4,
+          coverUrl: null,
+          hue: '#6f7a55',
+        },
+        {
+          id: 2,
+          slug: 'book-2',
+          title: 'Existing 2',
+          authorName: 'Anon',
+          authorSlug: 'anon',
+          year: 2000,
+          rating: 4,
+          coverUrl: null,
+          hue: '#6f7a55',
+        },
+      ],
+    });
+
+    renderLibrary();
+    const dialog = await openModal();
+    dropFile(dialog, csvFile('title\nExisting\nExisting 2'));
+
+    expect(await within(dialog).findByText('All these books are already in your library.')).toBeInTheDocument();
+    expect(screen.queryByText(/Found matches for/)).not.toBeInTheDocument();
+  });
+
   it('cycles a status and drops the count when a row is unticked', async () => {
     mockedResolve.mockResolvedValue({ rows: [resolved(), resolved({ title: 'Ubik' })] });
 
@@ -333,7 +407,7 @@ describe('CsvImportModal', () => {
     dropFile(dialog, csvFile('title\nDune\nUbik'));
 
     await screen.findByRole('button', { name: 'Add 2 to library' });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Queued' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'New' })[0]);
     expect(screen.getByRole('button', { name: 'Reading' })).toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole('checkbox')[0]);

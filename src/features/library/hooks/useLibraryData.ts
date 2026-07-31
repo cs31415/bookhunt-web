@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getLibrary } from '../../../api/library/get-library';
 import { normalizeLibraryEntry } from '../../../normalize/library';
-import type { LibraryEntry } from '../../../normalize/library';
+import type { LibraryEntry, RawLibraryEntry } from '../../../normalize/library';
 
 export interface UseLibraryDataResult {
   entries: LibraryEntry[];
@@ -11,8 +11,27 @@ export interface UseLibraryDataResult {
   reload: () => void;
 }
 
-// The whole library comes back in one call (the API does not paginate — LOS-65),
-// so charts, tabs, and grid all derive from this single normalized list.
+// GET /library paginates server-side (LOS-118, max 60/page), but charts, tabs,
+// and client-side pagination on this page are all built around having the
+// whole library at once - so this walks every page up front and flattens them.
+const PAGE_LIMIT = 60;
+
+async function fetchAllEntries(
+  isCancelled: () => boolean,
+): Promise<{ entries: RawLibraryEntry[]; total: number }> {
+  const entries: RawLibraryEntry[] = [];
+  let page = 1;
+  let total = 0;
+  while (!isCancelled()) {
+    const library = await getLibrary({ page, limit: PAGE_LIMIT });
+    entries.push(...library.entries);
+    total = library.stats.total ?? entries.length;
+    if (library.entries.length === 0 || entries.length >= total) break;
+    page += 1;
+  }
+  return { entries, total };
+}
+
 export function useLibraryData(): UseLibraryDataResult {
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
   const [total, setTotal] = useState(0);
@@ -29,11 +48,10 @@ export function useLibraryData(): UseLibraryDataResult {
       if (reloadToken === 0) setLoading(true);
       setError(null);
       try {
-        const library = await getLibrary();
+        const { entries: rows, total: libraryTotal } = await fetchAllEntries(() => cancelled);
         if (cancelled) return;
-        const normalized = library.entries.map(normalizeLibraryEntry);
-        setEntries(normalized);
-        setTotal(library.stats.total ?? normalized.length);
+        setEntries(rows.map(normalizeLibraryEntry));
+        setTotal(libraryTotal);
       } catch {
         // The route is auth-gated (RequireAuth), so a failure here is a real
         // problem worth surfacing rather than the logged-out case Discover swallows.

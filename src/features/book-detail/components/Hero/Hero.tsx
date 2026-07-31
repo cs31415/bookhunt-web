@@ -13,6 +13,7 @@ export interface HeroProps {
   themes: string[];
   themesLoading: boolean;
   moods: string[];
+  addingToLibrary: boolean;
   onToggleLibrary: () => void;
   onStatusChange: (status: LibraryStatus) => void;
   onRate: (rating: number) => void;
@@ -27,6 +28,7 @@ export function Hero({
   themes,
   themesLoading,
   moods,
+  addingToLibrary,
   onToggleLibrary,
   onStatusChange,
   onRate,
@@ -52,8 +54,13 @@ export function Hero({
         {libraryEntry ? (
           <ActionMenu current={libraryEntry.status} onSelect={onStatusChange} />
         ) : (
-          <button type="button" className={styles.addButton} onClick={onToggleLibrary}>
-            + Add to library
+          <button
+            type="button"
+            className={styles.addButton}
+            disabled={addingToLibrary}
+            onClick={onToggleLibrary}
+          >
+            {addingToLibrary ? 'Adding…' : '+ Add to library'}
           </button>
         )}
 

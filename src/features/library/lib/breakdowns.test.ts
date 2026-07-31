@@ -52,7 +52,7 @@ describe('statusSlices', () => {
   it('omits statuses with no books', () => {
     const slices = statusSlices([makeEntry({ status: 'queued' }), makeEntry({ status: 'queued' })]);
     expect(slices).toHaveLength(1);
-    expect(slices[0]).toMatchObject({ label: 'Queued', value: 2 });
+    expect(slices[0]).toMatchObject({ label: 'New', value: 2 });
   });
 });
 

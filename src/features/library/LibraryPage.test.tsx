@@ -109,6 +109,31 @@ describe('LibraryPage', () => {
     expect(screen.getByRole('button', { name: /Sapiens/ })).toBeInTheDocument();
   });
 
+  // Regression test: GET /library paginates (LOS-118, max 60/page). A
+  // library bigger than one page must still show every book and count every
+  // status correctly, not just whatever page 1 happened to return.
+  it('walks every page of a library bigger than one page', async () => {
+    const allEntries = Array.from({ length: 64 }, (_, i) => makeRaw({ book_id: i + 1, status: 'queued' }));
+    mockedGetLibrary.mockImplementation(async ({ page = 1, limit = 24 } = {}) => {
+      const start = (page - 1) * limit;
+      return {
+        entries: allEntries.slice(start, start + limit),
+        stats: { total: allEntries.length, by_status: { queued: allEntries.length } },
+        total: allEntries.length,
+        page,
+        pageSize: limit,
+      };
+    });
+
+    renderLibrary();
+
+    expect(await screen.findByRole('heading', { name: '64 books' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'All 64' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'New 64' })).toBeInTheDocument();
+    expect(mockedGetLibrary).toHaveBeenCalledWith({ page: 1, limit: 60 });
+    expect(mockedGetLibrary).toHaveBeenCalledWith({ page: 2, limit: 60 });
+  });
+
   it('filters the grid to finished books when the Finished tab is clicked', async () => {
     mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
     renderLibrary();
@@ -178,7 +203,7 @@ describe('LibraryPage', () => {
     renderLibrary();
 
     await screen.findByText('Your library');
-    expect(screen.getByRole('tab', { name: /Queued/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /New/ })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Finished/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Reading/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Abandoned/ })).not.toBeInTheDocument();
