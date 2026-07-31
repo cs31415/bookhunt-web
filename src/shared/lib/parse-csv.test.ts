@@ -1,0 +1,201 @@
+import { describe, expect, it } from 'vitest';
+import { parseCsv, parseCsvRows } from './parse-csv';
+
+describe('parseCsvRows', () => {
+  it('splits plain rows and cells', () => {
+    expect(parseCsvRows('a,b\nc,d')).toEqual([
+      ['a', 'b'],
+      ['c', 'd'],
+    ]);
+  });
+
+  it('keeps commas inside quoted fields', () => {
+    expect(parseCsvRows('"Hong Kong, Macau",Frommer\'s')).toEqual([
+      ['Hong Kong, Macau', "Frommer's"],
+    ]);
+  });
+
+  it('keeps newlines inside quoted fields', () => {
+    expect(parseCsvRows('"line one\nline two",x')).toEqual([['line one\nline two', 'x']]);
+  });
+
+  it('unescapes doubled quotes', () => {
+    expect(parseCsvRows('"He said ""hi""",x')).toEqual([['He said "hi"', 'x']]);
+  });
+
+  it('treats CRLF as a single row break', () => {
+    expect(parseCsvRows('a,b\r\nc,d')).toEqual([
+      ['a', 'b'],
+      ['c', 'd'],
+    ]);
+  });
+
+  it('strips a UTF-8 BOM so the first header still matches', () => {
+    expect(parseCsvRows('﻿title,author')).toEqual([['title', 'author']]);
+  });
+
+  it('drops blank lines', () => {
+    expect(parseCsvRows('a,b\n\n\nc,d\n')).toEqual([
+      ['a', 'b'],
+      ['c', 'd'],
+    ]);
+  });
+
+  it('keeps empty middle cells', () => {
+    expect(parseCsvRows('Hong Kong,,Frommer\'s')).toEqual([['Hong Kong', '', "Frommer's"]]);
+  });
+
+  it('returns nothing for empty input', () => {
+    expect(parseCsvRows('')).toEqual([]);
+  });
+});
+
+describe('parseCsv', () => {
+  it('reads title, author and publisher', () => {
+    const { rows, error } = parseCsv('title,author,publisher\nDune,Frank Herbert,Ace');
+
+    expect(error).toBeNull();
+    expect(rows).toEqual([{ title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null }]);
+  });
+
+  // The case that motivated the feature: a travel guide with no author.
+  it('reads a row with an empty author', () => {
+    const { rows } = parseCsv("title,author,publisher\nHong Kong,,Frommer's");
+
+    expect(rows).toEqual([{ title: 'Hong Kong', author: null, publisher: "Frommer's", isbn: null }]);
+  });
+
+  it('matches headers regardless of case, spacing or order', () => {
+    const { rows } = parseCsv(' Publisher , Book Title ,AUTHOR\nAce,Dune,Frank Herbert');
+
+    expect(rows).toEqual([{ title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null }]);
+  });
+
+  it('accepts a file with only a title column', () => {
+    const { rows, error } = parseCsv('title\nDune');
+
+    expect(error).toBeNull();
+    expect(rows).toEqual([{ title: 'Dune', author: null, publisher: null, isbn: null }]);
+  });
+
+  it('trims surrounding whitespace from values', () => {
+    const { rows } = parseCsv('title,author\n  Dune  ,  Frank Herbert  ');
+
+    expect(rows[0]).toEqual({ title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null });
+  });
+
+  // Two identical lines must survive as two rows — the reader may genuinely own
+  // two copies, and silently collapsing them loses data.
+  it('keeps duplicate rows', () => {
+    const { rows } = parseCsv('title,author\nDune,Frank Herbert\nDune,Frank Herbert');
+
+    expect(rows).toHaveLength(2);
+  });
+
+  it('skips rows with no title but keeps the rest', () => {
+    const { rows } = parseCsv('title,author\nDune,Frank Herbert\n,Orphan Author\nUbik,Dick');
+
+    expect(rows.map((r) => r.title)).toEqual(['Dune', 'Ubik']);
+  });
+
+  it('rejects a file with no title column', () => {
+    const { rows, error } = parseCsv('name_of_thing,author\nDune,Frank Herbert');
+
+    expect(rows).toEqual([]);
+    expect(error).toContain('title');
+  });
+
+  it('rejects an empty file', () => {
+    expect(parseCsv('').error).toBe('That file is empty.');
+  });
+
+  describe('values containing commas', () => {
+    it('reads a quoted value containing a comma as one field', () => {
+      const { rows, warning } = parseCsv(
+        'title,author,publisher\n"Hong Kong, Macau and Guangzhou",,Frommer\'s',
+      );
+
+      expect(warning).toBeNull();
+      expect(rows).toEqual([
+        { title: 'Hong Kong, Macau and Guangzhou', author: null, publisher: "Frommer's", isbn: null },
+      ]);
+    });
+
+    // Reading this positionally would file "Macau" as the author and silently
+    // drop the publisher — wrong data rather than no data.
+    it('skips an unquoted comma row rather than shifting its columns', () => {
+      const { rows, warning } = parseCsv(
+        "title,author,publisher\nHong Kong, Macau,,Frommer's\nDune,Frank Herbert,Ace",
+      );
+
+      expect(rows).toEqual([{ title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null }]);
+      expect(warning).toContain('Skipped 1 row');
+      expect(warning).toContain('quotes');
+    });
+
+    it('names the offending line numbers, counting the header as line 1', () => {
+      const { warning } = parseCsv(
+        'title,author,publisher\nDune,Frank Herbert,Ace\nA, B, C, D\nUbik,Dick,Ace',
+      );
+
+      expect(warning).toContain('3');
+    });
+
+    it('errors rather than warns when every row is ragged', () => {
+      const { rows, error } = parseCsv('title,author,publisher\nA, B, C, D\nE, F, G, H');
+
+      expect(rows).toEqual([]);
+      expect(error).toContain('quotes');
+    });
+
+    it('accepts a row with fewer cells than the header', () => {
+      const { rows, warning } = parseCsv('title,author,publisher\nDune,Frank Herbert');
+
+      expect(warning).toBeNull();
+      expect(rows).toEqual([{ title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null }]);
+    });
+  });
+
+  describe('isbn', () => {
+    it('reads an isbn column', () => {
+      const { rows } = parseCsv('title,author,isbn\nDune,Frank Herbert,9780441013593');
+
+      expect(rows[0].isbn).toBe('9780441013593');
+    });
+
+    it.each([['isbn'], ['ISBN'], ['isbn13'], ['ISBN13'], ['isbn10'], ['ean']])(
+      'accepts %s as the header',
+      (header) => {
+        const { rows } = parseCsv(`title,${header}\nDune,9780441013593`);
+
+        expect(rows[0].isbn).toBe('9780441013593');
+      },
+    );
+
+    // Goodreads exports carry both; the 13-digit form is unambiguous.
+    it('prefers isbn13 when a file has both columns', () => {
+      const { rows } = parseCsv('title,isbn,isbn13\nDune,0441013597,9780441013593');
+
+      expect(rows[0].isbn).toBe('9780441013593');
+    });
+
+    // The API normalises and validates; the parser just passes it along.
+    it('passes punctuation through untouched', () => {
+      const { rows } = parseCsv('title,isbn\nDune,"978-0-441-01359-3"');
+
+      expect(rows[0].isbn).toBe('978-0-441-01359-3');
+    });
+
+    it('leaves isbn null when the column is absent or blank', () => {
+      expect(parseCsv('title\nDune').rows[0].isbn).toBeNull();
+      expect(parseCsv('title,isbn\nDune,').rows[0].isbn).toBeNull();
+    });
+  });
+
+  it('rejects a file with a header but no usable rows', () => {
+    const { rows, error } = parseCsv('title,author\n,\n,');
+
+    expect(rows).toEqual([]);
+    expect(error).toContain('No books found');
+  });
+});

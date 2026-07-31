@@ -4,9 +4,10 @@ export interface LibraryHeaderProps {
   total: number;
   /** Omitted when photo import is disabled — the button is then not rendered. */
   onAddFromPhoto?: () => void;
+  onImportCsv: () => void;
 }
 
-export function LibraryHeader({ total, onAddFromPhoto }: LibraryHeaderProps) {
+export function LibraryHeader({ total, onAddFromPhoto, onImportCsv }: LibraryHeaderProps) {
   return (
     <header className={styles.header}>
       <div>
@@ -19,10 +20,13 @@ export function LibraryHeader({ total, onAddFromPhoto }: LibraryHeaderProps) {
           the max-width:560px column stack going ragged. */}
       <div className={styles.actions}>
         {onAddFromPhoto && (
-          <button type="button" className={styles.addButton} onClick={onAddFromPhoto}>
+          <button type="button" className={styles.secondaryButton} onClick={onAddFromPhoto}>
             Add from a photo
           </button>
         )}
+        <button type="button" className={styles.addButton} onClick={onImportCsv}>
+          Import from CSV
+        </button>
       </div>
     </header>
   );
