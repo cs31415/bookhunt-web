@@ -37,16 +37,14 @@ export function LibraryPage() {
   const [scanOpen, setScanOpen] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
 
-  // Sessions live here, not in the modals, so closing one mid-flight doesn't
-  // abandon the in-flight promise. The open refs let a completion callback tell
-  // "still watching" from "closed and needs a toast" without re-running the
-  // session on every open/close.
+  // The scan session lives here, not in ScanModal, so closing the modal mid-scan
+  // doesn't abandon the in-flight promise. scanOpenRef lets the completion
+  // callback tell "still watching" from "closed and needs a toast" without
+  // re-running the session on every open/close.
   const scanOpenRef = useRef(false);
-  const csvOpenRef = useRef(false);
   useEffect(() => {
     scanOpenRef.current = scanOpen;
-    csvOpenRef.current = csvOpen;
-  }, [scanOpen, csvOpen]);
+  }, [scanOpen]);
 
   const excludeBookIds = useMemo(() => entries.map((e) => e.book.id), [entries]);
 
@@ -62,17 +60,10 @@ export function LibraryPage() {
     onAdded: reload,
   });
 
-  const csvSession = useCsvImportSession({
-    excludeBookIds,
-    onResolveComplete: (count) => {
-      if (csvOpenRef.current) return;
-      toast({
-        text: `Matched ${count} ${count === 1 ? 'book' : 'books'} from your file`,
-        action: { label: 'Review', onClick: () => setCsvOpen(true) },
-      });
-    },
-    onAdded: reload,
-  });
+  // No survive-close toast here, unlike the scan: a CSV import is many requests
+  // over minutes, so dismissing it cancels rather than continuing in the
+  // background (LOS-169).
+  const csvSession = useCsvImportSession({ excludeBookIds, onAdded: reload });
 
   const status = asStatus(searchParams.get('status'));
   const subject = searchParams.get('subject');
@@ -117,7 +108,7 @@ export function LibraryPage() {
   }
 
   function importCsv() {
-    if (csvSession.phase === 'results' || csvSession.phase === 'error') csvSession.reset();
+    if (csvSession.phase === 'review' || csvSession.phase === 'error') csvSession.reset();
     setCsvOpen(true);
   }
 

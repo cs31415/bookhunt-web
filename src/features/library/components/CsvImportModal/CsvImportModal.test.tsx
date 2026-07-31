@@ -180,9 +180,10 @@ describe('CsvImportModal', () => {
     dropFile(dialog, csvFile(SIMPLE_CSV));
 
     expect(await screen.findByText(/Found matches for/)).toHaveTextContent('Found matches for 1');
-    expect(mockedResolve).toHaveBeenCalledWith([
-      { title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null },
-    ]);
+    expect(mockedResolve).toHaveBeenCalledWith(
+      [{ title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null }],
+      expect.any(AbortSignal),
+    );
   });
 
   it('passes an ISBN through when the file has one', async () => {
@@ -191,9 +192,10 @@ describe('CsvImportModal', () => {
     dropFile(dialog, csvFile('title,isbn\nDune,978-0-441-01359-3'));
 
     await screen.findByText(/Found matches for/);
-    expect(mockedResolve).toHaveBeenCalledWith([
-      { title: 'Dune', author: null, publisher: null, isbn: '978-0-441-01359-3' },
-    ]);
+    expect(mockedResolve).toHaveBeenCalledWith(
+      [{ title: 'Dune', author: null, publisher: null, isbn: '978-0-441-01359-3' }],
+      expect.any(AbortSignal),
+    );
   });
 
   it('surfaces a parse error without calling the API', async () => {
@@ -375,21 +377,171 @@ describe('CsvImportModal', () => {
     expect(await screen.findByText(/Too many imports right now/)).toBeInTheDocument();
   });
 
-  it('toasts when resolution finishes after the modal was closed', async () => {
-    let resolveNow: (v: { rows: RawResolvedRow[] }) => void = () => {};
-    mockedResolve.mockReturnValue(new Promise((r) => (resolveNow = r)));
+  describe('progressive display', () => {
+    function pendingResolve() {
+      let settle: (v: { rows: RawResolvedRow[] }) => void = () => {};
+      mockedResolve.mockReturnValue(new Promise((r) => (settle = r)));
+      return (rows: RawResolvedRow[]) => settle({ rows });
+    }
 
-    renderLibrary();
-    const dialog = await openModal();
-    dropFile(dialog, csvFile(SIMPLE_CSV));
+    // The whole file appears at once so the reader can confirm it was read
+    // correctly, rather than watching a spinner with nothing to look at.
+    it('lists every row from the file before any lookup returns', async () => {
+      pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title\nDune\nUbik\nSolaris'));
 
-    await screen.findByText(/Looking up/);
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+      // One pending row per CSV line, before any lookup has come back.
+      expect(await screen.findAllByText('Looking up…')).toHaveLength(3);
+      for (const title of ['Dune', 'Ubik', 'Solaris']) {
+        expect(screen.getAllByText(title).length).toBeGreaterThan(0);
+      }
+    });
 
-    resolveNow({ rows: [resolved()] });
+    it('marks rows as still being looked up, and not yet addable', async () => {
+      pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title\nDune'));
 
-    expect(await screen.findByText('Matched 1 book from your file')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Review' }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      expect(await screen.findAllByText('Looking up…')).toHaveLength(1);
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    });
+
+    it('reports how far along the lookup is', async () => {
+      pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title\nDune\nUbik'));
+
+      expect(await screen.findByText(/Looking up 0 of 2 books/)).toBeInTheDocument();
+      expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuemax', '2');
+    });
+
+    it('fills a row in once its batch returns', async () => {
+      const settle = pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title\nDune'));
+
+      await screen.findAllByText('Looking up…');
+      settle([resolved()]);
+
+      expect(await screen.findByRole('checkbox', { name: /Skip Dune/ })).toBeInTheDocument();
+      expect(screen.queryByText('Looking up…')).not.toBeInTheDocument();
+    });
+
+    it('holds the add button until every row is looked up', async () => {
+      const settle = pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title\nDune'));
+
+      await screen.findAllByText('Looking up…');
+      expect(screen.getByRole('button', { name: /Add .* to library/ })).toBeDisabled();
+
+      settle([resolved()]);
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Add 1 to library' })).toBeEnabled(),
+      );
+    });
+  });
+
+  // A CSV import is many requests over minutes, so dismissing it means stop --
+  // unlike the photo scan, which is one short request worth finishing in the
+  // background and offering back in a toast.
+  describe('cancelling', () => {
+    function pendingResolve() {
+      let settle: (v: { rows: RawResolvedRow[] }) => void = () => {};
+      mockedResolve.mockReturnValue(new Promise((r) => (settle = r)));
+      return () => settle({ rows: [resolved()] });
+    }
+
+    it('asks before discarding, and does not abort yet', async () => {
+      pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(SIMPLE_CSV));
+
+      await screen.findByRole('button', { name: 'Cancel import' });
+      const signal = mockedResolve.mock.calls[0][1] as AbortSignal;
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel import' }));
+
+      expect(await screen.findByText('Discard this import?')).toBeInTheDocument();
+      expect(signal.aborted).toBe(false);
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('carries on when the prompt is declined', async () => {
+      pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(SIMPLE_CSV));
+
+      await screen.findByRole('button', { name: 'Cancel import' });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel import' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Keep importing' }));
+
+      expect((mockedResolve.mock.calls[0][1] as AbortSignal).aborted).toBe(false);
+      expect(screen.getByText(/Looking up \d+ of/)).toBeInTheDocument();
+    });
+
+    it('aborts the request once the prompt is confirmed', async () => {
+      pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(SIMPLE_CSV));
+
+      await screen.findByRole('button', { name: 'Cancel import' });
+      const signal = mockedResolve.mock.calls[0][1] as AbortSignal;
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel import' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Discard import' }));
+
+      expect(signal.aborted).toBe(true);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    // Escape and the backdrop route through the same handler, so they prompt too.
+    it('prompts rather than closing when dismissed with the close button', async () => {
+      pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(SIMPLE_CSV));
+
+      await screen.findByText(/Looking up \d+ of/);
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+
+      expect(await screen.findByText('Discard this import?')).toBeInTheDocument();
+      expect((mockedResolve.mock.calls[0][1] as AbortSignal).aborted).toBe(false);
+    });
+
+    it('says how much work discarding would lose', async () => {
+      pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(SIMPLE_CSV));
+
+      await screen.findByRole('button', { name: 'Cancel import' });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel import' }));
+
+      expect(await screen.findByText(/have been looked up/)).toBeInTheDocument();
+    });
+
+    it('returns to the upload phase when reopened after discarding', async () => {
+      pendingResolve();
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(SIMPLE_CSV));
+
+      await screen.findByRole('button', { name: 'Cancel import' });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel import' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Discard import' }));
+
+      const reopened = await openModal();
+      expect(within(reopened).getByText('Drop a CSV of your books')).toBeInTheDocument();
+    });
   });
 });

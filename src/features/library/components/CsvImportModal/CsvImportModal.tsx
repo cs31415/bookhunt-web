@@ -16,10 +16,11 @@ function looksLikeCsv(file: File): boolean {
 }
 
 export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
-  const { phase, rows, error, warning, addError, fileName, progress } = session;
+  const { phase, rows, error, warning, addError, resolving, progress } = session;
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   function pick(list: FileList | null) {
     const file = list?.[0];
@@ -29,6 +30,7 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
       return;
     }
     setPickError(null);
+    setConfirmingCancel(false);
     session.start(file);
   }
 
@@ -36,31 +38,66 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
     if (await session.confirm()) onClose();
   }
 
+  /**
+   * Dismissing mid-lookup stops it — leaving it running would keep firing
+   * requests with nothing on screen to show for them. Because that throws away
+   * however many lookups are already done, it asks first.
+   *
+   * The prompt is inline rather than a second modal: stacking portals means
+   * stacking focus traps, and a native confirm() blocks the whole page.
+   */
+  function handleClose() {
+    if (!resolving) {
+      onClose();
+      return;
+    }
+    if (!confirmingCancel) {
+      setConfirmingCancel(true);
+      return;
+    }
+    discardImport();
+  }
+
+  function discardImport() {
+    setConfirmingCancel(false);
+    session.cancel();
+    onClose();
+  }
+
   const importable = rows.filter((row) => row.alreadyInLibraryId === undefined);
   const alreadyOwned = rows.length - importable.length;
+  const confirming = resolving && confirmingCancel;
 
-  const footer =
-    phase === 'results' && importable.length > 0 ? (
-      <>
-        <button type="button" className={modal.btn} onClick={onClose}>
-          Cancel
-        </button>
-        <button
-          type="button"
-          className={`${modal.btn} ${modal.btnPrimary}`}
-          disabled={session.selectedCount === 0 || session.adding}
-          onClick={handleAdd}
-        >
-          {session.adding ? 'Adding…' : `Add ${session.selectedCount} to library`}
-        </button>
-      </>
-    ) : undefined;
+  const footer = confirming ? (
+    <>
+      <button type="button" className={modal.btn} onClick={() => setConfirmingCancel(false)}>
+        Keep importing
+      </button>
+      <button type="button" className={`${modal.btn} ${modal.btnPrimary}`} onClick={discardImport}>
+        Discard import
+      </button>
+    </>
+  ) : phase === 'review' ? (
+    <>
+      <button type="button" className={modal.btn} onClick={handleClose}>
+        {resolving ? 'Cancel import' : 'Cancel'}
+      </button>
+      <button
+        type="button"
+        className={`${modal.btn} ${modal.btnPrimary}`}
+        disabled={session.selectedCount === 0 || session.adding || resolving}
+        onClick={handleAdd}
+      >
+        {session.adding ? 'Adding…' : `Add ${session.selectedCount} to library`}
+      </button>
+    </>
+  ) : undefined;
 
   return (
     <Modal
       eyebrow="Import from a file"
       title="Add books from a CSV"
-      onClose={onClose}
+      onClose={handleClose}
       footer={footer}
     >
       {phase === 'upload' && (
@@ -109,12 +146,20 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
         </div>
       )}
 
-      {phase === 'processing' && (
-        <div className={styles.processing}>
-          <div className={styles.spinner} />
-          <p>Looking up {fileName ? <strong>{fileName}</strong> : 'your books'}…</p>
-          {progress && (
-            <>
+      {confirming && (
+        <div className={styles.confirm} role="alertdialog" aria-label="Discard this import?">
+          <p className={styles.confirmTitle}>Discard this import?</p>
+          <p className={styles.confirmBody}>
+            {progress.done} of {progress.total} books have been looked up. Discarding loses that
+            work — your file is untouched, so you can start again.
+          </p>
+        </div>
+      )}
+
+      {phase === 'review' && !confirming && (
+        <div>
+          {resolving ? (
+            <div className={styles.status}>
               <div
                 className={styles.progressTrack}
                 role="progressbar"
@@ -125,26 +170,25 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
               >
                 <div
                   className={styles.progressBar}
-                  style={{ width: `${(progress.done / progress.total) * 100}%` }}
+                  style={{ width: `${(progress.done / Math.max(progress.total, 1)) * 100}%` }}
                 />
               </div>
               <p className={styles.progressLabel}>
-                {progress.done} of {progress.total} books
+                Looking up {progress.done} of {progress.total} books…
               </p>
-            </>
+            </div>
+          ) : (
+            <p className={styles.summary}>
+              Found matches for <strong>{importable.length}</strong>{' '}
+              {importable.length === 1 ? 'book' : 'books'}.
+              {alreadyOwned > 0 && ` ${alreadyOwned} already in your library.`}
+              {importable.length > 0 &&
+                ' Pick a different match, change a status, or untick to skip.'}
+            </p>
           )}
-        </div>
-      )}
 
-      {phase === 'results' && (
-        <div>
-          <p className={styles.summary}>
-            Found matches for <strong>{importable.length}</strong>{' '}
-            {importable.length === 1 ? 'book' : 'books'}.
-            {alreadyOwned > 0 && ` ${alreadyOwned} already in your library.`}
-            {importable.length > 0 && ' Pick a different match, change a status, or untick to skip.'}
-          </p>
           {warning && <p className={styles.warning}>{warning}</p>}
+
           <div className={styles.rows}>
             {rows.map((row) => (
               <ImportRow
@@ -155,7 +199,7 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
                 onCycleStatus={() => session.cycleStatus(row.key)}
                 onToggle={() => session.toggle(row.key)}
                 note={
-                  row.candidates.length === 0
+                  row.resolved && row.candidates.length === 0
                     ? `Couldn’t find “${row.hint.title}” — add it as-is?`
                     : undefined
                 }
@@ -163,7 +207,11 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
                 selectedCandidateId={session.selectedCandidateId(row.key)}
                 onSelectCandidate={(id) => session.selectCandidate(row.key, id)}
                 disabledReason={
-                  row.alreadyInLibraryId !== undefined ? 'Already in your library' : undefined
+                  !row.resolved
+                    ? 'Looking up…'
+                    : row.alreadyInLibraryId !== undefined
+                      ? 'Already in your library'
+                      : undefined
                 }
               />
             ))}

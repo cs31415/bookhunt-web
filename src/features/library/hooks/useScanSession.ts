@@ -129,11 +129,13 @@ export function useScanSession(options: UseScanSessionOptions): UseScanSessionRe
   // event handlers and resolved promises, both of which happen after commit.
   const excludeRef = useRef(excludeBookIds);
   const completeRef = useRef(onScanComplete);
-  const resetSelectionRef = useRef(review.resetSelection);
+  const registerRef = useRef(review.registerRows);
+  const clearRef = useRef(review.clearSelection);
   useEffect(() => {
     excludeRef.current = excludeBookIds;
     completeRef.current = onScanComplete;
-    resetSelectionRef.current = review.resetSelection;
+    registerRef.current = review.registerRows;
+    clearRef.current = review.clearSelection;
   });
 
   // Only the newest run may write state; an earlier one that resolves late is ignored.
@@ -164,7 +166,7 @@ export function useScanSession(options: UseScanSessionOptions): UseScanSessionRe
 
     setPreviews(urls);
     setRows([]);
-    resetSelectionRef.current([]);
+    clearRef.current();
     setError(null);
     setPhase('processing');
 
@@ -200,7 +202,7 @@ export function useScanSession(options: UseScanSessionOptions): UseScanSessionRe
         .map((raw) => ({ raw, detected: normalizeDetectedBook(raw, catalogById) }));
 
       setRows(next);
-      resetSelectionRef.current(next);
+      registerRef.current(next);
       setPhase('results');
       completeRef.current?.(next.length);
     } catch (e) {
@@ -218,7 +220,7 @@ export function useScanSession(options: UseScanSessionOptions): UseScanSessionRe
     releasePreviews();
     setPreviews([]);
     setRows([]);
-    resetSelectionRef.current([]);
+    clearRef.current();
     setError(null);
     setPhase('upload');
   }

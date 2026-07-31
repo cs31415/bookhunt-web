@@ -1,23 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
-import { ApiError } from '../../../api/client';
-import { MAX_ROWS_PER_REQUEST, resolveImportRows } from '../../../api/import/resolve';
+import { ApiError, isAbortError } from '../../../api/client';
+import { ROWS_PER_REQUEST, resolveImportRows } from '../../../api/import/resolve';
 import type { RawResolvedRow } from '../../../api/import/resolve';
 import { getBooksByIds } from '../../../api/books/get-books-by-ids';
 import { normalizeBooksByIds } from '../../../normalize/books-by-ids';
 import { normalizeAiSearchBook } from '../../../normalize/search';
+import type { RawAiSearchBook } from '../../../normalize/search';
 import { parseCsv } from '../../../shared/lib/parse-csv';
+import type { CsvBookRow } from '../../../shared/lib/parse-csv';
 import { slugify } from '../../../shared/lib/slugify';
+import { hashToHue } from '../../../shared/lib/hash';
 import type { BookSummary } from '../../../shared/types/book';
 import { useImportReview } from './useImportReview';
 import type { UseImportReviewResult } from './useImportReview';
 
-export type CsvPhase = 'upload' | 'processing' | 'results' | 'error';
+export type CsvPhase = 'upload' | 'review' | 'error';
 
 /**
  * Rows accepted from one file. Sized for a Goodreads or StoryGraph migration,
  * which is the case CSV import exists to serve. The binding constraint is the
- * review list, which renders every row's cover and dropdown with no
- * virtualisation — see LOS-171.
+ * review list, which renders every row with no virtualisation — see LOS-171.
  */
 export const MAX_CSV_ROWS = 1000;
 
@@ -28,14 +30,16 @@ export interface CsvCandidate {
   id: string;
   label: string;
   book: BookSummary;
-  raw: import('../../../normalize/search').RawAiSearchBook;
+  /** null for a local catalog match, which carries no provider payload. */
+  raw: RawAiSearchBook | null;
 }
 
 export interface CsvRow {
   /** Keyed by CSV line, so two identical lines stay two independent rows. */
   key: string;
-  /** What the file said, shown when nothing was matched. */
-  hint: { title: string; author: string | null; publisher: string | null; isbn: string | null };
+  hint: CsvBookRow;
+  /** False until this row's batch comes back. */
+  resolved: boolean;
   candidates: CsvCandidate[];
   /** Book id when this row is already in the library. */
   alreadyInLibraryId?: number;
@@ -45,15 +49,19 @@ export interface UseCsvImportSessionResult extends UseImportReviewResult<CsvRow>
   phase: CsvPhase;
   rows: CsvRow[];
   error: string | null;
-  /** Rows skipped during parsing — shown alongside results, not instead of them. */
+  /** Rows skipped during parsing — shown alongside the list, not instead of it. */
   warning: string | null;
   fileName: string | null;
-  /** Rows looked up so far, and the total, while resolving. */
-  progress: { done: number; total: number } | null;
+  /** True while batches are still coming back. */
+  resolving: boolean;
+  /** Rows looked up so far, and the total. */
+  progress: { done: number; total: number };
   selectedCandidateId: (key: string) => string | undefined;
   selectCandidate: (key: string, candidateId: string) => void;
   bookFor: (row: CsvRow) => BookSummary;
   start: (file: File) => void;
+  /** Aborts an in-flight lookup and returns to the upload phase. */
+  cancel: () => void;
   reset: () => void;
 }
 
@@ -73,6 +81,26 @@ function labelFor(book: BookSummary, publisher: string | null): string {
   return detail ? `${book.title} — ${author} (${detail})` : `${book.title} — ${author}`;
 }
 
+/**
+ * Stand-in cover built from what the file said, shown before a row is looked up
+ * and kept if nothing matches. Cover draws its procedural design from `hue` when
+ * there's no image, so the list has real shape from the first frame.
+ */
+function placeholderBook(hint: CsvBookRow): BookSummary {
+  return {
+    id: 0,
+    slug: '',
+    title: hint.title,
+    authorName: hint.author ?? 'Unknown author',
+    authorSlug: '',
+    year: null,
+    coverUrl: null,
+    hue: hashToHue(`${hint.title}|${hint.author ?? ''}`),
+    rating: null,
+    source: 'catalog',
+  };
+}
+
 function toCandidates(raw: RawResolvedRow): CsvCandidate[] {
   return raw.candidates.map((candidate, index) => {
     const { book } = normalizeAiSearchBook(candidate);
@@ -85,26 +113,9 @@ function toCandidates(raw: RawResolvedRow): CsvCandidate[] {
   });
 }
 
-/** Placeholder for a row nothing matched, so it can still be reviewed and added. */
-function unmatchedBook(hint: CsvRow['hint']): BookSummary {
-  return {
-    id: 0,
-    slug: '',
-    title: hint.title,
-    authorName: hint.author ?? 'Unknown author',
-    authorSlug: '',
-    year: null,
-    coverUrl: null,
-    hue: 'var(--line-2)',
-    rating: null,
-    source: 'catalog',
-  };
-}
-
 export interface UseCsvImportSessionOptions {
   /** Book ids already in the library — those rows render inert rather than vanishing. */
   excludeBookIds: number[];
-  onResolveComplete?: (count: number) => void;
   onAdded?: (count: number) => void;
 }
 
@@ -112,20 +123,22 @@ export interface UseCsvImportSessionOptions {
  * Owns CSV import: parse, resolve against the API, then hand off to
  * useImportReview for selection and commit.
  *
- * Lives in LibraryPage rather than the modal for the same reason the scan
- * session does — closing mid-resolve must not abandon the request.
+ * The whole file is listed the moment it parses, with placeholder covers, and
+ * rows fill in as their batch returns. Waiting for every lookup before showing
+ * anything meant staring at a spinner for minutes on a large file, with no sign
+ * the right thing had even been read.
  */
 export function useCsvImportSession(
   options: UseCsvImportSessionOptions,
 ): UseCsvImportSessionResult {
-  const { excludeBookIds, onResolveComplete, onAdded } = options;
+  const { excludeBookIds, onAdded } = options;
 
   const [phase, setPhase] = useState<CsvPhase>('upload');
   const [rows, setRows] = useState<CsvRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [resolving, setResolving] = useState(false);
   const [chosenByKey, setChosenByKey] = useState<Record<string, string>>({});
 
   function candidateFor(row: CsvRow): CsvCandidate | undefined {
@@ -134,23 +147,23 @@ export function useCsvImportSession(
   }
 
   function bookFor(row: CsvRow): BookSummary {
-    return candidateFor(row)?.book ?? unmatchedBook(row.hint);
+    return candidateFor(row)?.book ?? placeholderBook(row.hint);
   }
 
   const review = useImportReview<CsvRow>({
     rows,
     keyOf: (row) => row.key,
     toAddArgs: (row) => {
-      if (row.alreadyInLibraryId !== undefined) return null;
+      if (!row.resolved || row.alreadyInLibraryId !== undefined) return null;
       const candidate = candidateFor(row);
-      if (!candidate) {
-        // Nothing matched: still addable, upserting a thin catalog row from what
-        // the file said. The reader opted in by leaving it ticked.
+      if (!candidate?.raw) {
+        // Nothing matched, or a catalog hit with no provider payload: upsert a
+        // thin row from what the file said. The reader opted in by leaving it ticked.
         return {
-          slug: slugify(row.hint.title),
+          slug: slugify(candidate?.book.title ?? row.hint.title),
           rawFields: {
-            title: row.hint.title,
-            authorName: row.hint.author ?? 'Unknown',
+            title: candidate?.book.title ?? row.hint.title,
+            authorName: candidate?.book.authorName || row.hint.author || 'Unknown',
             ...(row.hint.publisher ? { publisher: row.hint.publisher } : {}),
             ...(row.hint.isbn ? { isbn13: row.hint.isbn } : {}),
           },
@@ -176,122 +189,141 @@ export function useCsvImportSession(
         },
       };
     },
-    // A row nothing matched would upsert a title-and-author-only catalog entry,
-    // so it starts unticked. Rows already owned can't be added at all.
-    startsUnticked: (row) => row.candidates.length === 0 || row.alreadyInLibraryId !== undefined,
+    // Unticked while still being looked up, and afterwards if nothing matched —
+    // adding an unmatched row upserts a title-and-author-only catalog entry.
+    // Already-owned rows can't be added at all.
+    startsUnticked: (row) =>
+      !row.resolved || row.candidates.length === 0 || row.alreadyInLibraryId !== undefined,
     onAdded,
   });
 
   const excludeRef = useRef(excludeBookIds);
-  const completeRef = useRef(onResolveComplete);
-  const resetSelectionRef = useRef(review.resetSelection);
+  const registerRef = useRef(review.registerRows);
+  const clearRef = useRef(review.clearSelection);
   useEffect(() => {
     excludeRef.current = excludeBookIds;
-    completeRef.current = onResolveComplete;
-    resetSelectionRef.current = review.resetSelection;
+    registerRef.current = review.registerRows;
+    clearRef.current = review.clearSelection;
   });
 
   const runIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Abandoning the page mid-import shouldn't leave requests running either.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   function start(file: File) {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     const runId = ++runIdRef.current;
+
     setFileName(file.name);
     setRows([]);
     setChosenByKey({});
-    resetSelectionRef.current([]);
+    clearRef.current();
     setError(null);
     setWarning(null);
-    setProgress(null);
-    setPhase('processing');
+    setResolving(true);
 
-    void run(runId, file);
+    void run(runId, file, controller.signal);
   }
 
-  async function run(runId: number, file: File) {
+  /**
+   * Stops an in-flight lookup. Unlike the photo scan — one short request, worth
+   * finishing in the background and offering back in a toast — a CSV import is
+   * many requests over minutes, and dismissing it plainly means stop.
+   */
+  function cancel() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    reset();
+  }
+
+  async function run(runId: number, file: File, signal: AbortSignal) {
+    const fail = (message: string) => {
+      if (runId !== runIdRef.current) return;
+      setError(message);
+      setResolving(false);
+      setPhase('error');
+    };
+
     try {
       const { rows: parsed, error: parseError, warning: parseWarning } = parseCsv(await file.text());
-      if (parseError) {
-        if (runId === runIdRef.current) {
-          setError(parseError);
-          setPhase('error');
-        }
-        return;
-      }
+      if (parseError) return fail(parseError);
       if (parsed.length > MAX_CSV_ROWS) {
-        if (runId === runIdRef.current) {
-          setError(`That file has ${parsed.length} books — please import at most ${MAX_CSV_ROWS} at a time.`);
-          setPhase('error');
-        }
-        return;
+        return fail(
+          `That file has ${parsed.length} books — please import at most ${MAX_CSV_ROWS} at a time.`,
+        );
       }
-
-      // The endpoint caps each request, so a larger file goes in several. Serial
-      // rather than parallel: each request already fans out to many provider
-      // calls server-side, and the endpoint is rate limited per minute.
-      const resolved: RawResolvedRow[] = [];
-      setProgress({ done: 0, total: parsed.length });
-      for (let i = 0; i < parsed.length; i += MAX_ROWS_PER_REQUEST) {
-        const batch = parsed.slice(i, i + MAX_ROWS_PER_REQUEST);
-        const response = await resolveImportRows(batch);
-        resolved.push(...response.rows);
-        if (runId !== runIdRef.current) return;
-        // A thousand rows is 25 requests against providers; without this the
-        // reader watches a bare spinner for minutes with no sign of life.
-        setProgress({ done: resolved.length, total: parsed.length });
-      }
-
-      const matchedIds = resolved
-        .map((r) => r.matchedBookId)
-        .filter((id): id is number => id !== undefined);
-      const catalogById = new Map<number, BookSummary>();
-      if (matchedIds.length > 0) {
-        const res = await getBooksByIds(matchedIds);
-        for (const book of normalizeBooksByIds(res)) catalogById.set(book.id, book);
-      }
-
       if (runId !== runIdRef.current) return;
+
+      // Show the whole file at once, unresolved. The reader sees their books
+      // listed immediately and can scroll while lookups are still running.
+      const pending: CsvRow[] = parsed.map((hint, index) => ({
+        key: `csv:${index}`,
+        hint,
+        resolved: false,
+        candidates: [],
+      }));
+      setRows(pending);
+      registerRef.current(pending);
+      setWarning(parseWarning);
+      setPhase('review');
 
       const owned = new Set(excludeRef.current);
-      const next: CsvRow[] = resolved.map((raw, index) => {
-        const catalogBook =
-          raw.matchedBookId !== undefined ? catalogById.get(raw.matchedBookId) : undefined;
-        const candidates = toCandidates(raw);
-        // A catalog match is the best candidate there is — put it first.
-        if (catalogBook) {
-          candidates.unshift({
-            id: `book:${catalogBook.id}`,
-            label: labelFor(catalogBook, raw.publisher),
-            book: catalogBook,
-            raw: {} as never,
-          });
-        }
-        return {
-          // Keyed by line, not content: two identical rows must stay independent.
-          key: `csv:${index}`,
-          hint: {
-            title: raw.title,
-            author: raw.author,
-            publisher: raw.publisher,
-            isbn: raw.isbn,
-          },
-          candidates,
-          ...(raw.matchedBookId !== undefined && owned.has(raw.matchedBookId)
-            ? { alreadyInLibraryId: raw.matchedBookId }
-            : {}),
-        };
-      });
 
-      setRows(next);
-      resetSelectionRef.current(next);
-      setWarning(parseWarning);
-      setProgress(null);
-      setPhase('results');
-      completeRef.current?.(next.filter((r) => r.alreadyInLibraryId === undefined).length);
+      for (let offset = 0; offset < parsed.length; offset += ROWS_PER_REQUEST) {
+        const batch = parsed.slice(offset, offset + ROWS_PER_REQUEST);
+        const { rows: resolvedRows } = await resolveImportRows(batch, signal);
+
+        // One call per batch resolves its catalog matches' covers and slugs.
+        const matchedIds = resolvedRows
+          .map((r) => r.matchedBookId)
+          .filter((id): id is number => id !== undefined);
+        const catalogById = new Map<number, BookSummary>();
+        if (matchedIds.length > 0) {
+          const res = await getBooksByIds(matchedIds);
+          for (const book of normalizeBooksByIds(res)) catalogById.set(book.id, book);
+        }
+
+        if (runId !== runIdRef.current) return;
+
+        const filled: CsvRow[] = resolvedRows.map((raw, i) => {
+          const catalogBook =
+            raw.matchedBookId !== undefined ? catalogById.get(raw.matchedBookId) : undefined;
+          const candidates = toCandidates(raw);
+          // A catalog match is the best candidate there is — put it first.
+          if (catalogBook) {
+            candidates.unshift({
+              id: `book:${catalogBook.id}`,
+              label: labelFor(catalogBook, raw.publisher),
+              book: catalogBook,
+              raw: null,
+            });
+          }
+          return {
+            key: `csv:${offset + i}`,
+            hint: parsed[offset + i],
+            resolved: true,
+            candidates,
+            ...(raw.matchedBookId !== undefined && owned.has(raw.matchedBookId)
+              ? { alreadyInLibraryId: raw.matchedBookId }
+              : {}),
+          };
+        });
+
+        const byKey = new Map(filled.map((row) => [row.key, row]));
+        setRows((current) => current.map((row) => byKey.get(row.key) ?? row));
+        registerRef.current(filled);
+      }
+
+      if (runId === runIdRef.current) setResolving(false);
     } catch (e) {
+      // A cancelled import is not a failure; cancel() has already reset state.
+      if (isAbortError(e)) return;
       console.error('[csv-import] failed', e);
-      if (runId !== runIdRef.current) return;
-      setError(messageFor(e));
-      setPhase('error');
+      fail(messageFor(e));
     }
   }
 
@@ -299,10 +331,10 @@ export function useCsvImportSession(
     runIdRef.current++;
     setRows([]);
     setChosenByKey({});
-    resetSelectionRef.current([]);
+    clearRef.current();
     setError(null);
     setWarning(null);
-    setProgress(null);
+    setResolving(false);
     setFileName(null);
     setPhase('upload');
   }
@@ -314,7 +346,8 @@ export function useCsvImportSession(
     error,
     warning,
     fileName,
-    progress,
+    resolving,
+    progress: { done: rows.filter((r) => r.resolved).length, total: rows.length },
     selectedCandidateId: (key) => {
       const row = rows.find((r) => r.key === key);
       return chosenByKey[key] ?? row?.candidates[0]?.id;
@@ -323,6 +356,7 @@ export function useCsvImportSession(
       setChosenByKey((current) => ({ ...current, [key]: candidateId })),
     bookFor,
     start,
+    cancel,
     reset,
   };
 }

@@ -41,7 +41,10 @@ export interface UseImportReviewResult<TRow> {
   addError: string | null;
   /** Resolves true when everything selected was added. */
   confirm: () => Promise<boolean>;
-  resetSelection: (rows: TRow[]) => void;
+  /** Applies each row's default tick state; safe to call repeatedly as rows change. */
+  registerRows: (rows: TRow[]) => void;
+  /** Wipes every default and choice, for starting an import over. */
+  clearSelection: () => void;
 }
 
 /**
@@ -55,7 +58,11 @@ export function useImportReview<TRow>(
   const { rows, keyOf, toAddArgs, startsUnticked, onAdded } = options;
 
   const [statusByKey, setStatusByKey] = useState<Record<string, LibraryStatus>>({});
-  const [untickedKeys, setUntickedKeys] = useState<Set<string>>(new Set());
+  // Split into "what this row defaults to" and "what the reader chose", so rows
+  // arriving mid-review get their default without disturbing existing choices.
+  // A single Set rebuilt per batch would wipe them.
+  const [defaultUnticked, setDefaultUnticked] = useState<Set<string>>(new Set());
+  const [tickOverrides, setTickOverrides] = useState<Record<string, boolean>>({});
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -64,7 +71,7 @@ export function useImportReview<TRow>(
   }
 
   function isTicked(key: string): boolean {
-    return !untickedKeys.has(key);
+    return tickOverrides[key] ?? !defaultUnticked.has(key);
   }
 
   function cycleStatus(key: string) {
@@ -77,21 +84,37 @@ export function useImportReview<TRow>(
   // Tick state is tracked separately from status so unticking and re-ticking
   // doesn't silently reset a status the reader already chose.
   function toggle(key: string) {
-    setUntickedKeys((current) => {
+    const next = !isTicked(key);
+    setTickOverrides((current) => ({ ...current, [key]: next }));
+  }
+
+  /**
+   * Recomputes defaults for the rows given, leaving the reader's own choices
+   * alone. Idempotent, so a row can be registered again once it changes — a CSV
+   * row starts unticked while it's still being looked up, then ticks itself when
+   * a match arrives, unless the reader has since said otherwise.
+   */
+  function registerRows(newRows: TRow[]) {
+    if (!startsUnticked) return;
+    setDefaultUnticked((current) => {
       const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      for (const row of newRows) {
+        if (startsUnticked(row)) next.add(keyOf(row));
+        else next.delete(keyOf(row));
+      }
       return next;
     });
   }
 
-  function resetSelection(nextRows: TRow[]) {
+  /** Wipes every default and choice — for starting an import over. */
+  function clearSelection() {
     setStatusByKey({});
-    setUntickedKeys(new Set(nextRows.filter((r) => startsUnticked?.(r)).map(keyOf)));
+    setDefaultUnticked(new Set());
+    setTickOverrides({});
     setAddError(null);
   }
 
-  const selected = rows.filter((row) => !untickedKeys.has(keyOf(row)));
+  const selected = rows.filter((row) => isTicked(keyOf(row)));
 
   async function confirm(): Promise<boolean> {
     if (selected.length === 0) return true;
@@ -137,6 +160,7 @@ export function useImportReview<TRow>(
     adding,
     addError,
     confirm,
-    resetSelection,
+    registerRows,
+    clearSelection,
   };
 }
