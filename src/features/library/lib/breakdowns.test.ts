@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  OTHER_SLICE_LABEL,
-  TOP_SLICE_COUNT,
-  authorSlices,
   filterEntries,
-  moodSlices,
-  topThemes,
   sortByAddedDesc,
   statusCounts,
-  statusSlices,
-  subjectSlices,
+  topCategories,
+  topMoods,
+  topThemes,
 } from './breakdowns';
 import type { LibraryEntry } from '../../../normalize/library';
 import type { LibraryStatus } from '../../../shared/types/library-status';
@@ -52,48 +48,8 @@ describe('statusCounts', () => {
   });
 });
 
-describe('statusSlices', () => {
-  it('omits statuses with no books', () => {
-    const slices = statusSlices([makeEntry({ status: 'queued' }), makeEntry({ status: 'queued' })]);
-    expect(slices).toHaveLength(1);
-    expect(slices[0]).toMatchObject({ label: 'New', value: 2 });
-  });
-});
 
-describe('subjectSlices', () => {
-  it('tallies subjects across entries, sorted descending', () => {
-    const entries = [
-      makeEntry({ subjects: ['Evolution', 'Biology'] }),
-      makeEntry({ subjects: ['Evolution'] }),
-      makeEntry({ subjects: ['Biology'] }),
-      makeEntry({ subjects: ['Evolution'] }),
-    ];
-    const slices = subjectSlices(entries);
-    expect(slices[0]).toEqual({ label: 'Evolution', value: 3 });
-    expect(slices).toContainEqual({ label: 'Biology', value: 2 });
-  });
 
-  it('collapses the tail past the top N into an Other slice', () => {
-    const entries = Array.from({ length: TOP_SLICE_COUNT + 3 }, (_, i) =>
-      makeEntry({ subjects: [`Subject ${i}`] }),
-    );
-    const slices = subjectSlices(entries);
-    expect(slices).toHaveLength(TOP_SLICE_COUNT + 1);
-    const other = slices.find((slice) => slice.label === OTHER_SLICE_LABEL);
-    expect(other?.value).toBe(3);
-  });
-});
-
-describe('authorSlices', () => {
-  it('tallies by author name', () => {
-    const slices = authorSlices([
-      makeEntry({ book: { authorName: 'Darwin' } as LibraryEntry['book'] }),
-      makeEntry({ book: { authorName: 'Darwin' } as LibraryEntry['book'] }),
-      makeEntry({ book: { authorName: 'Dawkins' } as LibraryEntry['book'] }),
-    ]);
-    expect(slices[0]).toEqual({ label: 'Darwin', value: 2 });
-  });
-});
 
 describe('filterEntries', () => {
   const entries = [
@@ -103,24 +59,24 @@ describe('filterEntries', () => {
   ];
 
   it('filters by status', () => {
-    expect(filterEntries(entries, { status: 'reading', subject: null, author: null })).toHaveLength(2);
+    expect(filterEntries(entries, { status: 'reading', category: null })).toHaveLength(2);
   });
 
-  it('filters by subject', () => {
-    expect(filterEntries(entries, { status: null, subject: 'Physics', author: null })).toHaveLength(2);
+  it('filters by category', () => {
+    expect(filterEntries(entries, { status: null, category: 'Physics' })).toHaveLength(2);
   });
 
-  it('combines status and author with AND', () => {
-    const result = filterEntries(entries, { status: 'reading', subject: null, author: 'Darwin' });
-    expect(result).toHaveLength(2);
+  it('combines status and category with AND', () => {
+    const result = filterEntries(entries, { status: 'reading', category: 'Physics' });
+    expect(result).toHaveLength(1);
   });
 
   it('returns everything when no filter is set', () => {
-    expect(filterEntries(entries, { status: null, subject: null, author: null })).toHaveLength(3);
+    expect(filterEntries(entries, { status: null, category: null })).toHaveLength(3);
   });
 
   describe('free-text query', () => {
-    const base = { status: null, subject: null, author: null };
+    const base = { status: null, category: null };
     const sagan = makeEntry({
       subjects: ['Astronomy'],
       book: { title: 'Cosmos', authorName: 'Carl Sagan' } as LibraryEntry['book'],
@@ -170,7 +126,7 @@ describe('filterEntries', () => {
   });
 
   describe('mood and theme (LOS-186)', () => {
-    const base = { status: null, subject: null, author: null };
+    const base = { status: null, category: null };
     const reflective = makeEntry({
       moods: ['Reflective', 'Analytical'],
       themes: ['Scientific discovery'],
@@ -199,22 +155,41 @@ describe('filterEntries', () => {
   });
 });
 
-describe('moodSlices', () => {
-  it('tallies moods across entries, most common first', () => {
+
+// Categories are read off `subjects`, which holds provider tags and generated
+// ones together. Nothing marks which is which — the count threshold separates
+// them, and these two tests are that claim.
+describe('topCategories', () => {
+  it('surfaces a category several books share', () => {
     const entries = [
-      makeEntry({ moods: ['Reflective', 'Analytical'] }),
-      makeEntry({ moods: ['Reflective'] }),
-      makeEntry({ moods: [] }),
+      makeEntry({ subjects: ['Popular Science', 'Cosmology -- Popular works'] }),
+      makeEntry({ subjects: ['Popular Science', 'Astronomy -- History'] }),
     ];
 
-    expect(moodSlices(entries)).toEqual([
-      { label: 'Reflective', value: 2 },
-      { label: 'Analytical', value: 1 },
-    ]);
+    expect(topCategories(entries)).toEqual(['Popular Science']);
   });
 
-  it('is empty when nothing has been tagged yet', () => {
-    expect(moodSlices([makeEntry(), makeEntry()])).toEqual([]);
+  it('culls the provider long tail without needing to know it is provider data', () => {
+    // One book carrying a heap of granular headings, the shape that made the
+    // old subject pie 92% "Other".
+    const entries = [
+      makeEntry({ subjects: ['Fiction', 'Mississippi River -- Fiction', 'Boys -- Fiction', 'Rafting'] }),
+      makeEntry({ subjects: ['Fiction'] }),
+    ];
+
+    expect(topCategories(entries)).toEqual(['Fiction']);
+  });
+});
+
+describe('topMoods', () => {
+  it('orders by count and drops moods held by one book', () => {
+    const entries = [
+      makeEntry({ moods: ['Reflective', 'Bleak'] }),
+      makeEntry({ moods: ['Reflective', 'Tender'] }),
+      makeEntry({ moods: ['Tender'] }),
+    ];
+
+    expect(topMoods(entries)).toEqual(['Reflective', 'Tender']);
   });
 });
 
@@ -244,12 +219,6 @@ describe('topThemes', () => {
     const entries = [makeEntry({ themes: ['Memory'] }), makeEntry({ themes: ['Grief'] })];
 
     expect(topThemes(entries, 10)).toEqual([]);
-  });
-
-  it('honours a caller that lowers the threshold', () => {
-    const entries = [makeEntry({ themes: ['Memory'] })];
-
-    expect(topThemes(entries, 10, 1)).toEqual(['Memory']);
   });
 
   it('is empty when nothing has been tagged yet', () => {

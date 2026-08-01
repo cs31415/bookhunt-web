@@ -7,11 +7,8 @@ import { ALL_LIBRARY_STATUSES } from '../../shared/types/library-status';
 import type { LibraryStatus } from '../../shared/types/library-status';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { LibraryHeader } from './components/LibraryHeader/LibraryHeader';
-import { LibraryCharts } from './components/LibraryCharts/LibraryCharts';
-import { StatusTabs } from './components/StatusTabs/StatusTabs';
-import { FilterPill } from './components/FilterPill/FilterPill';
+import { LibraryFilters } from './components/LibraryFilters/LibraryFilters';
 import { LibraryEmptyState } from './components/LibraryEmptyState/LibraryEmptyState';
-import { ThemeFilter } from './components/ThemeFilter/ThemeFilter';
 import { ScanModal } from './components/ScanModal/ScanModal';
 import { CsvImportModal } from './components/CsvImportModal/CsvImportModal';
 import { useLibraryData } from './hooks/useLibraryData';
@@ -19,7 +16,7 @@ import { useScanSession } from './hooks/useScanSession';
 import { useCsvImportSession } from './hooks/useCsvImportSession';
 import { toast } from '../../shared/toast/toast-store';
 import { isPhotoImportEnabled } from '../../shared/config/features';
-import { filterEntries, sortByAddedDesc, statusCounts } from './lib/breakdowns';
+import { filterEntries, sortByAddedDesc } from './lib/breakdowns';
 import styles from './LibraryPage.module.css';
 
 const PAGE_SIZE = 60;
@@ -67,8 +64,9 @@ export function LibraryPage() {
   const csvSession = useCsvImportSession({ excludeBookIds, onAdded: reload });
 
   const status = asStatus(searchParams.get('status'));
-  const subject = searchParams.get('subject');
-  const author = searchParams.get('author');
+  // 'subject' in the URL, "Category" on screen — the same split the search page
+  // uses, and keeping the param name means existing shared links still resolve.
+  const category = searchParams.get('subject');
   const mood = searchParams.get('mood');
   const theme = searchParams.get('theme');
   const urlQuery = searchParams.get('q') ?? '';
@@ -101,7 +99,7 @@ export function LibraryPage() {
   }, [q]);
 
   // Reset to the first page whenever the active filter changes.
-  const filterKey = `${status ?? ''}|${subject ?? ''}|${author ?? ''}|${mood ?? ''}|${theme ?? ''}|${q}`;
+  const filterKey = `${status ?? ''}|${category ?? ''}|${mood ?? ''}|${theme ?? ''}|${q}`;
   const [syncedKey, setSyncedKey] = useState(filterKey);
   if (filterKey !== syncedKey) {
     setSyncedKey(filterKey);
@@ -117,29 +115,25 @@ export function LibraryPage() {
     setSearchParams(next);
   }
 
-  // Status is one axis; subject/author/mood/theme share a single
-  // mutually-exclusive attribute pill, so picking one replaces the last.
-  const NO_ATTRIBUTES = { subject: null, author: null, mood: null, theme: null };
+  // Status is one axis; category/mood/theme share a second, so picking one of
+  // those three replaces the last. Every pill stays visibly selected, so
+  // clicking the active one again is the way back out.
+  const NO_ATTRIBUTES = { subject: null, mood: null, theme: null };
 
-  function selectStatus(next: LibraryStatus | null) {
-    updateParams({ status: next === status ? null : next, ...NO_ATTRIBUTES });
+  function selectStatus(next: LibraryStatus) {
+    updateParams({ status: next === status ? null : next });
   }
-  function selectSubject(next: string) {
-    updateParams({ ...NO_ATTRIBUTES, subject: next });
+  function selectCategory(next: string) {
+    updateParams({ ...NO_ATTRIBUTES, subject: next === category ? null : next });
   }
-  function selectAuthor(next: string) {
-    updateParams({ ...NO_ATTRIBUTES, author: next });
-  }
-  // Clicking the active chip again clears it, since the chip row is the only
-  // way back — unlike a pie slice, it stays visibly selected.
   function selectTheme(next: string) {
     updateParams({ ...NO_ATTRIBUTES, theme: next === theme ? null : next });
   }
   function selectMood(next: string) {
-    updateParams({ ...NO_ATTRIBUTES, mood: next });
+    updateParams({ ...NO_ATTRIBUTES, mood: next === mood ? null : next });
   }
-  function clearAttribute() {
-    updateParams(NO_ATTRIBUTES);
+  function clearFilters() {
+    updateParams({ ...NO_ATTRIBUTES, status: null });
   }
 
   // A finished or failed session is stale by the time the button is clicked again;
@@ -170,8 +164,8 @@ export function LibraryPage() {
   );
 
   const sorted = useMemo(
-    () => sortByAddedDesc(filterEntries(entries, { status, subject, author, mood, theme, q })),
-    [entries, status, subject, author, mood, theme, q],
+    () => sortByAddedDesc(filterEntries(entries, { status, category, mood, theme, q })),
+    [entries, status, category, mood, theme, q],
   );
   const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
   const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -211,46 +205,41 @@ export function LibraryPage() {
         onQueryChange={setQ}
       />
 
-      <LibraryCharts
-        entries={entries}
-        onSelectStatus={selectStatus}
-        onSelectSubject={selectSubject}
-        onSelectAuthor={selectAuthor}
-        onSelectMood={selectMood}
-      />
+      <div className={styles.layout}>
+        <LibraryFilters
+          entries={entries}
+          status={status}
+          category={category}
+          mood={mood}
+          theme={theme}
+          onSelectStatus={selectStatus}
+          onSelectCategory={selectCategory}
+          onSelectMood={selectMood}
+          onSelectTheme={selectTheme}
+          onClearFilters={clearFilters}
+        />
 
-      <ThemeFilter entries={entries} active={theme} onSelect={selectTheme} />
+        <div className={styles.results}>
+          {sorted.length === 0 ? (
+            <p className={styles.noMatch}>
+              {q ? `No books in your library match “${q}”.` : 'No books match this filter.'}
+            </p>
+          ) : (
+            <div className={styles.grid}>
+              {pageItems.map((entry) => (
+                <BookCard
+                  key={entry.book.id}
+                  book={entry.book}
+                  status={entry.status}
+                  onClick={() => navigate(buildBookHref(entry.book))}
+                />
+              ))}
+            </div>
+          )}
 
-      <StatusTabs
-        counts={statusCounts(entries)}
-        total={total}
-        active={status}
-        onSelect={selectStatus}
-      />
-
-      {subject && <FilterPill label="subject" value={subject} onClear={clearAttribute} />}
-      {author && <FilterPill label="author" value={author} onClear={clearAttribute} />}
-      {mood && <FilterPill label="mood" value={mood} onClear={clearAttribute} />}
-      {theme && <FilterPill label="theme" value={theme} onClear={clearAttribute} />}
-
-      {sorted.length === 0 ? (
-        <p className={styles.noMatch}>
-          {q ? `No books in your library match “${q}”.` : 'No books match this filter.'}
-        </p>
-      ) : (
-        <div className={styles.grid}>
-          {pageItems.map((entry) => (
-            <BookCard
-              key={entry.book.id}
-              book={entry.book}
-              status={entry.status}
-              onClick={() => navigate(buildBookHref(entry.book))}
-            />
-          ))}
+          <Pagination page={page} pageCount={pageCount} onChange={setPage} />
         </div>
-      )}
-
-      <Pagination page={page} pageCount={pageCount} onChange={setPage} />
+      </div>
       {modals}
     </div>
   );

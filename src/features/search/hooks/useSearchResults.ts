@@ -8,6 +8,7 @@ import {
 } from '../../../normalize/search';
 import type { SearchResultItem } from '../../../normalize/search';
 import { parseSearchParams } from '../search-params';
+import { topValues } from '../../../shared/lib/top-values';
 import type { LibraryStatus } from '../../../shared/types/library-status';
 
 const RESULT_LIMIT = 20;
@@ -59,16 +60,13 @@ export function clearSuggestionCache(): void {
 }
 
 function topTags(results: SearchResultItem[], field: 'categories' | 'moods'): string[] {
-  const counts = new Map<string, number>();
-  for (const item of results) {
-    for (const tag of item[field]) {
-      counts.set(tag, (counts.get(tag) ?? 0) + 1);
-    }
-  }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, MAX_FILTER_TAGS)
-    .map(([tag]) => tag);
+  // minCount 1, unlike the library rail: a result set is a handful of books, so
+  // a tag on only one of them is still the only handle onto it. The library
+  // culls singletons because it has hundreds of books and a long tail to match.
+  return topValues(
+    results.flatMap((item) => item[field]),
+    { limit: MAX_FILTER_TAGS, minCount: 1 },
+  );
 }
 
 export interface UseSearchResultsResult {

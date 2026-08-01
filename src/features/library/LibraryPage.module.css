@@ -2,6 +2,19 @@
   padding-top: 12px;
 }
 
+/* Same rail-and-results grid as SearchPage.module.css, so filtering your own
+   shelf and filtering search results look like one page. */
+.layout {
+  display: grid;
+  grid-template-columns: 232px 1fr;
+  gap: 38px;
+  align-items: start;
+}
+
+.results {
+  min-width: 0;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
@@ -18,4 +31,10 @@
   color: var(--ink-2);
   text-align: center;
   margin: 40px 0;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
 }
