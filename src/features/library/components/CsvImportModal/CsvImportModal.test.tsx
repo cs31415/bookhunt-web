@@ -81,6 +81,22 @@ function resolved(overrides: Partial<RawResolvedRow> = {}): RawResolvedRow {
   };
 }
 
+/** A catalog match as /import/resolve now returns it, ready to render. */
+function catalogBook(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 1,
+    slug: 'book-1',
+    title: 'Existing',
+    authorName: 'Anon',
+    authorSlug: 'anon',
+    year: 2000,
+    rating: 4,
+    coverUrl: null,
+    hue: '#6f7a55',
+    ...overrides,
+  };
+}
+
 function csvFile(text: string, name = 'books.csv') {
   const file = new File([text], name, { type: 'text/csv' });
   // jsdom's File.text() is available, but pinning it keeps the test independent
@@ -329,21 +345,9 @@ describe('CsvImportModal', () => {
   // unaccounted for.
   it('drops an already-owned book from the list and counts it in the summary', async () => {
     mockedResolve.mockResolvedValue({
-      rows: [resolved({ title: 'Existing', matchedBookId: 1 }), resolved()],
-    });
-    mockedGetBooksByIds.mockResolvedValue({
-      books: [
-        {
-          id: 1,
-          slug: 'book-1',
-          title: 'Existing',
-          authorName: 'Anon',
-          authorSlug: 'anon',
-          year: 2000,
-          rating: 4,
-          coverUrl: null,
-          hue: '#6f7a55',
-        },
+      rows: [
+        resolved({ title: 'Existing', matchedBookId: 1, matchedBook: catalogBook() }),
+        resolved(),
       ],
     });
 
@@ -400,39 +404,17 @@ describe('CsvImportModal', () => {
   it('says all books are already in the library when every row matches one already owned', async () => {
     mockedResolve.mockResolvedValue({
       rows: [
-        resolved({ title: 'Existing', matchedBookId: 1 }),
-        resolved({ title: 'Existing 2', matchedBookId: 2 }),
+        resolved({ title: 'Existing', matchedBookId: 1, matchedBook: catalogBook() }),
+        resolved({
+          title: 'Existing 2',
+          matchedBookId: 2,
+          matchedBook: catalogBook({ id: 2, slug: 'book-2', title: 'Existing 2' }),
+        }),
       ],
     });
     mockedGetLibrary.mockResolvedValue({
       entries: [makeEntry({ book_id: 1 }), makeEntry({ book_id: 2 })],
       stats: { total: 2, by_status: { queued: 2 } },
-    });
-    mockedGetBooksByIds.mockResolvedValue({
-      books: [
-        {
-          id: 1,
-          slug: 'book-1',
-          title: 'Existing',
-          authorName: 'Anon',
-          authorSlug: 'anon',
-          year: 2000,
-          rating: 4,
-          coverUrl: null,
-          hue: '#6f7a55',
-        },
-        {
-          id: 2,
-          slug: 'book-2',
-          title: 'Existing 2',
-          authorName: 'Anon',
-          authorSlug: 'anon',
-          year: 2000,
-          rating: 4,
-          coverUrl: null,
-          hue: '#6f7a55',
-        },
-      ],
     });
 
     renderLibrary();
@@ -441,6 +423,36 @@ describe('CsvImportModal', () => {
 
     expect(await within(dialog).findByText('All these books are already in your library.')).toBeInTheDocument();
     expect(screen.queryByText(/Found matches for/)).not.toBeInTheDocument();
+  });
+
+  // The resolve response carries the matched book, so the batch no longer
+  // follows itself with GET /books asking for what it already had — one round
+  // trip per batch, ~30 on a 372-row import (LOS-179).
+  it('renders a catalog match from the resolve response alone', async () => {
+    mockedResolve.mockResolvedValue({
+      rows: [
+        resolved({
+          title: 'Dune',
+          matchedBookId: 9,
+          matchedBook: catalogBook({
+            id: 9,
+            slug: 'dune',
+            title: 'Dune',
+            authorName: 'Frank Herbert',
+            rating: '4.5',
+          }),
+        }),
+      ],
+    });
+
+    renderLibrary();
+    const dialog = await openModal();
+    dropFile(dialog, csvFile('title\nDune'));
+
+    await screen.findByText(/Found matches for/);
+    // The catalog match leads the candidate list, so it is what the row shows.
+    expect(within(dialog).getByText('Frank Herbert')).toBeInTheDocument();
+    expect(mockedGetBooksByIds).not.toHaveBeenCalled();
   });
 
   it('cycles a status and drops the count when a row is unticked', async () => {

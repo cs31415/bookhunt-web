@@ -1,5 +1,6 @@
 import { apiFetch } from '../client';
 import type { RawAiSearchBook } from '../../normalize/search';
+import type { RawCatalogBook } from '../../normalize/catalog-book';
 
 /**
  * Rows per request. Well below the API's cap of 40, because the review list
@@ -24,6 +25,12 @@ export interface RawResolvedRow {
   isbn: string | null;
   /** Present when the row is already in the catalog. */
   matchedBookId?: number;
+  /**
+   * The matched catalog book, ready to render. Sent with the id because the
+   * search that found it already had the cover, slug and author — so there is
+   * nothing left to fetch back (LOS-179).
+   */
+  matchedBook?: RawCatalogBook;
   /** Ranked best-first; empty when nothing was found. */
   candidates: RawAiSearchBook[];
 }

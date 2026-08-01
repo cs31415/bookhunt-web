@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError, isAbortError } from '../../../api/client';
 import { ROWS_PER_REQUEST, resolveImportRows } from '../../../api/import/resolve';
 import type { RawResolvedRow } from '../../../api/import/resolve';
-import { getBooksByIds } from '../../../api/books/get-books-by-ids';
-import { normalizeBooksByIds } from '../../../normalize/books-by-ids';
+import { normalizeCatalogBook } from '../../../normalize/catalog-book';
 import { normalizeAiSearchBook } from '../../../normalize/search';
 import type { RawAiSearchBook } from '../../../normalize/search';
 import { parseCsv } from '../../../shared/lib/parse-csv';
@@ -277,21 +276,13 @@ export function useCsvImportSession(
         const batch = parsed.slice(offset, offset + ROWS_PER_REQUEST);
         const { rows: resolvedRows } = await resolveImportRows(batch, signal);
 
-        // One call per batch resolves its catalog matches' covers and slugs.
-        const matchedIds = resolvedRows
-          .map((r) => r.matchedBookId)
-          .filter((id): id is number => id !== undefined);
-        const catalogById = new Map<number, BookSummary>();
-        if (matchedIds.length > 0) {
-          const res = await getBooksByIds(matchedIds);
-          for (const book of normalizeBooksByIds(res)) catalogById.set(book.id, book);
-        }
-
         if (runId !== runIdRef.current) return;
 
         const filled: CsvRow[] = resolvedRows.map((raw, i) => {
-          const catalogBook =
-            raw.matchedBookId !== undefined ? catalogById.get(raw.matchedBookId) : undefined;
+          // The response carries the matched book itself, so there is nothing to
+          // fetch back for it — this used to be a GET /books per batch, asking
+          // for what the resolve response had already been holding (LOS-179).
+          const catalogBook = raw.matchedBook ? normalizeCatalogBook(raw.matchedBook) : undefined;
           const candidates = toCandidates(raw);
           // A catalog match is the best candidate there is — put it first.
           if (catalogBook) {
