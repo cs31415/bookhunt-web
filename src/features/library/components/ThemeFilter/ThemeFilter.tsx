@@ -12,15 +12,16 @@ export interface ThemeFilterProps {
 }
 
 /**
- * Themes as chips rather than a pie: they are long free-text phrases and
- * near-unique across a library, so a chart of them would be slivers and an
- * "Other" bucket. A chip carries the whole phrase and is still one click to
- * filter — see topThemes.
+ * Themes as chips rather than a pie: they are long free-text phrases, so a
+ * chart of them would be slivers with no room for a label. A chip carries the
+ * whole phrase and is still one click to filter — see topThemes, which also
+ * drops themes held by a single book.
  */
 export function ThemeFilter({ entries, active, onSelect }: ThemeFilterProps) {
   const themes = topThemes(entries, MAX_THEMES);
-  // Themes are AI-generated and filled in lazily, so a library where nothing
-  // has been tagged yet shows nothing rather than an empty heading.
+  // Nothing rather than an empty heading, which covers both a library where the
+  // lazily-generated themes have not been filled in yet and one small or varied
+  // enough that no theme is shared.
   if (themes.length === 0) return null;
 
   return (

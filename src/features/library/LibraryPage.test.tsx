@@ -243,6 +243,11 @@ describe('LibraryPage', () => {
       moods: ['Intense'],
       themes: ['Totalitarianism'],
     });
+    // Each theme needs a second book to reach the chip list at all (LOS-192):
+    // a theme held by one book is a link to it, not a filter.
+    const alsoScientific = makeRaw({ title: 'Pale Blue Dot', themes: ['Scientific discovery'] });
+    const alsoTotalitarian = makeRaw({ title: 'Anthem', themes: ['Totalitarianism'] });
+    const tagged = [reflective, intense, alsoScientific, alsoTotalitarian];
     const untagged = makeRaw({ title: 'Untagged Book' });
 
     it('filters the grid when a mood slice is picked, and shows a dismissible pill', async () => {
@@ -261,19 +266,30 @@ describe('LibraryPage', () => {
     });
 
     it('filters the grid when a theme chip is picked', async () => {
-      mockLibrary([reflective, intense, untagged], { queued: 3 });
+      mockLibrary([...tagged, untagged], { queued: 5 });
       renderLibrary();
 
       const themes = await screen.findByLabelText('Filter by theme');
       fireEvent.click(within(themes).getByText('Totalitarianism'));
 
       expect(screen.getByRole('button', { name: /We the Living/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Anthem/ })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Cosmos/ })).not.toBeInTheDocument();
+    });
+
+    it('leaves out a theme only one book carries', async () => {
+      const loner = makeRaw({ title: 'Solaris', themes: ['Contact with the alien'] });
+      mockLibrary([...tagged, loner], { queued: 5 });
+      renderLibrary();
+
+      const themes = await screen.findByLabelText('Filter by theme');
+      expect(within(themes).getByText('Totalitarianism')).toBeInTheDocument();
+      expect(within(themes).queryByText('Contact with the alien')).not.toBeInTheDocument();
     });
 
     // The chip stays visibly selected, so it has to be the way back out.
     it('clears the theme when the active chip is clicked again', async () => {
-      mockLibrary([reflective, intense], { queued: 2 });
+      mockLibrary(tagged, { queued: 4 });
       renderLibrary();
 
       const themes = await screen.findByLabelText('Filter by theme');
@@ -288,7 +304,7 @@ describe('LibraryPage', () => {
 
     // One attribute at a time: subject, author, mood and theme share a pill.
     it('replaces a mood filter when a theme is picked', async () => {
-      mockLibrary([reflective, intense], { queued: 2 });
+      mockLibrary(tagged, { queued: 4 });
       renderLibrary();
 
       const charts = await screen.findByLabelText('Library breakdown');
