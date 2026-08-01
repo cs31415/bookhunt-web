@@ -97,6 +97,22 @@ function sortResults(results: SearchResultItem[], sort: string): SearchResultIte
     .map(({ item }) => item);
 }
 
+/**
+ * The pills come from the LLM's curated tags, but they now filter the caller's
+ * own books too, and those carry raw catalog subjects instead — a different
+ * vocabulary for the same idea. Exact equality missed the obvious cases: the
+ * pill "Popular Science" against a subject of "popular science", lowercase.
+ *
+ * Deliberately more generous than the all-terms rule in free-text search
+ * (LOS-189). There, a typed query pulled in books on a stray tag with no
+ * intent behind it; here the caller has clicked one category to narrow, so a
+ * slightly wide match on their own shelf is the lesser failure.
+ */
+function hasTag(tags: string[], wanted: string): boolean {
+  const needle = wanted.trim().toLowerCase();
+  return tags.some((tag) => tag.toLowerCase().includes(needle));
+}
+
 function applyFiltersAndSort(
   results: SearchResultItem[],
   status: LibraryStatus | null,
@@ -111,8 +127,8 @@ function applyFiltersAndSort(
   // longer costs an LLM round trip for an identical prompt.
   if (inLibraryOnly) filtered = filtered.filter((item) => item.status);
   if (status) filtered = filtered.filter((item) => item.status === status);
-  if (category) filtered = filtered.filter((item) => item.categories.includes(category));
-  if (mood) filtered = filtered.filter((item) => item.moods.includes(mood));
+  if (category) filtered = filtered.filter((item) => hasTag(item.categories, category));
+  if (mood) filtered = filtered.filter((item) => hasTag(item.moods, mood));
   return sortResults(filtered, sort);
 }
 
@@ -232,23 +248,27 @@ export function useSearchResults(
   const rawResults = cachedResults ?? (answered?.key === fetchKey ? answered.items : []);
   const isLoading = cachedResults ? false : loading;
 
-  // Status and sort are library-native and apply cleanly. Category and mood are
-  // not: those pills are derived from the tags on the AI results, a different
-  // vocabulary from the catalog's subjects, so applying them here would empty
-  // the section for reasons the user can't see.
   const rawLibraryResults = library.query === libraryQuery ? library.items : [];
-  const libraryResults = sortResults(
-    parsed.status
-      ? rawLibraryResults.filter((item) => item.status === parsed.status)
-      : rawLibraryResults,
-    parsed.sort,
-  );
 
   // A book the caller owns is already shown, more accurately, in the section
   // above — the LLM offers a title and an author, the library search matched
   // against the real row. `status` is set only for owned books, so this drops
   // exactly the overlap without a second round of title matching here.
-  const aiResults = libraryResults.length > 0 ? rawResults.filter((item) => !item.status) : rawResults;
+  //
+  // Keyed on the *unfiltered* library results: a category that narrows that
+  // section to nothing must not make the owned suggestions reappear below it.
+  const aiResults = rawLibraryResults.length > 0 ? rawResults.filter((item) => !item.status) : rawResults;
+
+  // The same filters as the suggestions, so the sidebar means one thing rather
+  // than two. inLibraryOnly is a no-op here — every one of these is owned.
+  const libraryResults = applyFiltersAndSort(
+    rawLibraryResults,
+    parsed.status,
+    parsed.subject,
+    parsed.mood,
+    parsed.sort,
+    false,
+  );
 
   return {
     libraryResults,
@@ -263,6 +283,10 @@ export function useSearchResults(
     ),
     loading: isLoading,
     error,
+    // Derived from the suggestions only, even though they now filter both
+    // sections. Library rows carry raw provider subjects — Cosmos alone brings
+    // "Kosmosforschung", "Q162 .b88 2003" and forty more — which would bury the
+    // curated tags in the top eight. Better vocabulary, wider reach.
     availableCategories: topTags(rawResults, 'categories'),
     availableMoods: topTags(rawResults, 'moods'),
   };
