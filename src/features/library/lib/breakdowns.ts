@@ -84,13 +84,18 @@ export function moodSlices(entries: LibraryEntry[]): PieSlice[] {
 
 /**
  * Themes get a chip list rather than a pie: they are long free-text phrases
- * ("Humanity's place in the universe") and near-unique — almost every one
- * appears once or twice — so a chart of them would be a sliver of slices and an
- * "Other" bucket holding everything. Ordered by count, then alphabetically, so
+ * ("Humanity's place in the universe"), so a chart of them would be slivers
+ * with no room for a label.
+ *
+ * `minBooks` is what makes the list worth reading. A chip matching one book is
+ * a link to that book, not a filter, and before LOS-191 gave theme generation a
+ * shared vocabulary almost every theme was such a chip — one library had 168
+ * themes and not one appeared twice. Ordered by count, then alphabetically, so
  * the list is stable between renders.
  */
-export function topThemes(entries: LibraryEntry[], limit: number): string[] {
+export function topThemes(entries: LibraryEntry[], limit: number, minBooks = 2): string[] {
   return [...tally(entries.flatMap((entry) => entry.themes)).entries()]
+    .filter(([, count]) => count >= minBooks)
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, limit)
     .map(([theme]) => theme);

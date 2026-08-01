@@ -221,12 +221,35 @@ describe('moodSlices', () => {
 describe('topThemes', () => {
   it('orders by count then alphabetically, and caps the list', () => {
     const entries = [
+      makeEntry({ themes: ['Identity', 'Memory', 'Grief'] }),
+      makeEntry({ themes: ['Identity', 'Memory', 'Grief'] }),
+      makeEntry({ themes: ['Identity', 'Memory'] }),
+      makeEntry({ themes: ['Identity'] }),
+    ];
+
+    expect(topThemes(entries, 10)).toEqual(['Identity', 'Memory', 'Grief']);
+    expect(topThemes(entries, 2)).toEqual(['Identity', 'Memory']);
+  });
+
+  it('drops a theme held by a single book, which is a link and not a filter', () => {
+    const entries = [
       makeEntry({ themes: ['Identity', 'Memory'] }),
       makeEntry({ themes: ['Identity', 'Grief'] }),
     ];
 
-    expect(topThemes(entries, 10)).toEqual(['Identity', 'Grief', 'Memory']);
-    expect(topThemes(entries, 2)).toEqual(['Identity', 'Grief']);
+    expect(topThemes(entries, 10)).toEqual(['Identity']);
+  });
+
+  it('is empty when no theme is shared by two books', () => {
+    const entries = [makeEntry({ themes: ['Memory'] }), makeEntry({ themes: ['Grief'] })];
+
+    expect(topThemes(entries, 10)).toEqual([]);
+  });
+
+  it('honours a caller that lowers the threshold', () => {
+    const entries = [makeEntry({ themes: ['Memory'] })];
+
+    expect(topThemes(entries, 10, 1)).toEqual(['Memory']);
   });
 
   it('is empty when nothing has been tagged yet', () => {
