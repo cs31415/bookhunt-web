@@ -2,12 +2,33 @@ import { apiFetch } from '../client';
 import type { RawAiSearchBook } from '../../normalize/search';
 import type { RawCatalogBook } from '../../normalize/catalog-book';
 
+/** The API rejects anything larger (MAX_IMPORT_ROWS, server-side). */
+const MAX_ROWS_PER_REQUEST = 40;
+
+/** Used when VITE_IMPORT_ROWS_PER_REQUEST is unset or unusable. */
+const DEFAULT_ROWS_PER_REQUEST = 20;
+
 /**
- * Rows per request. Well below the API's cap of 40, because the review list
- * fills in a batch at a time: smaller batches mean covers start appearing
- * sooner, at the cost of more round trips.
+ * Rows per resolve request.
+ *
+ * The review list fills a batch at a time, so this trades round trips against
+ * how soon covers start appearing. The server resolves 8 rows concurrently, so
+ * the default is about three waves of provider calls between updates.
+ *
+ * It was 10 when every imported row cost the server its own catalog query. A
+ * batch now costs one query whatever its size and Open Library is off the common
+ * path (LOS-179), so larger batches are far cheaper than they were: a 1000-row
+ * import makes 50 requests rather than 100.
+ *
+ * Read at call time, like the feature flags, so tests can stub it without
+ * resetting modules and nothing depends on import order. Vite substitutes
+ * `import.meta.env` at build time, so a change needs a dev-server restart.
  */
-export const ROWS_PER_REQUEST = 10;
+export function rowsPerRequest(): number {
+  const configured = Number(import.meta.env.VITE_IMPORT_ROWS_PER_REQUEST);
+  if (!Number.isFinite(configured) || configured < 1) return DEFAULT_ROWS_PER_REQUEST;
+  return Math.min(Math.floor(configured), MAX_ROWS_PER_REQUEST);
+}
 
 export interface ImportRowHint {
   title: string;

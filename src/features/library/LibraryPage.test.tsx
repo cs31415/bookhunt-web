@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { LibraryPage } from './LibraryPage';
 import { getLibrary } from '../../api/library/get-library';
 import type { RawLibraryEntry } from '../../normalize/library';
@@ -90,6 +90,14 @@ describe('LibraryPage', () => {
   beforeEach(() => {
     idSeq = 100;
     mockedGetLibrary.mockReset();
+    // Stubbed rather than inherited: two tests below assert the photo-import
+    // button is offered, so without this the suite passes or fails according to
+    // whichever way the developer's own .env has the flag set.
+    vi.stubEnv('VITE_ENABLE_PHOTO_IMPORT', 'true');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('renders header, charts, status tabs, and the book grid', async () => {

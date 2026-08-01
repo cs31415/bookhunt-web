@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, isAbortError } from '../../../api/client';
-import { ROWS_PER_REQUEST, resolveImportRows } from '../../../api/import/resolve';
+import { resolveImportRows, rowsPerRequest } from '../../../api/import/resolve';
 import type { RawResolvedRow } from '../../../api/import/resolve';
 import { normalizeCatalogBook } from '../../../normalize/catalog-book';
 import { normalizeAiSearchBook } from '../../../normalize/search';
@@ -272,8 +272,11 @@ export function useCsvImportSession(
 
       const owned = new Set(excludeRef.current);
 
-      for (let offset = 0; offset < parsed.length; offset += ROWS_PER_REQUEST) {
-        const batch = parsed.slice(offset, offset + ROWS_PER_REQUEST);
+      // Read once per import, so a batch size cannot change mid-run.
+      const batchSize = rowsPerRequest();
+
+      for (let offset = 0; offset < parsed.length; offset += batchSize) {
+        const batch = parsed.slice(offset, offset + batchSize);
         const { rows: resolvedRows } = await resolveImportRows(batch, signal);
 
         if (runId !== runIdRef.current) return;
