@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from './SearchPage';
+import { clearSuggestionCache } from './hooks/useSearchResults';
 import { AuthProvider } from '../auth/AuthContext';
 import { setSession } from '../../api/auth/token';
 import { aiSearch } from '../../api/ai/search';
@@ -72,6 +73,9 @@ function makeBook(overrides: Partial<RawAiSearchBook> = {}): RawAiSearchBook {
 
 describe('SearchPage', () => {
   beforeEach(() => {
+    // Module-level and deliberately session-lived (LOS-184), so each case has to
+    // start from empty or it inherits the previous one's suggestions.
+    clearSuggestionCache();
     mockedAiSearch.mockReset();
     mockedSearchLibrary.mockReset();
     // Most cases are about the AI results; an empty shelf keeps the library
@@ -110,9 +114,12 @@ describe('SearchPage', () => {
     expect(screen.getByText(/Results for/)).toBeInTheDocument();
     expect(screen.getByText('1 book')).toBeInTheDocument();
     expect(mockedAiSearch).toHaveBeenCalledWith(
-      expect.objectContaining({ query: 'thriller', inLibraryOnly: false }),
+      expect.objectContaining({ query: 'thriller' }),
       expect.anything(),
     );
+    // Never sent any more: it did not reach the prompt, so the server only ever
+    // used it to post-filter something the client can filter itself (LOS-184).
+    expect(mockedAiSearch.mock.calls[0][0]).not.toHaveProperty('inLibraryOnly');
   });
 
   it('shows the theme heading when arriving via a theme pill', async () => {
@@ -146,20 +153,27 @@ describe('SearchPage', () => {
     expect(await screen.findByText('No books match.')).toBeInTheDocument();
   });
 
-  it('passes inLibraryOnly through when the toggle is on', async () => {
-    mockedAiSearch.mockResolvedValue({ books: [], query: 'thriller' });
+  // It used to refetch, for a prompt the server built identically either way.
+  it('applies inLibraryOnly client-side without refetching', async () => {
+    mockedAiSearch.mockResolvedValue({
+      books: [
+        makeBook({ title: 'Owned Book', inLibrary: true, libraryStatus: 'finished' }),
+        makeBook({ title: 'Unowned Book', googleBooksId: 'xyz789' }),
+      ],
+      query: 'thriller',
+    });
 
     renderSearchPage('/search?q=thriller');
-    await waitFor(() => expect(mockedAiSearch).toHaveBeenCalledTimes(1));
+    await screen.findByRole('button', { name: /Unowned Book/ });
+    expect(mockedAiSearch).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByText('In my library only'));
 
     await waitFor(() =>
-      expect(mockedAiSearch).toHaveBeenCalledWith(
-        expect.objectContaining({ inLibraryOnly: true }),
-        expect.anything(),
-      ),
+      expect(screen.queryByRole('button', { name: /Unowned Book/ })).not.toBeInTheDocument(),
     );
+    expect(screen.getByRole('button', { name: /Owned Book/ })).toBeInTheDocument();
+    expect(mockedAiSearch).toHaveBeenCalledTimes(1);
   });
 
   describe('when signed out', () => {
@@ -197,10 +211,7 @@ describe('SearchPage', () => {
       renderSearchPage('/search?q=thriller&inLibraryOnly=true');
 
       await waitFor(() => expect(mockedAiSearch).toHaveBeenCalledTimes(1));
-      expect(mockedAiSearch).toHaveBeenCalledWith(
-        expect.objectContaining({ inLibraryOnly: false }),
-        expect.anything(),
-      );
+      expect(mockedAiSearch.mock.calls[0][0]).not.toHaveProperty('inLibraryOnly');
       expect(screen.getByRole('switch', { name: /In my library only/ })).toHaveAttribute(
         'aria-checked',
         'false',
@@ -399,6 +410,85 @@ describe('SearchPage', () => {
     expect(await screen.findByText(/Could not load search results/)).toBeInTheDocument();
   });
 
+  // The query lives in the URL and there was no client cache anywhere, so every
+  // back, forward and reload was another few seconds of LLM (LOS-184).
+  describe('suggestion cache', () => {
+    it('serves a repeated query from the cache instead of the LLM', async () => {
+      mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'thriller' });
+
+      const router = renderSearchPage('/search?q=thriller');
+      await screen.findByRole('button', { name: /Night Watch/ });
+      expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+
+      // A distinct answer, so returning to the first query proves the cache was
+      // read rather than the mock simply answering the same way twice.
+      mockedAiSearch.mockResolvedValue({ books: [makeBook({ title: 'Other Book' })], query: 'other' });
+      router.navigate('/search?q=other');
+      await screen.findByRole('button', { name: /Other Book/ });
+      expect(mockedAiSearch).toHaveBeenCalledTimes(2);
+
+      router.navigate('/search?q=thriller');
+
+      expect(await screen.findByRole('button', { name: /Night Watch/ })).toBeInTheDocument();
+      expect(mockedAiSearch).toHaveBeenCalledTimes(2);
+    });
+
+    it('treats case and spacing differences as the same query', async () => {
+      mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'thriller' });
+
+      const router = renderSearchPage('/search?q=Carl+Sagan');
+      await screen.findByRole('button', { name: /Night Watch/ });
+      expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+
+      router.navigate('/search?q=carl++sagan');
+
+      expect(await screen.findByRole('button', { name: /Night Watch/ })).toBeInTheDocument();
+      expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+    });
+
+    // The LLM path swallows its own failures and answers [], so caching that
+    // would pin a transient outage for the whole session.
+    it('does not cache an empty result set', async () => {
+      mockedAiSearch.mockResolvedValue({ books: [], query: 'thriller' });
+
+      const router = renderSearchPage('/search?q=thriller');
+      await screen.findByText('No books match.');
+      expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+
+      // Wait for each navigation to settle before the next: an in-flight fetch
+      // is aborted on unmount, which would muddy the call count.
+      mockedAiSearch.mockResolvedValue({ books: [makeBook({ title: 'Other Book' })], query: 'other' });
+      router.navigate('/search?q=other');
+      await screen.findByRole('button', { name: /Other Book/ });
+
+      mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'thriller' });
+      router.navigate('/search?q=thriller');
+
+      // Asked again, rather than served the earlier empty answer.
+      expect(await screen.findByRole('button', { name: /Night Watch/ })).toBeInTheDocument();
+      expect(mockedAiSearch).toHaveBeenCalledTimes(3);
+    });
+
+    // Pills have always filtered the fetched batch rather than re-querying;
+    // keying the cache on them would have turned each click into an LLM call.
+    it('does not refetch when a category pill changes', async () => {
+      mockedAiSearch.mockResolvedValue({
+        books: [makeBook({ categories: ['Popular Science'] })],
+        query: 'thriller',
+      });
+
+      const router = renderSearchPage('/search?q=thriller');
+      await screen.findByRole('button', { name: /Night Watch/ });
+
+      router.navigate('/search?q=thriller&subject=Popular+Science');
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /Night Watch/ })).toBeInTheDocument(),
+      );
+      expect(mockedAiSearch).toHaveBeenCalledTimes(1);
+    });
+  });
+
   // The reason the ticket exists: "Sagan" should show the Sagan you own without
   // waiting seconds for a model to guess at it.
   describe('library results (LOS-183)', () => {
@@ -502,6 +592,44 @@ describe('SearchPage', () => {
       expect(await screen.findByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
       expect(screen.queryByText('In your library')).not.toBeInTheDocument();
       expect(screen.queryByText('More to discover')).not.toBeInTheDocument();
+    });
+
+    // One list, not two sections saying the same thing — and no "no books
+    // match" under a section that by definition has nothing to add.
+    it('collapses to a single owned list when the toggle is on', async () => {
+      resolveLibrary([makeEntry()]);
+      mockedAiSearch.mockResolvedValue({
+        books: [makeBook({ title: 'Pale Blue Dot' })],
+        query: 'sagan',
+      });
+
+      renderSearchPage('/search?q=sagan&inLibraryOnly=true');
+
+      expect(await screen.findByText('In your library')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+      expect(screen.queryByText('More to discover')).not.toBeInTheDocument();
+      expect(screen.queryByText('No books match.')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Pale Blue Dot/ })).not.toBeInTheDocument();
+      // The header total and the section count are the same list, so they agree.
+      expect(screen.getAllByText('1 book')).toHaveLength(2);
+    });
+
+    // The library search is authoritative, but if it missed one the LLM flagged
+    // as owned, the toggle should still surface it rather than show nothing.
+    it('falls back to owned suggestions when the shelf search finds none', async () => {
+      resolveLibrary([]);
+      mockedAiSearch.mockResolvedValue({
+        books: [
+          makeBook({ title: 'Owned Book', inLibrary: true, libraryStatus: 'finished' }),
+          makeBook({ title: 'Unowned Book', googleBooksId: 'xyz789' }),
+        ],
+        query: 'sagan',
+      });
+
+      renderSearchPage('/search?q=sagan&inLibraryOnly=true');
+
+      expect(await screen.findByRole('button', { name: /Owned Book/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Unowned Book/ })).not.toBeInTheDocument();
     });
 
     it('does not ask about a library when signed out', async () => {
