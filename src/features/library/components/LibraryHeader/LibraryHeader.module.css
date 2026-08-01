@@ -20,6 +20,16 @@
   font-size: 30px;
 }
 
+.identity {
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.search {
+  margin-top: 14px;
+  max-width: 420px;
+}
+
 .actions {
   display: flex;
   align-items: center;

@@ -114,6 +114,48 @@ describe('filterEntries', () => {
   it('returns everything when no filter is set', () => {
     expect(filterEntries(entries, { status: null, subject: null, author: null })).toHaveLength(3);
   });
+
+  describe('free-text query', () => {
+    const base = { status: null, subject: null, author: null };
+    const sagan = makeEntry({
+      subjects: ['Astronomy'],
+      book: { title: 'Cosmos', authorName: 'Carl Sagan' } as LibraryEntry['book'],
+    });
+    const feynman = makeEntry({
+      subjects: ['Physics'],
+      book: { title: 'Surely You Are Joking', authorName: 'Richard Feynman' } as LibraryEntry['book'],
+    });
+    const shelf = [sagan, feynman];
+
+    // The whole point of the ticket: an author surname finds that author's books.
+    it('matches on author name', () => {
+      expect(filterEntries(shelf, { ...base, q: 'sagan' })).toEqual([sagan]);
+    });
+
+    it('matches on title and on subject', () => {
+      expect(filterEntries(shelf, { ...base, q: 'cosmos' })).toEqual([sagan]);
+      expect(filterEntries(shelf, { ...base, q: 'physics' })).toEqual([feynman]);
+    });
+
+    it('is case-insensitive and ignores surrounding whitespace', () => {
+      expect(filterEntries(shelf, { ...base, q: '  CARL sagan  ' })).toEqual([sagan]);
+    });
+
+    // Each word narrows rather than widens, so a second term is a refinement.
+    it('requires every term to match', () => {
+      expect(filterEntries(shelf, { ...base, q: 'sagan cosmos' })).toEqual([sagan]);
+      expect(filterEntries(shelf, { ...base, q: 'sagan physics' })).toEqual([]);
+    });
+
+    it('combines with the other filters', () => {
+      expect(filterEntries(shelf, { ...base, status: 'finished', q: 'sagan' })).toEqual([]);
+    });
+
+    it('is a no-op when empty or absent', () => {
+      expect(filterEntries(shelf, { ...base, q: '' })).toHaveLength(2);
+      expect(filterEntries(shelf, base)).toHaveLength(2);
+    });
+  });
 });
 
 describe('sortByAddedDesc', () => {

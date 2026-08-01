@@ -59,3 +59,30 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* The library hits arrive in milliseconds while the AI results are still
+   loading, so this section has to stand on its own above them. */
+.librarySection {
+  margin-bottom: 32px;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+
+.sectionCount {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}

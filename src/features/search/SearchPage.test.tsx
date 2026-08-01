@@ -5,11 +5,15 @@ import { SearchPage } from './SearchPage';
 import { AuthProvider } from '../auth/AuthContext';
 import { setSession } from '../../api/auth/token';
 import { aiSearch } from '../../api/ai/search';
+import { searchLibrary } from '../../api/library/search-library';
 import type { RawAiSearchBook } from '../../normalize/search';
+import type { RawLibraryEntry } from '../../normalize/library';
 
 vi.mock('../../api/ai/search');
+vi.mock('../../api/library/search-library');
 
 const mockedAiSearch = vi.mocked(aiSearch);
+const mockedSearchLibrary = vi.mocked(searchLibrary);
 
 function LocationProbe() {
   const location = useLocation();
@@ -69,6 +73,16 @@ function makeBook(overrides: Partial<RawAiSearchBook> = {}): RawAiSearchBook {
 describe('SearchPage', () => {
   beforeEach(() => {
     mockedAiSearch.mockReset();
+    mockedSearchLibrary.mockReset();
+    // Most cases are about the AI results; an empty shelf keeps the library
+    // section out of the way unless a case opts into it.
+    mockedSearchLibrary.mockResolvedValue({
+      entries: [],
+      total: 0,
+      page: 1,
+      pageSize: 24,
+      query: '',
+    });
     localStorage.clear();
     // Most cases exercise the signed-in path; the library-filter cases below
     // override this by clearing storage before rendering.
@@ -383,5 +397,132 @@ describe('SearchPage', () => {
     renderSearchPage('/search?q=x');
 
     expect(await screen.findByText(/Could not load search results/)).toBeInTheDocument();
+  });
+
+  // The reason the ticket exists: "Sagan" should show the Sagan you own without
+  // waiting seconds for a model to guess at it.
+  describe('library results (LOS-183)', () => {
+    function makeEntry(overrides: Partial<RawLibraryEntry> = {}): RawLibraryEntry {
+      return {
+        book_id: 42,
+        status: 'queued',
+        notes: null,
+        review: null,
+        title: 'Cosmos',
+        book_slug: 'cosmos',
+        author_name: 'Carl Sagan',
+        author_slug: 'carl-sagan',
+        year: 1980,
+        rating: null,
+        cover_url: null,
+        hue: '#123456',
+        subjects: [],
+        moods: [],
+        date_added: null,
+        ...overrides,
+      };
+    }
+
+    function resolveLibrary(entries: RawLibraryEntry[]) {
+      mockedSearchLibrary.mockResolvedValue({
+        entries,
+        total: entries.length,
+        page: 1,
+        pageSize: 24,
+        query: 'sagan',
+      });
+    }
+
+    it('renders owned books in their own section, without waiting on the LLM', async () => {
+      resolveLibrary([makeEntry()]);
+      // Never resolves: the library section must not depend on it.
+      mockedAiSearch.mockReturnValue(new Promise(() => {}));
+
+      renderSearchPage('/search?q=sagan');
+
+      expect(await screen.findByText('In your library')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+    });
+
+    it('searches the library with the query', async () => {
+      resolveLibrary([]);
+      mockedAiSearch.mockResolvedValue({ books: [], query: 'sagan' });
+
+      renderSearchPage('/search?q=sagan');
+
+      await waitFor(() =>
+        expect(mockedSearchLibrary).toHaveBeenCalledWith(
+          expect.objectContaining({ q: 'sagan' }),
+          expect.anything(),
+        ),
+      );
+    });
+
+    // A book already shown above, matched against the real catalog row, would
+    // otherwise appear twice.
+    it('drops AI suggestions the caller already owns once the section is shown', async () => {
+      resolveLibrary([makeEntry()]);
+      mockedAiSearch.mockResolvedValue({
+        books: [
+          makeBook({ title: 'Cosmos', inLibrary: true, libraryStatus: 'queued' }),
+          makeBook({ title: 'Pale Blue Dot', googleBooksId: 'xyz789' }),
+        ],
+        query: 'sagan',
+      });
+
+      renderSearchPage('/search?q=sagan');
+
+      expect(await screen.findByText('More to discover')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Pale Blue Dot/ })).toBeInTheDocument();
+      // One card, in the library section — not one in each.
+      expect(screen.getAllByRole('button', { name: /Cosmos/ })).toHaveLength(1);
+    });
+
+    it('counts both sections together', async () => {
+      resolveLibrary([makeEntry()]);
+      mockedAiSearch.mockResolvedValue({
+        books: [makeBook({ title: 'Pale Blue Dot' })],
+        query: 'sagan',
+      });
+
+      renderSearchPage('/search?q=sagan');
+
+      expect(await screen.findByText('2 books')).toBeInTheDocument();
+    });
+
+    it('leaves the AI results alone when nothing on the shelf matches', async () => {
+      resolveLibrary([]);
+      mockedAiSearch.mockResolvedValue({
+        books: [makeBook({ title: 'Cosmos', inLibrary: true, libraryStatus: 'queued' })],
+        query: 'sagan',
+      });
+
+      renderSearchPage('/search?q=sagan');
+
+      expect(await screen.findByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+      expect(screen.queryByText('In your library')).not.toBeInTheDocument();
+      expect(screen.queryByText('More to discover')).not.toBeInTheDocument();
+    });
+
+    it('does not ask about a library when signed out', async () => {
+      localStorage.clear();
+      mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'sagan' });
+
+      renderSearchPage('/search?q=sagan');
+
+      await screen.findByRole('button', { name: /Night Watch/ });
+      expect(mockedSearchLibrary).not.toHaveBeenCalled();
+    });
+
+    // The section is supplementary; losing it should not take the page down.
+    it('stays quiet when the library search fails', async () => {
+      mockedSearchLibrary.mockRejectedValue(new Error('network error'));
+      mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'sagan' });
+
+      renderSearchPage('/search?q=sagan');
+
+      expect(await screen.findByRole('button', { name: /Night Watch/ })).toBeInTheDocument();
+      expect(screen.queryByText(/Could not load search results/)).not.toBeInTheDocument();
+    });
   });
 });

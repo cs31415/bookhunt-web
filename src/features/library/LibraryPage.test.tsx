@@ -45,7 +45,7 @@ function LocationProbe() {
   return <div data-testid="location">{location.pathname + location.search}</div>;
 }
 
-function renderLibrary() {
+function renderLibrary(initialEntry = '/library') {
   const router = createMemoryRouter(
     [
       {
@@ -60,7 +60,7 @@ function renderLibrary() {
       { path: '/', element: <LocationProbe /> },
       { path: '/books/:slug', element: <LocationProbe /> },
     ],
-    { initialEntries: ['/library'] },
+    { initialEntries: [initialEntry] },
   );
   render(<RouterProvider router={router} />);
   return router;
@@ -227,5 +227,97 @@ describe('LibraryPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Dune/ }));
     expect(screen.getByTestId('location')).toHaveTextContent('/books/dune');
+  });
+
+  // Filtering happens over the entries already in memory, so the box narrows the
+  // grid without a request (LOS-183).
+  describe('search box', () => {
+    async function search(value: string) {
+      const input = await screen.findByLabelText('Search');
+      fireEvent.change(input, { target: { value } });
+      return input;
+    }
+
+    it('filters the grid by author without refetching', async () => {
+      mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
+      renderLibrary();
+      await screen.findByRole('button', { name: /Dune/ });
+      const callsBefore = mockedGetLibrary.mock.calls.length;
+
+      await search('herbert');
+
+      expect(screen.getByRole('button', { name: /Dune/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Sapiens/ })).not.toBeInTheDocument();
+      expect(mockedGetLibrary.mock.calls).toHaveLength(callsBefore);
+    });
+
+    it('filters by title and by subject', async () => {
+      mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
+      renderLibrary();
+      await screen.findByRole('button', { name: /Dune/ });
+
+      await search('sapiens');
+      expect(screen.getByRole('button', { name: /Sapiens/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Dune/ })).not.toBeInTheDocument();
+
+      await search('history');
+      expect(screen.getByRole('button', { name: /Sapiens/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Clockwork/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Dune/ })).not.toBeInTheDocument();
+    });
+
+    it('keeps the query in the URL so a filtered library stays shareable', async () => {
+      mockLibrary([dune, sapiens], { reading: 1, finished: 1 });
+      renderLibrary();
+      await screen.findByRole('button', { name: /Dune/ });
+
+      await search('dune');
+
+      expect(screen.getByTestId('location')).toHaveTextContent('q=dune');
+    });
+
+    it('applies a query already in the URL on first render', async () => {
+      mockLibrary([dune, sapiens], { reading: 1, finished: 1 });
+      renderLibrary('/library?q=sapiens');
+
+      expect(await screen.findByRole('button', { name: /Sapiens/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Dune/ })).not.toBeInTheDocument();
+    });
+
+    it('narrows alongside a status tab rather than replacing it', async () => {
+      mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
+      renderLibrary();
+      fireEvent.click(await screen.findByRole('tab', { name: /Finished/ }));
+
+      await search('sapiens');
+      expect(screen.getByRole('button', { name: /Sapiens/ })).toBeInTheDocument();
+
+      await search('dune');
+      // Dune is 'reading', so the Finished tab still excludes it.
+      expect(screen.queryByRole('button', { name: /Dune/ })).not.toBeInTheDocument();
+    });
+
+    it('says so when nothing matches', async () => {
+      mockLibrary([dune], { reading: 1 });
+      renderLibrary();
+      await screen.findByRole('button', { name: /Dune/ });
+
+      await search('nothingmatchesthis');
+
+      expect(screen.getByText(/No books in your library match/)).toBeInTheDocument();
+    });
+
+    // Charts and tabs describe the whole library, not the current filter.
+    it('leaves the charts and tab counts reporting the whole library', async () => {
+      mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
+      renderLibrary();
+      await screen.findByRole('button', { name: /Dune/ });
+
+      await search('dune');
+
+      expect(screen.getByRole('tab', { name: /Finished/ })).toBeInTheDocument();
+      const charts = await screen.findByLabelText('Library breakdown');
+      expect(within(charts).getByText('History')).toBeInTheDocument();
+    });
   });
 });
