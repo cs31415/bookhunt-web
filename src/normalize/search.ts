@@ -2,6 +2,8 @@ import type { BookSummary } from '../shared/types/book';
 import type { LibraryStatus } from '../shared/types/library-status';
 import { hashToHue, hashToId } from '../shared/lib/hash';
 import { toNumber } from '../shared/lib/to-number';
+import { normalizeLibraryEntry } from './library';
+import type { RawLibraryEntry } from './library';
 
 export interface RawAiSearchBook {
   googleBooksId: string | null;
@@ -64,6 +66,24 @@ export function normalizeAiSearchBook(raw: RawAiSearchBook): SearchResultItem {
     categories: raw.categories,
     moods: raw.moods,
     ...(raw.inLibrary && raw.libraryStatus ? { status: raw.libraryStatus } : {}),
+  };
+}
+
+/**
+ * Renders a library row (GET /library/search) as a search result, so the
+ * keyword hits from the caller's own shelf and the LLM's suggestions can share
+ * ResultsGrid and BookCard.
+ *
+ * These rows come from the catalog, so unlike an unresolved LLM guess the cover
+ * and slug are real and can be trusted.
+ */
+export function normalizeLibraryEntryToSearchResult(raw: RawLibraryEntry): SearchResultItem {
+  const entry = normalizeLibraryEntry(raw);
+  return {
+    book: entry.book,
+    status: entry.status,
+    categories: entry.subjects,
+    moods: raw.moods ?? [],
   };
 }
 

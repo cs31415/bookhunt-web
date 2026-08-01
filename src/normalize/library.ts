@@ -18,6 +18,9 @@ export interface RawLibraryEntry {
   // Optional: only the Library page (LOS-81) consumes these; Discover's fixtures omit them.
   subjects?: string[] | null;
   date_added?: string | null;
+  // Returned by /library and /library/search; used when a library row is shown
+  // alongside AI suggestions, which carry the same two tag lists.
+  moods?: string[] | null;
 }
 
 export interface RawLibraryStats {

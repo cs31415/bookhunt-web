@@ -81,7 +81,8 @@ export function SearchPage() {
   }, [isAuthenticated, searchParams]);
 
   const parsed = parseSearchParams(effectiveParams);
-  const { results, loading, error, availableCategories, availableMoods } = useSearchResults(effectiveParams);
+  const { libraryResults, libraryLoading, results, loading, error, availableCategories, availableMoods } =
+    useSearchResults(effectiveParams, isAuthenticated);
   const [queryInput, setQueryInput] = useState(parsed.q);
   const [syncedQ, setSyncedQ] = useState(parsed.q);
   if (parsed.q !== syncedQ) {
@@ -129,7 +130,8 @@ export function SearchPage() {
               <ResultsHeading q={parsed.q} theme={parsed.theme} mood={parsed.mood} subject={parsed.subject} />
               {!loading && parsed.q && (
                 <div className={styles.count}>
-                  {results.length} {pluralize(results.length, 'book')}
+                  {results.length + libraryResults.length}{' '}
+                  {pluralize(results.length + libraryResults.length, 'book')}
                 </div>
               )}
             </div>
@@ -152,8 +154,32 @@ export function SearchPage() {
 
           {error && <p className={styles.error}>{error}</p>}
 
+          {/* Above the AI results, and rendered as soon as it arrives: the
+              library search is a Postgres query and answers in milliseconds,
+              so an exact match on your own shelf shouldn't wait on the model. */}
+          {!libraryLoading && parsed.q && libraryResults.length > 0 && (
+            <section className={styles.librarySection}>
+              <h3 className={styles.sectionHeading}>
+                In your library
+                <span className={styles.sectionCount}>
+                  {libraryResults.length} {pluralize(libraryResults.length, 'book')}
+                </span>
+              </h3>
+              <ResultsGrid
+                results={libraryResults}
+                loading={false}
+                onSelectResult={handleSelectResult}
+              />
+            </section>
+          )}
+
           {!error && parsed.q && (
-            <ResultsGrid results={results} loading={loading} onSelectResult={handleSelectResult} />
+            <>
+              {libraryResults.length > 0 && (
+                <h3 className={styles.sectionHeading}>More to discover</h3>
+              )}
+              <ResultsGrid results={results} loading={loading} onSelectResult={handleSelectResult} />
+            </>
           )}
 
           {!error && !parsed.q && (

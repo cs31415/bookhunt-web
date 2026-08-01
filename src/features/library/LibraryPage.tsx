@@ -68,9 +68,37 @@ export function LibraryPage() {
   const status = asStatus(searchParams.get('status'));
   const subject = searchParams.get('subject');
   const author = searchParams.get('author');
+  const urlQuery = searchParams.get('q') ?? '';
+
+  // The input is driven by local state, not by the URL. setSearchParams lands a
+  // render later, so feeding the box straight from the URL made every keystroke
+  // start from a stale value and "sagan" arrived as "n". The URL still gets the
+  // query — see the effect below — it just isn't in the typing path.
+  const [q, setQ] = useState(urlQuery);
+  // Same shape as SearchPage's queryInput/syncedQ. Adopting only when the URL
+  // differs from what we last saw keeps our own write from reading back as an
+  // external change and overwriting whatever was typed in the meantime; the
+  // second check leaves the input alone when the URL merely caught up to it.
+  const [syncedQuery, setSyncedQuery] = useState(urlQuery);
+  if (urlQuery !== syncedQuery) {
+    setSyncedQuery(urlQuery);
+    if (urlQuery !== q) setQ(urlQuery);
+  }
+
+  // Replaces rather than pushes: filtering is instant and local, so a history
+  // entry per keystroke would make Back unusable. Kept in the URL at all so a
+  // filtered library stays shareable, like every other filter on this page.
+  useEffect(() => {
+    if (q === urlQuery) return;
+    const next = new URLSearchParams(searchParams);
+    if (q) next.set('q', q);
+    else next.delete('q');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
 
   // Reset to the first page whenever the active filter changes.
-  const filterKey = `${status ?? ''}|${subject ?? ''}|${author ?? ''}`;
+  const filterKey = `${status ?? ''}|${subject ?? ''}|${author ?? ''}|${q}`;
   const [syncedKey, setSyncedKey] = useState(filterKey);
   if (filterKey !== syncedKey) {
     setSyncedKey(filterKey);
@@ -128,8 +156,8 @@ export function LibraryPage() {
   );
 
   const sorted = useMemo(
-    () => sortByAddedDesc(filterEntries(entries, { status, subject, author })),
-    [entries, status, subject, author],
+    () => sortByAddedDesc(filterEntries(entries, { status, subject, author, q })),
+    [entries, status, subject, author, q],
   );
   const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
   const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -161,7 +189,13 @@ export function LibraryPage() {
 
   return (
     <div className={styles.page}>
-      <LibraryHeader total={total} onAddFromPhoto={onAddFromPhoto} onImportCsv={importCsv} />
+      <LibraryHeader
+        total={total}
+        onAddFromPhoto={onAddFromPhoto}
+        onImportCsv={importCsv}
+        query={q}
+        onQueryChange={setQ}
+      />
 
       <LibraryCharts
         entries={entries}
@@ -181,7 +215,9 @@ export function LibraryPage() {
       {author && <FilterPill label="author" value={author} onClear={clearAttribute} />}
 
       {sorted.length === 0 ? (
-        <p className={styles.noMatch}>No books match this filter.</p>
+        <p className={styles.noMatch}>
+          {q ? `No books in your library match “${q}”.` : 'No books match this filter.'}
+        </p>
       ) : (
         <div className={styles.grid}>
           {pageItems.map((entry) => (

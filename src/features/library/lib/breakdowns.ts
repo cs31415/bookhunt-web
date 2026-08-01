@@ -16,6 +16,9 @@ export interface LibraryFilter {
   status: LibraryStatus | null;
   subject: string | null;
   author: string | null;
+  /** Free text over title, author and subjects. Filtered client-side — the whole
+   *  library is already in memory, so a round trip would only be slower. */
+  q?: string | null;
 }
 
 export function statusCounts(entries: LibraryEntry[]): Record<LibraryStatus, number> {
@@ -72,11 +75,26 @@ export function authorSlices(entries: LibraryEntry[]): PieSlice[] {
   return toSlices(tally(entries.map((entry) => entry.book.authorName)));
 }
 
+// Every term has to appear somewhere, so each word typed narrows the list --
+// "sagan cosmos" means both, which is what a filter box is expected to do.
+function matchesQuery(entry: LibraryEntry, terms: string[]): boolean {
+  const haystack = [entry.book.title, entry.book.authorName, ...entry.subjects]
+    .join(' ')
+    .toLowerCase();
+  return terms.every((term) => haystack.includes(term));
+}
+
+function queryTerms(q: string | null | undefined): string[] {
+  return q ? q.toLowerCase().split(/\s+/).filter(Boolean) : [];
+}
+
 export function filterEntries(entries: LibraryEntry[], filter: LibraryFilter): LibraryEntry[] {
+  const terms = queryTerms(filter.q);
   return entries.filter((entry) => {
     if (filter.status && entry.status !== filter.status) return false;
     if (filter.subject && !entry.subjects.includes(filter.subject)) return false;
     if (filter.author && entry.book.authorName !== filter.author) return false;
+    if (terms.length > 0 && !matchesQuery(entry, terms)) return false;
     return true;
   });
 }

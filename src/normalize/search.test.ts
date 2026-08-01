@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeAiSearchBook, normalizeAiSearchResponse } from './search';
+import {
+  normalizeAiSearchBook,
+  normalizeAiSearchResponse,
+  normalizeLibraryEntryToSearchResult,
+} from './search';
 import type { RawAiSearchBook, RawAiSearchResponse } from './search';
+import type { RawLibraryEntry } from './library';
 
 const rawBook: RawAiSearchBook = {
   googleBooksId: 'abc123',
@@ -112,5 +117,67 @@ describe('normalizeAiSearchResponse', () => {
     expect(result.query).toBe('thriller');
     expect(result.results).toHaveLength(1);
     expect(result.results[0].book.title).toBe('Night Watch');
+  });
+});
+
+describe('normalizeLibraryEntryToSearchResult', () => {
+  const rawEntry: RawLibraryEntry = {
+    book_id: 42,
+    status: 'reading',
+    notes: 'a note',
+    review: null,
+    title: 'Cosmos',
+    book_slug: 'cosmos',
+    author_name: 'Carl Sagan',
+    author_slug: 'carl-sagan',
+    year: 1980,
+    rating: '4.5' as unknown as number,
+    cover_url: 'https://example.test/cosmos.jpg',
+    hue: '#123456',
+    subjects: ['Astronomy', 'Science'],
+    moods: ['Mind-expanding'],
+    date_added: '2026-01-01T00:00:00Z',
+  };
+
+  it('renders a library row as a search result, keeping the owned status', () => {
+    const result = normalizeLibraryEntryToSearchResult(rawEntry);
+
+    expect(result.status).toBe('reading');
+    expect(result.book).toMatchObject({
+      id: 42,
+      slug: 'cosmos',
+      title: 'Cosmos',
+      authorName: 'Carl Sagan',
+      year: 1980,
+      rating: 4.5,
+      source: 'catalog',
+    });
+  });
+
+  // Subjects and moods are the catalog's equivalents of the AI results' two tag
+  // lists, so both kinds of card carry the same shape.
+  it('maps subjects to categories and carries moods through', () => {
+    const result = normalizeLibraryEntryToSearchResult(rawEntry);
+
+    expect(result.categories).toEqual(['Astronomy', 'Science']);
+    expect(result.moods).toEqual(['Mind-expanding']);
+  });
+
+  // Unlike an unresolved LLM guess, a catalog row's cover is real.
+  it('keeps the cover, which an AI result would have had stripped', () => {
+    const result = normalizeLibraryEntryToSearchResult(rawEntry);
+
+    expect(result.book.coverUrl).toBe('https://example.test/cosmos.jpg');
+  });
+
+  it('defaults the tag lists when the row omits them', () => {
+    const result = normalizeLibraryEntryToSearchResult({
+      ...rawEntry,
+      subjects: null,
+      moods: null,
+    });
+
+    expect(result.categories).toEqual([]);
+    expect(result.moods).toEqual([]);
   });
 });
