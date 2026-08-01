@@ -11,6 +11,7 @@ import { LibraryCharts } from './components/LibraryCharts/LibraryCharts';
 import { StatusTabs } from './components/StatusTabs/StatusTabs';
 import { FilterPill } from './components/FilterPill/FilterPill';
 import { LibraryEmptyState } from './components/LibraryEmptyState/LibraryEmptyState';
+import { ThemeFilter } from './components/ThemeFilter/ThemeFilter';
 import { ScanModal } from './components/ScanModal/ScanModal';
 import { CsvImportModal } from './components/CsvImportModal/CsvImportModal';
 import { useLibraryData } from './hooks/useLibraryData';
@@ -68,6 +69,8 @@ export function LibraryPage() {
   const status = asStatus(searchParams.get('status'));
   const subject = searchParams.get('subject');
   const author = searchParams.get('author');
+  const mood = searchParams.get('mood');
+  const theme = searchParams.get('theme');
   const urlQuery = searchParams.get('q') ?? '';
 
   // The input is driven by local state, not by the URL. setSearchParams lands a
@@ -98,7 +101,7 @@ export function LibraryPage() {
   }, [q]);
 
   // Reset to the first page whenever the active filter changes.
-  const filterKey = `${status ?? ''}|${subject ?? ''}|${author ?? ''}|${q}`;
+  const filterKey = `${status ?? ''}|${subject ?? ''}|${author ?? ''}|${mood ?? ''}|${theme ?? ''}|${q}`;
   const [syncedKey, setSyncedKey] = useState(filterKey);
   if (filterKey !== syncedKey) {
     setSyncedKey(filterKey);
@@ -114,18 +117,29 @@ export function LibraryPage() {
     setSearchParams(next);
   }
 
-  // Status is one axis; subject/author is a single mutually-exclusive attribute pill.
+  // Status is one axis; subject/author/mood/theme share a single
+  // mutually-exclusive attribute pill, so picking one replaces the last.
+  const NO_ATTRIBUTES = { subject: null, author: null, mood: null, theme: null };
+
   function selectStatus(next: LibraryStatus | null) {
-    updateParams({ status: next === status ? null : next, subject: null, author: null });
+    updateParams({ status: next === status ? null : next, ...NO_ATTRIBUTES });
   }
   function selectSubject(next: string) {
-    updateParams({ subject: next, author: null });
+    updateParams({ ...NO_ATTRIBUTES, subject: next });
   }
   function selectAuthor(next: string) {
-    updateParams({ author: next, subject: null });
+    updateParams({ ...NO_ATTRIBUTES, author: next });
+  }
+  // Clicking the active chip again clears it, since the chip row is the only
+  // way back — unlike a pie slice, it stays visibly selected.
+  function selectTheme(next: string) {
+    updateParams({ ...NO_ATTRIBUTES, theme: next === theme ? null : next });
+  }
+  function selectMood(next: string) {
+    updateParams({ ...NO_ATTRIBUTES, mood: next });
   }
   function clearAttribute() {
-    updateParams({ subject: null, author: null });
+    updateParams(NO_ATTRIBUTES);
   }
 
   // A finished or failed session is stale by the time the button is clicked again;
@@ -156,8 +170,8 @@ export function LibraryPage() {
   );
 
   const sorted = useMemo(
-    () => sortByAddedDesc(filterEntries(entries, { status, subject, author, q })),
-    [entries, status, subject, author, q],
+    () => sortByAddedDesc(filterEntries(entries, { status, subject, author, mood, theme, q })),
+    [entries, status, subject, author, mood, theme, q],
   );
   const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
   const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -202,7 +216,10 @@ export function LibraryPage() {
         onSelectStatus={selectStatus}
         onSelectSubject={selectSubject}
         onSelectAuthor={selectAuthor}
+        onSelectMood={selectMood}
       />
+
+      <ThemeFilter entries={entries} active={theme} onSelect={selectTheme} />
 
       <StatusTabs
         counts={statusCounts(entries)}
@@ -213,6 +230,8 @@ export function LibraryPage() {
 
       {subject && <FilterPill label="subject" value={subject} onClear={clearAttribute} />}
       {author && <FilterPill label="author" value={author} onClear={clearAttribute} />}
+      {mood && <FilterPill label="mood" value={mood} onClear={clearAttribute} />}
+      {theme && <FilterPill label="theme" value={theme} onClear={clearAttribute} />}
 
       {sorted.length === 0 ? (
         <p className={styles.noMatch}>

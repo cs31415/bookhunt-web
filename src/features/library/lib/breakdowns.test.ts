@@ -4,6 +4,8 @@ import {
   TOP_SLICE_COUNT,
   authorSlices,
   filterEntries,
+  moodSlices,
+  topThemes,
   sortByAddedDesc,
   statusCounts,
   statusSlices,
@@ -20,6 +22,8 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
     status: overrides.status ?? 'queued',
     notes: null,
     subjects: overrides.subjects ?? [],
+    moods: overrides.moods ?? [],
+    themes: overrides.themes ?? [],
     addedAt: overrides.addedAt ?? null,
     book: {
       id,
@@ -155,6 +159,78 @@ describe('filterEntries', () => {
       expect(filterEntries(shelf, { ...base, q: '' })).toHaveLength(2);
       expect(filterEntries(shelf, base)).toHaveLength(2);
     });
+
+    it('matches on moods and themes too', () => {
+      const tagged = makeEntry({ moods: ['Mind-expanding'], themes: ['Scientific discovery'] });
+      const untagged = makeEntry();
+
+      expect(filterEntries([tagged, untagged], { ...base, q: 'mind-expanding' })).toEqual([tagged]);
+      expect(filterEntries([tagged, untagged], { ...base, q: 'scientific' })).toEqual([tagged]);
+    });
+  });
+
+  describe('mood and theme (LOS-186)', () => {
+    const base = { status: null, subject: null, author: null };
+    const reflective = makeEntry({
+      moods: ['Reflective', 'Analytical'],
+      themes: ['Scientific discovery'],
+    });
+    const intense = makeEntry({ moods: ['Intense'], themes: ['Totalitarianism'] });
+    // AI tags are filled in lazily, so plenty of rows carry neither.
+    const untagged = makeEntry();
+    const shelf = [reflective, intense, untagged];
+
+    it('filters by mood', () => {
+      expect(filterEntries(shelf, { ...base, mood: 'Reflective' })).toEqual([reflective]);
+    });
+
+    it('filters by theme', () => {
+      expect(filterEntries(shelf, { ...base, theme: 'Totalitarianism' })).toEqual([intense]);
+    });
+
+    it('excludes untagged books rather than passing them through', () => {
+      expect(filterEntries(shelf, { ...base, mood: 'Reflective' })).not.toContain(untagged);
+      expect(filterEntries(shelf, { ...base, theme: 'Totalitarianism' })).not.toContain(untagged);
+    });
+
+    it('combines with status', () => {
+      expect(filterEntries(shelf, { ...base, status: 'finished', mood: 'Reflective' })).toEqual([]);
+    });
+  });
+});
+
+describe('moodSlices', () => {
+  it('tallies moods across entries, most common first', () => {
+    const entries = [
+      makeEntry({ moods: ['Reflective', 'Analytical'] }),
+      makeEntry({ moods: ['Reflective'] }),
+      makeEntry({ moods: [] }),
+    ];
+
+    expect(moodSlices(entries)).toEqual([
+      { label: 'Reflective', value: 2 },
+      { label: 'Analytical', value: 1 },
+    ]);
+  });
+
+  it('is empty when nothing has been tagged yet', () => {
+    expect(moodSlices([makeEntry(), makeEntry()])).toEqual([]);
+  });
+});
+
+describe('topThemes', () => {
+  it('orders by count then alphabetically, and caps the list', () => {
+    const entries = [
+      makeEntry({ themes: ['Identity', 'Memory'] }),
+      makeEntry({ themes: ['Identity', 'Grief'] }),
+    ];
+
+    expect(topThemes(entries, 10)).toEqual(['Identity', 'Grief', 'Memory']);
+    expect(topThemes(entries, 2)).toEqual(['Identity', 'Grief']);
+  });
+
+  it('is empty when nothing has been tagged yet', () => {
+    expect(topThemes([makeEntry()], 10)).toEqual([]);
   });
 });
 

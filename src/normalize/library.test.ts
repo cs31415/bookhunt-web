@@ -23,6 +23,8 @@ describe('normalizeLibraryEntry', () => {
       status: 'reading',
       notes: 'Slow start but picking up',
       subjects: [],
+      moods: [],
+      themes: [],
       addedAt: null,
       book: {
         id: 1,

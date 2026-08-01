@@ -16,8 +16,11 @@ export interface LibraryFilter {
   status: LibraryStatus | null;
   subject: string | null;
   author: string | null;
-  /** Free text over title, author and subjects. Filtered client-side — the whole
-   *  library is already in memory, so a round trip would only be slower. */
+  mood?: string | null;
+  theme?: string | null;
+  /** Free text over title, author, subjects, moods and themes. Filtered
+   *  client-side — the whole library is already in memory, so a round trip
+   *  would only be slower. */
   q?: string | null;
 }
 
@@ -75,10 +78,34 @@ export function authorSlices(entries: LibraryEntry[]): PieSlice[] {
   return toSlices(tally(entries.map((entry) => entry.book.authorName)));
 }
 
+export function moodSlices(entries: LibraryEntry[]): PieSlice[] {
+  return toSlices(tally(entries.flatMap((entry) => entry.moods)));
+}
+
+/**
+ * Themes get a chip list rather than a pie: they are long free-text phrases
+ * ("Humanity's place in the universe") and near-unique — almost every one
+ * appears once or twice — so a chart of them would be a sliver of slices and an
+ * "Other" bucket holding everything. Ordered by count, then alphabetically, so
+ * the list is stable between renders.
+ */
+export function topThemes(entries: LibraryEntry[], limit: number): string[] {
+  return [...tally(entries.flatMap((entry) => entry.themes)).entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, limit)
+    .map(([theme]) => theme);
+}
+
 // Every term has to appear somewhere, so each word typed narrows the list --
 // "sagan cosmos" means both, which is what a filter box is expected to do.
 function matchesQuery(entry: LibraryEntry, terms: string[]): boolean {
-  const haystack = [entry.book.title, entry.book.authorName, ...entry.subjects]
+  const haystack = [
+    entry.book.title,
+    entry.book.authorName,
+    ...entry.subjects,
+    ...entry.moods,
+    ...entry.themes,
+  ]
     .join(' ')
     .toLowerCase();
   return terms.every((term) => haystack.includes(term));
@@ -94,6 +121,8 @@ export function filterEntries(entries: LibraryEntry[], filter: LibraryFilter): L
     if (filter.status && entry.status !== filter.status) return false;
     if (filter.subject && !entry.subjects.includes(filter.subject)) return false;
     if (filter.author && entry.book.authorName !== filter.author) return false;
+    if (filter.mood && !entry.moods.includes(filter.mood)) return false;
+    if (filter.theme && !entry.themes.includes(filter.theme)) return false;
     if (terms.length > 0 && !matchesQuery(entry, terms)) return false;
     return true;
   });
