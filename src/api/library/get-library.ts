@@ -8,7 +8,10 @@ export interface GetLibraryParams {
 
 export interface GetLibraryResponse {
   entries: RawLibraryEntry[];
-  stats: RawLibraryStats;
+  /** Whole-library counts, sent on the first page only — they do not vary by page. */
+  stats?: RawLibraryStats;
+  /** Entries in the whole library, on every page. Use this to walk it. */
+  total: number;
 }
 
 // GET /library paginates (LOS-118, max 60/page) - pass page/limit to walk it.
