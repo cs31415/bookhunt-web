@@ -24,7 +24,7 @@ export interface ImportRowProps {
   candidates?: ImportCandidate[];
   selectedCandidateId?: string;
   onSelectCandidate?: (id: string) => void;
-  /** Already in the library: rendered inert rather than dropped. */
+  /** Why this row can't be acted on yet — e.g. still being looked up. Renders it inert. */
   disabledReason?: string;
 }
 

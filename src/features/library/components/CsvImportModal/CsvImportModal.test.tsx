@@ -323,11 +323,13 @@ describe('CsvImportModal', () => {
     );
   });
 
-  // A machine-generated photo scan can drop duplicates silently; a file the
-  // reader wrote cannot, or they'd wonder where their rows went.
-  it('renders an already-owned book as inert rather than dropping it', async () => {
+  // Re-importing an export against a library that already holds most of it is
+  // the case this feature exists to serve, so owned rows are the majority and
+  // leave the list. The summary keeps them counted, so nothing vanishes
+  // unaccounted for.
+  it('drops an already-owned book from the list and counts it in the summary', async () => {
     mockedResolve.mockResolvedValue({
-      rows: [resolved({ title: 'Existing', matchedBookId: 1 })],
+      rows: [resolved({ title: 'Existing', matchedBookId: 1 }), resolved()],
     });
     mockedGetBooksByIds.mockResolvedValue({
       books: [
@@ -347,10 +349,52 @@ describe('CsvImportModal', () => {
 
     renderLibrary();
     const dialog = await openModal();
-    dropFile(dialog, csvFile('title\nExisting'));
+    dropFile(dialog, csvFile('title\nExisting\nDune'));
 
-    expect(await screen.findByText('Already in your library')).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(await screen.findByText(/Found matches for/)).toHaveTextContent(
+      'Found matches for 1 book. 1 already in your library.',
+    );
+    // Scoped to the dialog: the library behind it lists the same book.
+    expect(within(dialog).queryByText('Existing')).not.toBeInTheDocument();
+    expect(within(dialog).getAllByRole('checkbox')).toHaveLength(1);
+  });
+
+  // The button adds ticked rows only, and a row nothing matched starts unticked.
+  // Counting those as matches made the summary claim more books than the button
+  // was going to add — 61 versus 10 on a real import.
+  it('counts unmatched rows separately so the summary agrees with the button', async () => {
+    mockedResolve.mockResolvedValue({
+      rows: [
+        resolved(),
+        resolved({ title: 'Nonexistent Xyzzy', author: null, candidates: [] }),
+        resolved({ title: 'Nonexistent Plugh', author: null, candidates: [] }),
+      ],
+    });
+
+    renderLibrary();
+    const dialog = await openModal();
+    dropFile(dialog, csvFile('title\nDune\nNonexistent Xyzzy\nNonexistent Plugh'));
+
+    expect(await screen.findByText(/Found matches for/)).toHaveTextContent(
+      'Found matches for 1 book. 2 we couldn’t find.',
+    );
+    expect(screen.getByRole('button', { name: 'Add 1 to library' })).toBeInTheDocument();
+    // Unmatched rows stay listed: ticking one adds what the file said as-is.
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+  });
+
+  it('says so plainly when nothing in the file could be matched', async () => {
+    mockedResolve.mockResolvedValue({
+      rows: [resolved({ title: 'Nonexistent Xyzzy', author: null, candidates: [] })],
+    });
+
+    renderLibrary();
+    const dialog = await openModal();
+    dropFile(dialog, csvFile('title\nNonexistent Xyzzy'));
+
+    expect(await screen.findByText(/No matches found/)).toHaveTextContent(
+      'No matches found. 1 we couldn’t find.',
+    );
   });
 
   it('says all books are already in the library when every row matches one already owned', async () => {

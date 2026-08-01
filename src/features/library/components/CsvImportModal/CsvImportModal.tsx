@@ -64,8 +64,24 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
     onClose();
   }
 
+  /**
+   * Owned rows leave the list rather than sitting in it inert. On the case CSV
+   * import exists to serve — re-importing an export against a library that
+   * already holds most of it — they are the overwhelming majority, and scrolling
+   * past hundreds of rows nobody can act on to reach the few that need a
+   * decision is the entire review. The summary still counts them, so nothing
+   * disappears unaccounted for.
+   */
   const importable = rows.filter((row) => row.alreadyInLibraryId === undefined);
   const alreadyOwned = rows.length - importable.length;
+
+  /**
+   * A row nothing matched is not a match. It stays listed, unticked, offering to
+   * add what the file said as-is — which is why counting it as found made the
+   * summary claim more books than the Add button was going to add.
+   */
+  const matched = importable.filter((row) => row.candidates.length > 0).length;
+  const unfound = importable.filter((row) => row.resolved && row.candidates.length === 0).length;
   const confirming = resolving && confirmingCancel;
 
   const footer = confirming ? (
@@ -183,9 +199,15 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
                 <>All {alreadyOwned === 1 ? 'this book is' : 'these books are'} already in your library.</>
               ) : (
                 <>
-                  Found matches for <strong>{importable.length}</strong>{' '}
-                  {importable.length === 1 ? 'book' : 'books'}.
+                  {matched > 0 ? (
+                    <>
+                      Found matches for <strong>{matched}</strong> {matched === 1 ? 'book' : 'books'}.
+                    </>
+                  ) : (
+                    <>No matches found.</>
+                  )}
                   {alreadyOwned > 0 && ` ${alreadyOwned} already in your library.`}
+                  {unfound > 0 && ` ${unfound} we couldn’t find.`}
                   {importable.length > 0 &&
                     ' Pick a different match, change a status, or untick to skip.'}
                 </>
@@ -196,7 +218,7 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
           {warning && <p className={styles.warning}>{warning}</p>}
 
           <div className={styles.rows}>
-            {rows.map((row) => (
+            {importable.map((row) => (
               <ImportRow
                 key={row.key}
                 book={session.bookFor(row)}
@@ -212,13 +234,7 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
                 candidates={row.candidates.map((c) => ({ id: c.id, label: c.label }))}
                 selectedCandidateId={session.selectedCandidateId(row.key)}
                 onSelectCandidate={(id) => session.selectCandidate(row.key, id)}
-                disabledReason={
-                  !row.resolved
-                    ? 'Looking up…'
-                    : row.alreadyInLibraryId !== undefined
-                      ? 'Already in your library'
-                      : undefined
-                }
+                disabledReason={!row.resolved ? 'Looking up…' : undefined}
               />
             ))}
           </div>

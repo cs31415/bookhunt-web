@@ -114,7 +114,7 @@ function toCandidates(raw: RawResolvedRow): CsvCandidate[] {
 }
 
 export interface UseCsvImportSessionOptions {
-  /** Book ids already in the library — those rows render inert rather than vanishing. */
+  /** Book ids already in the library — those rows drop out of the review list. */
   excludeBookIds: number[];
   onAdded?: (count: number) => void;
 }
