@@ -98,6 +98,11 @@ export function SearchPage() {
     update({ q: query || null, theme: null, mood: null, subject: null });
   }
 
+  // With the toggle on, `results` is already narrowed to owned books the library
+  // search itself did not return — so the two together are the one honest answer
+  // to "books I own matching this", rather than two sections saying it twice.
+  const owned = parsed.inLibraryOnly ? [...libraryResults, ...results] : libraryResults;
+
   function handleSelectResult(item: SearchResultItem) {
     // Synchronous navigation — Book Detail resolves the book itself (by slug,
     // falling back to a live lookup by title/author when uncataloged, plus the
@@ -130,8 +135,8 @@ export function SearchPage() {
               <ResultsHeading q={parsed.q} theme={parsed.theme} mood={parsed.mood} subject={parsed.subject} />
               {!loading && parsed.q && (
                 <div className={styles.count}>
-                  {results.length + libraryResults.length}{' '}
-                  {pluralize(results.length + libraryResults.length, 'book')}
+                  {(parsed.inLibraryOnly ? owned.length : results.length + owned.length)}{' '}
+                  {pluralize(parsed.inLibraryOnly ? owned.length : results.length + owned.length, 'book')}
                 </div>
               )}
             </div>
@@ -157,29 +162,29 @@ export function SearchPage() {
           {/* Above the AI results, and rendered as soon as it arrives: the
               library search is a Postgres query and answers in milliseconds,
               so an exact match on your own shelf shouldn't wait on the model. */}
-          {!libraryLoading && parsed.q && libraryResults.length > 0 && (
+          {!libraryLoading && parsed.q && owned.length > 0 && (
             <section className={styles.librarySection}>
               <h3 className={styles.sectionHeading}>
                 In your library
                 <span className={styles.sectionCount}>
-                  {libraryResults.length} {pluralize(libraryResults.length, 'book')}
+                  {owned.length} {pluralize(owned.length, 'book')}
                 </span>
               </h3>
-              <ResultsGrid
-                results={libraryResults}
-                loading={false}
-                onSelectResult={handleSelectResult}
-              />
+              <ResultsGrid results={owned} loading={false} onSelectResult={handleSelectResult} />
             </section>
           )}
 
-          {!error && parsed.q && (
+          {/* With the toggle on there is only one list — the books you own — so
+              the suggestions section, and its empty state, would be noise. */}
+          {!error && parsed.q && !parsed.inLibraryOnly && (
             <>
-              {libraryResults.length > 0 && (
-                <h3 className={styles.sectionHeading}>More to discover</h3>
-              )}
+              {owned.length > 0 && <h3 className={styles.sectionHeading}>More to discover</h3>}
               <ResultsGrid results={results} loading={loading} onSelectResult={handleSelectResult} />
             </>
+          )}
+
+          {!error && parsed.q && parsed.inLibraryOnly && !libraryLoading && !loading && owned.length === 0 && (
+            <ResultsGrid results={[]} loading={false} onSelectResult={handleSelectResult} />
           )}
 
           {!error && !parsed.q && (

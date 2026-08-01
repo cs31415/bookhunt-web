@@ -16,6 +16,48 @@ const LIBRARY_RESULT_LIMIT = 24;
 
 const MAX_FILTER_TAGS = 8;
 
+/** Suggestion sets held for the session, so a repeat query is free. */
+const MAX_CACHED_QUERIES = 50;
+
+/**
+ * The query alone. Normalising folds "Carl Sagan", "carl sagan " and
+ * "Carl  Sagan" onto one entry.
+ *
+ * seedCategory and seedMood are still sent, and do shape the prompt, but they
+ * are deliberately not part of this key: the category and mood pills have
+ * always filtered the fetched batch client-side rather than re-querying, and
+ * keying on them would turn every pill click into another LLM call — the
+ * opposite of the point. The cost is that a set fetched with a seed can be
+ * reused without it, which only changes which tags the suggestions carry.
+ */
+function cacheKey(query: string): string {
+  return query.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Module-level, so it survives navigating away and back — which is the point.
+ * The query lives in the URL and there is no client cache anywhere else, so
+ * every back, forward and reload was another few seconds of LLM.
+ */
+const suggestionCache = new Map<string, SearchResultItem[]>();
+
+function writeCache(key: string, results: SearchResultItem[]): void {
+  // An empty set means the LLM failed (searchBooksWithLlm swallows and returns
+  // []), so caching it would pin a transient failure for the whole session.
+  if (results.length === 0) return;
+  suggestionCache.set(key, results);
+  // Oldest-first eviction rather than least-recently-used: an LRU would have to
+  // reorder on read, and reads happen during render.
+  if (suggestionCache.size > MAX_CACHED_QUERIES) {
+    suggestionCache.delete(suggestionCache.keys().next().value as string);
+  }
+}
+
+/** Exposed for tests; a page reload clears it anyway. */
+export function clearSuggestionCache(): void {
+  suggestionCache.clear();
+}
+
 function topTags(results: SearchResultItem[], field: 'categories' | 'moods'): string[] {
   const counts = new Map<string, number>();
   for (const item of results) {
@@ -61,8 +103,13 @@ function applyFiltersAndSort(
   category: string | null,
   mood: string | null,
   sort: string,
+  inLibraryOnly: boolean,
 ): SearchResultItem[] {
   let filtered = results;
+  // `status` is set only for books the caller owns, which is the same signal the
+  // server used to apply this filter — and applying it here means the toggle no
+  // longer costs an LLM round trip for an identical prompt.
+  if (inLibraryOnly) filtered = filtered.filter((item) => item.status);
   if (status) filtered = filtered.filter((item) => item.status === status);
   if (category) filtered = filtered.filter((item) => item.categories.includes(category));
   if (mood) filtered = filtered.filter((item) => item.moods.includes(mood));
@@ -73,7 +120,9 @@ export function useSearchResults(
   searchParams: URLSearchParams,
   isAuthenticated = false,
 ): UseSearchResultsResult {
-  const [rawResults, setRawResults] = useState<SearchResultItem[]>([]);
+  // Tagged with the key it answered, so a fetch that lands after the query moved
+  // on cannot be shown against the wrong query.
+  const [answered, setAnswered] = useState<{ key: string; items: SearchResultItem[] } | null>(null);
   // Tagged with the query it answered, so a result set is never shown against a
   // query it wasn't for — the previous library hits would otherwise linger for
   // a frame after the query changes, and clearing them in the effect would mean
@@ -86,10 +135,19 @@ export function useSearchResults(
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const parsed = parseSearchParams(searchParams);
-  const fetchKey = `${parsed.q}::${parsed.inLibraryOnly}`;
+  // inLibraryOnly is deliberately absent. It never reached the LLM — the server
+  // omits it from the prompt and applies it as a post-filter — so keying the
+  // fetch on it bought an identical prompt at full price every time the toggle
+  // moved. It is a client-side filter now, which is what search-params.ts said
+  // it already was.
+  const fetchKey = cacheKey(parsed.q);
+
+  const cachedResults = suggestionCache.get(fetchKey);
 
   useEffect(() => {
-    if (!parsed.q) return;
+    // Already answered this exact prompt — render reads it straight from the
+    // cache below, so there is nothing to fetch and no state to set.
+    if (!parsed.q || suggestionCache.has(fetchKey)) return;
     const controller = new AbortController();
 
     async function load() {
@@ -99,14 +157,15 @@ export function useSearchResults(
         const raw = await aiSearch(
           {
             query: parsed.q,
-            inLibraryOnly: parsed.inLibraryOnly,
             limit: RESULT_LIMIT,
             seedCategory: parsed.subject ?? undefined,
             seedMood: parsed.mood ?? undefined,
           },
           controller.signal,
         );
-        setRawResults(normalizeAiSearchResponse(raw).results);
+        const items = normalizeAiSearchResponse(raw).results;
+        writeCache(fetchKey, items);
+        setAnswered({ key: fetchKey, items });
       } catch (err) {
         if (isAbortError(err)) return;
         setError('Could not load search results. Please try again.');
@@ -167,6 +226,12 @@ export function useSearchResults(
     };
   }
 
+  // A cache hit is the answer outright: nothing was fetched, so nothing is
+  // loading. Otherwise only the set tagged with the current key counts, so a
+  // stale answer never shows against a query it wasn't for.
+  const rawResults = cachedResults ?? (answered?.key === fetchKey ? answered.items : []);
+  const isLoading = cachedResults ? false : loading;
+
   // Status and sort are library-native and apply cleanly. Category and mood are
   // not: those pills are derived from the tags on the AI results, a different
   // vocabulary from the catalog's subjects, so applying them here would empty
@@ -188,8 +253,15 @@ export function useSearchResults(
   return {
     libraryResults,
     libraryLoading,
-    results: applyFiltersAndSort(aiResults, parsed.status, parsed.subject, parsed.mood, parsed.sort),
-    loading,
+    results: applyFiltersAndSort(
+      aiResults,
+      parsed.status,
+      parsed.subject,
+      parsed.mood,
+      parsed.sort,
+      parsed.inLibraryOnly,
+    ),
+    loading: isLoading,
     error,
     availableCategories: topTags(rawResults, 'categories'),
     availableMoods: topTags(rawResults, 'moods'),
