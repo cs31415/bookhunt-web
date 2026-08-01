@@ -455,6 +455,22 @@ describe('CsvImportModal', () => {
     expect(mockedGetBooksByIds).not.toHaveBeenCalled();
   });
 
+  // The batch size is configurable (LOS-180); what matters here is that the hook
+  // actually splits the file by it rather than sending everything at once.
+  it('splits a file into batches of the configured size', async () => {
+    vi.stubEnv('VITE_IMPORT_ROWS_PER_REQUEST', '20');
+    mockedResolve.mockResolvedValue({ rows: [] });
+    const titles = Array.from({ length: 25 }, (_, i) => `Book ${i + 1}`).join('\n');
+
+    renderLibrary();
+    const dialog = await openModal();
+    dropFile(dialog, csvFile(`title\n${titles}`));
+
+    await waitFor(() => expect(mockedResolve).toHaveBeenCalledTimes(2));
+    expect(mockedResolve.mock.calls[0][0]).toHaveLength(20);
+    expect(mockedResolve.mock.calls[1][0]).toHaveLength(5);
+  });
+
   it('cycles a status and drops the count when a row is unticked', async () => {
     mockedResolve.mockResolvedValue({ rows: [resolved(), resolved({ title: 'Ubik' })] });
 
