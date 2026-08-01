@@ -25,7 +25,9 @@ async function fetchAllEntries(
   while (!isCancelled()) {
     const library = await getLibrary({ page, limit: PAGE_LIMIT });
     entries.push(...library.entries);
-    total = library.stats.total ?? entries.length;
+    // `total` rather than `stats.total`: stats come back on the first page only,
+    // so that the walk does not make the server recompute them per page.
+    total = library.total ?? entries.length;
     if (library.entries.length === 0 || entries.length >= total) break;
     page += 1;
   }

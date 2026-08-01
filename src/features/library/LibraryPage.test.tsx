@@ -118,7 +118,11 @@ describe('LibraryPage', () => {
       const start = (page - 1) * limit;
       return {
         entries: allEntries.slice(start, start + limit),
-        stats: { total: allEntries.length, by_status: { queued: allEntries.length } },
+        // Stats come back on the first page only, so the walk has to run off
+        // `total` — the server no longer recomputes them per page (LOS-179).
+        ...(page === 1
+          ? { stats: { total: allEntries.length, by_status: { queued: allEntries.length } } }
+          : {}),
         total: allEntries.length,
         page,
         pageSize: limit,
