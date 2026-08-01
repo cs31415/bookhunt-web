@@ -632,6 +632,71 @@ describe('SearchPage', () => {
       expect(screen.queryByRole('button', { name: /Unowned Book/ })).not.toBeInTheDocument();
     });
 
+    // The pills sit in a sidebar above both sections, so they have to mean one
+    // thing rather than two (LOS-190).
+    describe('category and mood pills', () => {
+      it('narrows the library section, not just the suggestions', async () => {
+        resolveLibrary([
+          makeEntry({ title: 'Cosmos', subjects: ['Astronomy'] }),
+          makeEntry({ book_id: 43, title: 'Dune', book_slug: 'dune', subjects: ['Fiction'] }),
+        ]);
+        mockedAiSearch.mockResolvedValue({ books: [], query: 'sagan' });
+
+        renderSearchPage('/search?q=sagan&subject=Astronomy');
+
+        expect(await screen.findByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Dune/ })).not.toBeInTheDocument();
+      });
+
+      // Library rows carry raw catalog subjects; the pills carry curated LLM
+      // tags. Exact equality missed "Popular Science" against "popular science".
+      it('matches case-insensitively', async () => {
+        resolveLibrary([makeEntry({ title: 'Cosmos', subjects: ['popular science'] })]);
+        mockedAiSearch.mockResolvedValue({ books: [], query: 'sagan' });
+
+        renderSearchPage('/search?q=sagan&subject=Popular+Science');
+
+        expect(await screen.findByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+      });
+
+      it('matches a pill contained in a longer subject', async () => {
+        resolveLibrary([makeEntry({ title: 'Cosmos', subjects: ['Astronomy, popular works'] })]);
+        mockedAiSearch.mockResolvedValue({ books: [], query: 'sagan' });
+
+        renderSearchPage('/search?q=sagan&subject=Astronomy');
+
+        expect(await screen.findByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+      });
+
+      it('narrows by mood as well', async () => {
+        resolveLibrary([
+          makeEntry({ title: 'Cosmos', moods: ['Awe-inspiring'] }),
+          makeEntry({ book_id: 43, title: 'Dune', book_slug: 'dune', moods: ['Bleak'] }),
+        ]);
+        mockedAiSearch.mockResolvedValue({ books: [], query: 'sagan' });
+
+        renderSearchPage('/search?q=sagan&mood=Awe-inspiring');
+
+        expect(await screen.findByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Dune/ })).not.toBeInTheDocument();
+      });
+
+      // Otherwise a category that empties the library section resurrects the
+      // owned suggestions it was meant to have replaced.
+      it('keeps owned suggestions deduped even when the filter empties the section', async () => {
+        resolveLibrary([makeEntry({ title: 'Cosmos', subjects: ['Astronomy'] })]);
+        mockedAiSearch.mockResolvedValue({
+          books: [makeBook({ title: 'Cosmos', inLibrary: true, libraryStatus: 'queued' })],
+          query: 'sagan',
+        });
+
+        renderSearchPage('/search?q=sagan&subject=Nothing+Matches+This');
+
+        await waitFor(() => expect(mockedAiSearch).toHaveBeenCalled());
+        expect(screen.queryByRole('button', { name: /Cosmos/ })).not.toBeInTheDocument();
+      });
+    });
+
     it('does not ask about a library when signed out', async () => {
       localStorage.clear();
       mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'sagan' });
