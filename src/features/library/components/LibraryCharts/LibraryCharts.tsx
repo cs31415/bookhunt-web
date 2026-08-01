@@ -9,6 +9,7 @@ import type { LibraryEntry } from '../../../../normalize/library';
 import {
   OTHER_SLICE_LABEL,
   authorSlices,
+  moodSlices,
   statusSlices,
   subjectSlices,
 } from '../../lib/breakdowns';
@@ -25,6 +26,7 @@ export interface LibraryChartsProps {
   onSelectStatus: (status: LibraryStatus) => void;
   onSelectSubject: (subject: string) => void;
   onSelectAuthor: (author: string) => void;
+  onSelectMood: (mood: string) => void;
 }
 
 function Chart({
@@ -49,7 +51,11 @@ export function LibraryCharts({
   onSelectStatus,
   onSelectSubject,
   onSelectAuthor,
+  onSelectMood,
 }: LibraryChartsProps) {
+  // Moods are AI-generated and filled in lazily, so a library where nothing has
+  // been tagged yet gets no chart rather than an empty circle.
+  const moods = moodSlices(entries);
   return (
     <section className={styles.charts} aria-label="Library breakdown">
       <Chart
@@ -75,6 +81,15 @@ export function LibraryCharts({
           if (slice.label !== OTHER_SLICE_LABEL) onSelectAuthor(slice.label);
         }}
       />
+      {moods.length > 0 && (
+        <Chart
+          title="By Mood"
+          slices={moods}
+          onPick={(slice) => {
+            if (slice.label !== OTHER_SLICE_LABEL) onSelectMood(slice.label);
+          }}
+        />
+      )}
     </section>
   );
 }

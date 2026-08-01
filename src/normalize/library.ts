@@ -19,8 +19,10 @@ export interface RawLibraryEntry {
   subjects?: string[] | null;
   date_added?: string | null;
   // Returned by /library and /library/search; used when a library row is shown
-  // alongside AI suggestions, which carry the same two tag lists.
+  // alongside AI suggestions, which carry the same two tag lists, and by the
+  // library's own mood/theme filters.
   moods?: string[] | null;
+  themes?: string[] | null;
 }
 
 export interface RawLibraryStats {
@@ -33,6 +35,8 @@ export interface LibraryEntry {
   status: LibraryStatus;
   notes: string | null;
   subjects: string[];
+  moods: string[];
+  themes: string[];
   addedAt: string | null;
 }
 
@@ -41,6 +45,10 @@ export function normalizeLibraryEntry(raw: RawLibraryEntry): LibraryEntry {
     status: raw.status,
     notes: raw.notes ?? raw.review ?? null,
     subjects: raw.subjects ?? [],
+    // Both are AI-generated per book and populated lazily, so plenty of rows
+    // carry empty arrays — the filters that read them narrow to what is tagged.
+    moods: raw.moods ?? [],
+    themes: raw.themes ?? [],
     addedAt: raw.date_added ?? null,
     book: {
       id: raw.book_id,

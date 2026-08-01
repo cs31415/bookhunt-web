@@ -1,6 +1,8 @@
+/* auto-fit rather than a fixed 3, so the mood chart (LOS-186) wraps onto a
+   second row instead of squeezing the others. */
 .charts {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
   margin-bottom: 32px;
 }

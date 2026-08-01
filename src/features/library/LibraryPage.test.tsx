@@ -229,6 +229,91 @@ describe('LibraryPage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/books/dune');
   });
 
+  // Moods and themes are AI-generated and filled in lazily, so most rows carry
+  // neither and both filters have to cope with that (LOS-186).
+  describe('mood and theme filters', () => {
+    const reflective = makeRaw({
+      title: 'Cosmos',
+      book_slug: 'cosmos',
+      moods: ['Reflective', 'Analytical'],
+      themes: ['Scientific discovery'],
+    });
+    const intense = makeRaw({
+      title: 'We the Living',
+      moods: ['Intense'],
+      themes: ['Totalitarianism'],
+    });
+    const untagged = makeRaw({ title: 'Untagged Book' });
+
+    it('filters the grid when a mood slice is picked, and shows a dismissible pill', async () => {
+      mockLibrary([reflective, intense, untagged], { queued: 3 });
+      renderLibrary();
+
+      const charts = await screen.findByLabelText('Library breakdown');
+      fireEvent.click(within(charts).getByText('Reflective'));
+
+      expect(screen.getByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /We the Living/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Untagged Book/ })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /Clear mood filter/ }));
+      expect(screen.getByRole('button', { name: /Untagged Book/ })).toBeInTheDocument();
+    });
+
+    it('filters the grid when a theme chip is picked', async () => {
+      mockLibrary([reflective, intense, untagged], { queued: 3 });
+      renderLibrary();
+
+      const themes = await screen.findByLabelText('Filter by theme');
+      fireEvent.click(within(themes).getByText('Totalitarianism'));
+
+      expect(screen.getByRole('button', { name: /We the Living/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Cosmos/ })).not.toBeInTheDocument();
+    });
+
+    // The chip stays visibly selected, so it has to be the way back out.
+    it('clears the theme when the active chip is clicked again', async () => {
+      mockLibrary([reflective, intense], { queued: 2 });
+      renderLibrary();
+
+      const themes = await screen.findByLabelText('Filter by theme');
+      const chip = within(themes).getByText('Totalitarianism');
+      fireEvent.click(chip);
+      expect(chip).toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.click(chip);
+      expect(chip).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+    });
+
+    // One attribute at a time: subject, author, mood and theme share a pill.
+    it('replaces a mood filter when a theme is picked', async () => {
+      mockLibrary([reflective, intense], { queued: 2 });
+      renderLibrary();
+
+      const charts = await screen.findByLabelText('Library breakdown');
+      fireEvent.click(within(charts).getByText('Intense'));
+      expect(screen.getByText('mood:')).toBeInTheDocument();
+
+      const themes = await screen.findByLabelText('Filter by theme');
+      fireEvent.click(within(themes).getByText('Scientific discovery'));
+
+      expect(screen.queryByText('mood:')).not.toBeInTheDocument();
+      expect(screen.getByText('theme:')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+    });
+
+    it('shows neither control when nothing has been tagged yet', async () => {
+      mockLibrary([untagged], { queued: 1 });
+      renderLibrary();
+
+      await screen.findByRole('button', { name: /Untagged Book/ });
+      expect(screen.queryByLabelText('Filter by theme')).not.toBeInTheDocument();
+      const charts = screen.getByLabelText('Library breakdown');
+      expect(within(charts).queryByText('By Mood')).not.toBeInTheDocument();
+    });
+  });
+
   // Filtering happens over the entries already in memory, so the box narrows the
   // grid without a request (LOS-183).
   describe('search box', () => {
