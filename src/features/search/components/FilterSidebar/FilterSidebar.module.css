@@ -57,49 +57,11 @@
   left: 18px;
 }
 
-.group {
-  margin-bottom: 22px;
-}
 
-.groupTitle {
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 10px;
-}
 
-.pillRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 11px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--paper-2);
-  color: var(--ink-2);
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.14s ease;
-}
 
-.pill:hover {
-  border-color: var(--rust);
-  color: var(--rust);
-}
 
-.pill.active {
-  background: var(--rust);
-  border-color: var(--rust);
-  color: #fff;
-}
 
 .clearButton {
   padding: 6px 12px;

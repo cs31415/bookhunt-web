@@ -1,24 +1,20 @@
-import type { PieSlice } from '../../../shared/components/PieChart/PieChart';
 import type { LibraryEntry } from '../../../normalize/library';
-import {
-  ALL_LIBRARY_STATUSES,
-  LIBRARY_STATUS_COLORS,
-  LIBRARY_STATUS_LABELS,
-} from '../../../shared/types/library-status';
+import { topValues } from '../../../shared/lib/top-values';
 import type { LibraryStatus } from '../../../shared/types/library-status';
 
-// How many subject/author slices to show before collapsing the tail into "Other".
-export const TOP_SLICE_COUNT = 7;
-// Sentinel label for the collapsed tail; this slice is not a filterable value.
-export const OTHER_SLICE_LABEL = 'Other';
+/**
+ * How many pills a facet offers before it stops. Enough to describe a shelf
+ * without becoming a wall of them — the top 12 categories already cover 282 of
+ * a 331-book library.
+ */
+const MAX_PILLS = 12;
 
 export interface LibraryFilter {
   status: LibraryStatus | null;
-  subject: string | null;
-  author: string | null;
+  category: string | null;
   mood?: string | null;
   theme?: string | null;
-  /** Free text over title, author, subjects, moods and themes. Filtered
+  /** Free text over title, author, categories, moods and themes. Filtered
    *  client-side — the whole library is already in memory, so a round trip
    *  would only be slower. */
   q?: string | null;
@@ -35,70 +31,23 @@ export function statusCounts(entries: LibraryEntry[]): Record<LibraryStatus, num
   return counts;
 }
 
-// Only statuses with at least one book become slices (AC8: a single populated
-// status renders one full-circle slice).
-export function statusSlices(entries: LibraryEntry[]): PieSlice[] {
-  const counts = statusCounts(entries);
-  return ALL_LIBRARY_STATUSES.filter((status) => counts[status] > 0).map((status) => ({
-    label: LIBRARY_STATUS_LABELS[status],
-    value: counts[status],
-    color: LIBRARY_STATUS_COLORS[status],
-  }));
-}
-
-function tally(values: string[]): Map<string, number> {
-  const counts = new Map<string, number>();
-  for (const value of values) {
-    counts.set(value, (counts.get(value) ?? 0) + 1);
-  }
-  return counts;
-}
-
-// Sort a tally descending and collapse everything past TOP_SLICE_COUNT into a
-// single "Other" slice so the chart stays readable with a long tail.
-function toSlices(counts: Map<string, number>): PieSlice[] {
-  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  const top = sorted.slice(0, TOP_SLICE_COUNT);
-  const rest = sorted.slice(TOP_SLICE_COUNT);
-  const slices: PieSlice[] = top.map(([label, value]) => ({ label, value }));
-  if (rest.length > 0) {
-    slices.push({
-      label: OTHER_SLICE_LABEL,
-      value: rest.reduce((sum, [, value]) => sum + value, 0),
-    });
-  }
-  return slices;
-}
-
-export function subjectSlices(entries: LibraryEntry[]): PieSlice[] {
-  return toSlices(tally(entries.flatMap((entry) => entry.subjects)));
-}
-
-export function authorSlices(entries: LibraryEntry[]): PieSlice[] {
-  return toSlices(tally(entries.map((entry) => entry.book.authorName)));
-}
-
-export function moodSlices(entries: LibraryEntry[]): PieSlice[] {
-  return toSlices(tally(entries.flatMap((entry) => entry.moods)));
-}
-
 /**
- * Themes get a chip list rather than a pie: they are long free-text phrases
- * ("Humanity's place in the universe"), so a chart of them would be slivers
- * with no room for a label.
- *
- * `minBooks` is what makes the list worth reading. A chip matching one book is
- * a link to that book, not a filter, and before LOS-191 gave theme generation a
- * shared vocabulary almost every theme was such a chip — one library had 168
- * themes and not one appeared twice. Ordered by count, then alphabetically, so
- * the list is stable between renders.
+ * Categories come from `subjects`, which holds the provider's tags and the
+ * generated ones together. No flag distinguishes them and none is needed: the
+ * count threshold in topValues does it, since a granular provider heading
+ * ("Mississippi River -- Fiction") lands on one book while a generated category
+ * is chosen to be broad and lands on many.
  */
-export function topThemes(entries: LibraryEntry[], limit: number, minBooks = 2): string[] {
-  return [...tally(entries.flatMap((entry) => entry.themes)).entries()]
-    .filter(([, count]) => count >= minBooks)
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, limit)
-    .map(([theme]) => theme);
+export function topCategories(entries: LibraryEntry[], limit = MAX_PILLS): string[] {
+  return topValues(entries.flatMap((entry) => entry.subjects), { limit });
+}
+
+export function topMoods(entries: LibraryEntry[], limit = MAX_PILLS): string[] {
+  return topValues(entries.flatMap((entry) => entry.moods), { limit });
+}
+
+export function topThemes(entries: LibraryEntry[], limit = MAX_PILLS): string[] {
+  return topValues(entries.flatMap((entry) => entry.themes), { limit });
 }
 
 // Every term has to appear somewhere, so each word typed narrows the list --
@@ -124,8 +73,7 @@ export function filterEntries(entries: LibraryEntry[], filter: LibraryFilter): L
   const terms = queryTerms(filter.q);
   return entries.filter((entry) => {
     if (filter.status && entry.status !== filter.status) return false;
-    if (filter.subject && !entry.subjects.includes(filter.subject)) return false;
-    if (filter.author && entry.book.authorName !== filter.author) return false;
+    if (filter.category && !entry.subjects.includes(filter.category)) return false;
     if (filter.mood && !entry.moods.includes(filter.mood)) return false;
     if (filter.theme && !entry.themes.includes(filter.theme)) return false;
     if (terms.length > 0 && !matchesQuery(entry, terms)) return false;

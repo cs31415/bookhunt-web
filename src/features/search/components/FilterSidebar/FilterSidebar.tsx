@@ -1,5 +1,6 @@
 import { ALL_LIBRARY_STATUSES, LIBRARY_STATUS_LABELS } from '../../../../shared/types/library-status';
 import type { LibraryStatus } from '../../../../shared/types/library-status';
+import { FilterGroup } from '../../../../shared/components/FilterGroup/FilterGroup';
 import type { ParsedSearchParams } from '../../search-params';
 import styles from './FilterSidebar.module.css';
 
@@ -14,37 +15,6 @@ export interface FilterSidebarProps {
   onSelectMood: (mood: string) => void;
   onSelectStatus: (status: LibraryStatus) => void;
   onClearFilters: () => void;
-}
-
-function FilterGroup({
-  title,
-  items,
-  activeValue,
-  onSelect,
-}: {
-  title: string;
-  items: { value: string; label: string }[];
-  activeValue: string | null;
-  onSelect: (value: string) => void;
-}) {
-  if (items.length === 0) return null;
-  return (
-    <div className={styles.group}>
-      <div className={styles.groupTitle}>{title}</div>
-      <div className={styles.pillRow}>
-        {items.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            className={item.value === activeValue ? `${styles.pill} ${styles.active}` : styles.pill}
-            onClick={() => onSelect(item.value)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 export function FilterSidebar({

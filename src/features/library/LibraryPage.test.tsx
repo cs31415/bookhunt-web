@@ -100,7 +100,7 @@ describe('LibraryPage', () => {
     vi.unstubAllEnvs();
   });
 
-  it('renders header, charts, status tabs, and the book grid', async () => {
+  it('renders the header, the filter rail, and the book grid', async () => {
     mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
     renderLibrary();
 
@@ -108,11 +108,13 @@ describe('LibraryPage', () => {
     expect(screen.getByRole('heading', { name: '3 books' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add from a photo' })).toBeInTheDocument();
 
-    expect(screen.getByText('By Status')).toBeInTheDocument();
-    expect(screen.getByText('By Subject')).toBeInTheDocument();
-    expect(screen.getByText('By Author')).toBeInTheDocument();
+    const rail = screen.getByLabelText('Library filters');
+    expect(within(rail).getByText('Category')).toBeInTheDocument();
+    expect(within(rail).getByText('Status')).toBeInTheDocument();
+    // No Author group: 242 of 273 authors in a real library have one book, so
+    // every pill would be a dead end.
+    expect(within(rail).queryByText('Author')).not.toBeInTheDocument();
 
-    expect(screen.getByRole('tab', { name: /All/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Dune/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sapiens/ })).toBeInTheDocument();
   });
@@ -140,51 +142,47 @@ describe('LibraryPage', () => {
     renderLibrary();
 
     expect(await screen.findByRole('heading', { name: '64 books' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'All 64' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'New 64' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New 64' })).toBeInTheDocument();
     expect(mockedGetLibrary).toHaveBeenCalledWith({ page: 1, limit: 60 });
     expect(mockedGetLibrary).toHaveBeenCalledWith({ page: 2, limit: 60 });
   });
 
-  it('filters the grid to finished books when the Finished tab is clicked', async () => {
+  it('filters the grid to finished books when the Finished pill is picked', async () => {
     mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
     renderLibrary();
 
-    fireEvent.click(await screen.findByRole('tab', { name: /Finished/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Finished/ }));
 
     expect(screen.getByRole('button', { name: /Sapiens/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Dune/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Finished/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: /^Finished/ })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('filters by subject and shows a dismissible pill when a subject slice is picked', async () => {
+  it('filters by category when a category pill is picked, and clears on a second click', async () => {
     mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
     renderLibrary();
 
-    const charts = await screen.findByLabelText('Library breakdown');
-    fireEvent.click(within(charts).getByText('History'));
+    const rail = await screen.findByLabelText('Library filters');
+    fireEvent.click(within(rail).getByText('History'));
 
     // History books: Sapiens + Clockwork; Dune (Evolution only) is filtered out.
     expect(screen.getByRole('button', { name: /Sapiens/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Clockwork/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Dune/ })).not.toBeInTheDocument();
 
-    const pill = screen.getByText('subject:').closest('div')!;
-    expect(within(pill).getByText('History')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /Clear subject filter/ }));
+    // The pill stays lit, so it is also the way back out.
+    fireEvent.click(within(rail).getByText('History'));
     expect(screen.getByRole('button', { name: /Dune/ })).toBeInTheDocument();
-    expect(screen.queryByText('subject:')).not.toBeInTheDocument();
   });
 
-  it('activates the Reading tab when the By Status Reading slice is picked', async () => {
+  it('selects the Reading pill and narrows the grid to it', async () => {
     mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
     renderLibrary();
 
-    const charts = await screen.findByLabelText('Library breakdown');
-    fireEvent.click(within(charts).getByText('Reading'));
+    const rail = await screen.findByLabelText('Library filters');
+    fireEvent.click(within(rail).getByText(/^Reading/));
 
-    expect(screen.getByRole('tab', { name: /Reading/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: /^Reading/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /Dune/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Sapiens/ })).not.toBeInTheDocument();
   });
@@ -206,19 +204,19 @@ describe('LibraryPage', () => {
     expect(await screen.findByText('Your shelves are empty')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Discover books' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add from a photo' })).toBeInTheDocument();
-    expect(screen.queryByText('By Status')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Library filters')).not.toBeInTheDocument();
   });
 
-  it('hides status tabs that have no books', async () => {
+  it('hides status pills that have no books', async () => {
     const allQueued = Array.from({ length: 3 }, () => makeRaw({ status: 'queued' }));
     mockLibrary(allQueued, { queued: 3 });
     renderLibrary();
 
     await screen.findByText('Your library');
-    expect(screen.getByRole('tab', { name: /New/ })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /Finished/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /Reading/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /Abandoned/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^New/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Finished/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Reading/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Abandoned/ })).not.toBeInTheDocument();
   });
 
   it('navigates to the book detail page when a card is clicked', async () => {
@@ -243,34 +241,37 @@ describe('LibraryPage', () => {
       moods: ['Intense'],
       themes: ['Totalitarianism'],
     });
-    // Each theme needs a second book to reach the chip list at all (LOS-192):
-    // a theme held by one book is a link to it, not a filter.
+    // Each tag needs a second book to reach the rail at all (LOS-192): a tag
+    // held by one book is a link to it, not a filter.
     const alsoScientific = makeRaw({ title: 'Pale Blue Dot', themes: ['Scientific discovery'] });
     const alsoTotalitarian = makeRaw({ title: 'Anthem', themes: ['Totalitarianism'] });
     const tagged = [reflective, intense, alsoScientific, alsoTotalitarian];
     const untagged = makeRaw({ title: 'Untagged Book' });
 
-    it('filters the grid when a mood slice is picked, and shows a dismissible pill', async () => {
-      mockLibrary([reflective, intense, untagged], { queued: 3 });
+    // Moods need a second book too, for the same reason.
+    const alsoReflective = makeRaw({ title: 'Pale Blue Dot II', moods: ['Reflective'] });
+
+    it('filters the grid when a mood pill is picked', async () => {
+      mockLibrary([reflective, alsoReflective, intense, untagged], { queued: 4 });
       renderLibrary();
 
-      const charts = await screen.findByLabelText('Library breakdown');
-      fireEvent.click(within(charts).getByText('Reflective'));
+      const rail = await screen.findByLabelText('Library filters');
+      fireEvent.click(within(rail).getByText('Reflective'));
 
       expect(screen.getByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /We the Living/ })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Untagged Book/ })).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: /Clear mood filter/ }));
+      fireEvent.click(within(rail).getByText('Reflective'));
       expect(screen.getByRole('button', { name: /Untagged Book/ })).toBeInTheDocument();
     });
 
-    it('filters the grid when a theme chip is picked', async () => {
+    it('filters the grid when a theme pill is picked', async () => {
       mockLibrary([...tagged, untagged], { queued: 5 });
       renderLibrary();
 
-      const themes = await screen.findByLabelText('Filter by theme');
-      fireEvent.click(within(themes).getByText('Totalitarianism'));
+      const rail = await screen.findByLabelText('Library filters');
+      fireEvent.click(within(rail).getByText('Totalitarianism'));
 
       expect(screen.getByRole('button', { name: /We the Living/ })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Anthem/ })).toBeInTheDocument();
@@ -282,51 +283,53 @@ describe('LibraryPage', () => {
       mockLibrary([...tagged, loner], { queued: 5 });
       renderLibrary();
 
-      const themes = await screen.findByLabelText('Filter by theme');
-      expect(within(themes).getByText('Totalitarianism')).toBeInTheDocument();
-      expect(within(themes).queryByText('Contact with the alien')).not.toBeInTheDocument();
+      const rail = await screen.findByLabelText('Library filters');
+      expect(within(rail).getByText('Totalitarianism')).toBeInTheDocument();
+      expect(within(rail).queryByText('Contact with the alien')).not.toBeInTheDocument();
     });
 
-    // The chip stays visibly selected, so it has to be the way back out.
-    it('clears the theme when the active chip is clicked again', async () => {
+    // The pill stays visibly selected, so it has to be the way back out.
+    it('clears the theme when the active pill is clicked again', async () => {
       mockLibrary(tagged, { queued: 4 });
       renderLibrary();
 
-      const themes = await screen.findByLabelText('Filter by theme');
-      const chip = within(themes).getByText('Totalitarianism');
-      fireEvent.click(chip);
-      expect(chip).toHaveAttribute('aria-pressed', 'true');
+      const rail = await screen.findByLabelText('Library filters');
+      const pill = within(rail).getByText('Totalitarianism');
+      fireEvent.click(pill);
+      expect(pill).toHaveAttribute('aria-pressed', 'true');
 
-      fireEvent.click(chip);
-      expect(chip).toHaveAttribute('aria-pressed', 'false');
+      fireEvent.click(pill);
+      expect(pill).toHaveAttribute('aria-pressed', 'false');
       expect(screen.getByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
     });
 
-    // One attribute at a time: subject, author, mood and theme share a pill.
+    // One attribute at a time: category, mood and theme are one axis, so
+    // picking any of them releases the last.
     it('replaces a mood filter when a theme is picked', async () => {
-      mockLibrary(tagged, { queued: 4 });
+      mockLibrary([...tagged, alsoReflective], { queued: 5 });
       renderLibrary();
 
-      const charts = await screen.findByLabelText('Library breakdown');
-      fireEvent.click(within(charts).getByText('Intense'));
-      expect(screen.getByText('mood:')).toBeInTheDocument();
+      const rail = await screen.findByLabelText('Library filters');
+      fireEvent.click(within(rail).getByText('Reflective'));
+      expect(within(rail).getByText('Reflective')).toHaveAttribute('aria-pressed', 'true');
 
-      const themes = await screen.findByLabelText('Filter by theme');
-      fireEvent.click(within(themes).getByText('Scientific discovery'));
+      fireEvent.click(within(rail).getByText('Scientific discovery'));
 
-      expect(screen.queryByText('mood:')).not.toBeInTheDocument();
-      expect(screen.getByText('theme:')).toBeInTheDocument();
+      expect(within(rail).getByText('Reflective')).toHaveAttribute('aria-pressed', 'false');
+      expect(within(rail).getByText('Scientific discovery')).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
     });
 
-    it('shows neither control when nothing has been tagged yet', async () => {
+    it('offers no mood or theme group when nothing has been tagged yet', async () => {
       mockLibrary([untagged], { queued: 1 });
       renderLibrary();
 
       await screen.findByRole('button', { name: /Untagged Book/ });
-      expect(screen.queryByLabelText('Filter by theme')).not.toBeInTheDocument();
-      const charts = screen.getByLabelText('Library breakdown');
-      expect(within(charts).queryByText('By Mood')).not.toBeInTheDocument();
+      const rail = screen.getByLabelText('Library filters');
+      expect(within(rail).queryByText('Mood')).not.toBeInTheDocument();
+      expect(within(rail).queryByText('Theme')).not.toBeInTheDocument();
+      // Status is always there — every book has one.
+      expect(within(rail).getByText('Status')).toBeInTheDocument();
     });
   });
 
@@ -385,16 +388,16 @@ describe('LibraryPage', () => {
       expect(screen.queryByRole('button', { name: /Dune/ })).not.toBeInTheDocument();
     });
 
-    it('narrows alongside a status tab rather than replacing it', async () => {
+    it('narrows alongside a status pill rather than replacing it', async () => {
       mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
       renderLibrary();
-      fireEvent.click(await screen.findByRole('tab', { name: /Finished/ }));
+      fireEvent.click(await screen.findByRole('button', { name: /^Finished/ }));
 
       await search('sapiens');
       expect(screen.getByRole('button', { name: /Sapiens/ })).toBeInTheDocument();
 
       await search('dune');
-      // Dune is 'reading', so the Finished tab still excludes it.
+      // Dune is 'reading', so the Finished pill still excludes it.
       expect(screen.queryByRole('button', { name: /Dune/ })).not.toBeInTheDocument();
     });
 
@@ -408,17 +411,18 @@ describe('LibraryPage', () => {
       expect(screen.getByText(/No books in your library match/)).toBeInTheDocument();
     });
 
-    // Charts and tabs describe the whole library, not the current filter.
-    it('leaves the charts and tab counts reporting the whole library', async () => {
+    // The rail describes the whole library, not the current filter -- narrowing
+    // to one book must not leave you with one pill and no way back.
+    it('leaves the rail reporting the whole library', async () => {
       mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
       renderLibrary();
       await screen.findByRole('button', { name: /Dune/ });
 
       await search('dune');
 
-      expect(screen.getByRole('tab', { name: /Finished/ })).toBeInTheDocument();
-      const charts = await screen.findByLabelText('Library breakdown');
-      expect(within(charts).getByText('History')).toBeInTheDocument();
+      const rail = screen.getByLabelText('Library filters');
+      expect(within(rail).getByText('Finished 1')).toBeInTheDocument();
+      expect(within(rail).getByText('History')).toBeInTheDocument();
     });
   });
 });
