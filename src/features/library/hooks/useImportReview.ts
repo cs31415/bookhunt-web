@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { addToLibrary } from '../../../api/library/add-to-library';
 import type { AddToLibraryRawFields } from '../../../api/library/add-to-library';
+import { categorizeBooks } from '../../../api/ai/categorize';
 import { mapWithConcurrency } from '../../../shared/lib/map-with-concurrency';
 import { toast } from '../../../shared/toast/toast-store';
 import type { LibraryStatus } from '../../../shared/types/library-status';
@@ -127,18 +128,35 @@ export function useImportReview<TRow>(
       // the rest of a 200-row import.
       const outcomes = await mapWithConcurrency(selected, ADD_CONCURRENCY, async (row) => {
         const args = toAddArgs(row);
-        if (!args) return false;
+        if (!args) return null;
         try {
-          await addToLibrary(args.slug, statusFor(keyOf(row)), args.rawFields);
-          return true;
+          const { book } = await addToLibrary(args.slug, statusFor(keyOf(row)), args.rawFields);
+          return book.id;
         } catch {
-          return false;
+          return null;
         }
       });
 
-      const added = outcomes.filter(Boolean).length;
+      const addedIds = outcomes.filter((id): id is number => id !== null);
+      const added = addedIds.length;
+
+      // One call for everything that landed, rather than one per book as the
+      // add path used to do: the model can only group books it sees together
+      // (LOS-197). Fire and forget — tagging must not delay or fail an import,
+      // and the backfill picks up anything missed.
+      if (added > 0) void categorizeBooks(addedIds).catch(() => {});
+
       if (added > 0) onAdded?.(added);
       if (added < selected.length) {
+        // Rows that landed stop being selected, so the count and any retry
+        // cover only the failures. Without this the button still offered to add
+        // all five after three of them were already in (LOS-198).
+        const addedKeys = selected.filter((_, i) => outcomes[i] !== null).map(keyOf);
+        setTickOverrides((current) => ({
+          ...current,
+          ...Object.fromEntries(addedKeys.map((key) => [key, false])),
+        }));
+
         setAddError(
           added === 0
             ? "Couldn't add those books — please try again."
