@@ -8,6 +8,7 @@ import { getLibrary } from '../../../../api/library/get-library';
 import { addToLibrary } from '../../../../api/library/add-to-library';
 import { getBooksByIds } from '../../../../api/books/get-books-by-ids';
 import { resolveImportRows } from '../../../../api/import/resolve';
+import { categorizeBooks } from '../../../../api/ai/categorize';
 import { ApiError } from '../../../../api/client';
 import type { RawResolvedRow } from '../../../../api/import/resolve';
 import type { RawAiSearchBook } from '../../../../normalize/search';
@@ -16,6 +17,7 @@ import type { RawLibraryEntry } from '../../../../normalize/library';
 vi.mock('../../../../api/library/get-library');
 vi.mock('../../../../api/library/add-to-library');
 vi.mock('../../../../api/books/get-books-by-ids');
+vi.mock('../../../../api/ai/categorize');
 vi.mock('../../../../api/import/resolve', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../api/import/resolve')>()),
   resolveImportRows: vi.fn(),
@@ -23,6 +25,7 @@ vi.mock('../../../../api/import/resolve', async (importOriginal) => ({
 
 const mockedGetLibrary = vi.mocked(getLibrary);
 const mockedAddToLibrary = vi.mocked(addToLibrary);
+const mockedCategorizeBooks = vi.mocked(categorizeBooks);
 const mockedGetBooksByIds = vi.mocked(getBooksByIds);
 const mockedResolve = vi.mocked(resolveImportRows);
 
@@ -150,6 +153,7 @@ describe('CsvImportModal', () => {
     mockedGetBooksByIds.mockResolvedValue({ books: [] });
     mockedResolve.mockResolvedValue({ rows: [resolved()] });
     mockedAddToLibrary.mockResolvedValue({ entry: {}, book: { id: 9, slug: 'dune' } });
+    mockedCategorizeBooks.mockResolvedValue({ categorized: 1 });
   });
 
   afterEach(() => {
@@ -308,6 +312,45 @@ describe('CsvImportModal', () => {
 
     expect(await screen.findByText('Imported 1 of 2 books. 1 books had errors.')).toBeInTheDocument();
     expect(await within(dialog).findByText(/Added 1 of 2/)).toBeInTheDocument();
+
+    // The row that landed stops being selected, so the retry covers only what
+    // failed. It used to still offer "Add 2 to library" and re-send the one
+    // already in (LOS-198).
+    expect(await within(dialog).findByRole('button', { name: 'Add 1 to library' })).toBeInTheDocument();
+  });
+
+  // One call for the whole import, not one per book: the model can only group
+  // books it sees together (LOS-197).
+  it('categorizes everything it added in a single call', async () => {
+    mockedResolve.mockResolvedValue({ rows: [resolved(), resolved({ title: 'Ubik' })] });
+    mockedAddToLibrary
+      .mockResolvedValueOnce({ entry: {}, book: { id: 9, slug: 'dune' } })
+      .mockResolvedValueOnce({ entry: {}, book: { id: 10, slug: 'ubik' } });
+
+    renderLibrary();
+    const dialog = await openModal();
+    dropFile(dialog, csvFile('title\nDune\nUbik'));
+
+    await screen.findByRole('button', { name: 'Add 2 to library' });
+    fireEvent.click(screen.getByRole('button', { name: 'Add 2 to library' }));
+
+    await screen.findByText('Successfully imported 2 books.');
+    expect(mockedCategorizeBooks).toHaveBeenCalledTimes(1);
+    expect(mockedCategorizeBooks).toHaveBeenCalledWith([9, 10]);
+  });
+
+  // Tagging is a nicety; the books are already on the shelf.
+  it('still reports success when categorizing fails', async () => {
+    mockedCategorizeBooks.mockRejectedValue(new ApiError(500, 'llm down'));
+
+    renderLibrary();
+    const dialog = await openModal();
+    dropFile(dialog, csvFile(SIMPLE_CSV));
+
+    await screen.findByText(/Found matches for/);
+    fireEvent.click(screen.getByRole('button', { name: 'Add 1 to library' }));
+
+    expect(await screen.findByText('Successfully imported 1 book.')).toBeInTheDocument();
   });
 
   // Two identical lines must stay two rows: keying by content would collapse
