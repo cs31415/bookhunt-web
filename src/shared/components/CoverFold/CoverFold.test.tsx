@@ -11,9 +11,9 @@ describe('CoverFold', () => {
     expect(screen.getByText(LIBRARY_STATUS_LABELS[status])).toBeInTheDocument();
   });
 
-  it('marks New with an asterisk', () => {
+  it('marks New with a star', () => {
     const { container } = render(<CoverFold status="queued" />);
-    expect(container.textContent).toContain('✱');
+    expect(container.textContent).toContain('★');
   });
 
   // Otherwise a reader hears the glyph read out as punctuation alongside the label.

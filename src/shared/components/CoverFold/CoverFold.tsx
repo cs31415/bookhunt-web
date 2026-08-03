@@ -7,7 +7,7 @@ import styles from './CoverFold.module.css';
  * these render in the reader's text colour, and emoji would bring their own.
  */
 const GLYPHS: Record<LibraryStatus, string> = {
-  queued: '✱',
+  queued: '★',
   reading: '◐',
   finished: '✓',
   abandoned: '–',
