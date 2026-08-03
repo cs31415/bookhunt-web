@@ -1,3 +1,24 @@
+/*
+ * Exists so `action` has something to position against. Without an action this
+ * is an inert block and the card below is unchanged.
+ */
+.wrap {
+  position: relative;
+}
+
+/*
+ * Anchored to the bottom of the card, level with the rating row, rather than to
+ * the title line as first drawn. The title is the one element here whose height
+ * is not fixed -- it wraps to two lines often enough -- so anchoring to it puts
+ * the control in a different place from card to card. The rating row is always
+ * last and always one line, and its right side is always empty.
+ */
+.action {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
 .card {
   display: flex;
   flex-direction: column;

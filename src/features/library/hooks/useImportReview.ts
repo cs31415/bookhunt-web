@@ -39,6 +39,17 @@ export interface UseImportReviewResult<TRow> {
   cycleStatus: (key: string) => void;
   toggle: (key: string) => void;
   adding: boolean;
+  /**
+   * Rows written so far and the total being written, so a long add can say more
+   * than "Adding…". Both zero when nothing is in flight.
+   */
+  addProgress: { done: number; total: number };
+  /**
+   * Keys that made it into the library, across every attempt. The caller drops
+   * these from its list: a row already added is not something the reader can
+   * act on, and leaving it listed buries the handful that still need attention.
+   */
+  addedKeys: Set<string>;
   /** Set when some rows failed; the caller should keep the modal open to show it. */
   addError: string | null;
   /** Resolves true when everything selected was added. */
@@ -66,6 +77,8 @@ export function useImportReview<TRow>(
   const [defaultUnticked, setDefaultUnticked] = useState<Set<string>>(new Set());
   const [tickOverrides, setTickOverrides] = useState<Record<string, boolean>>({});
   const [adding, setAdding] = useState(false);
+  const [addProgress, setAddProgress] = useState({ done: 0, total: 0 });
+  const [addedKeys, setAddedKeys] = useState<Set<string>>(new Set());
   const [addError, setAddError] = useState<string | null>(null);
 
   function statusFor(key: string): LibraryStatus {
@@ -113,6 +126,7 @@ export function useImportReview<TRow>(
     setStatusByKey({});
     setDefaultUnticked(new Set());
     setTickOverrides({});
+    setAddedKeys(new Set());
     setAddError(null);
   }
 
@@ -121,6 +135,7 @@ export function useImportReview<TRow>(
   async function confirm(): Promise<boolean> {
     if (selected.length === 0) return true;
     setAdding(true);
+    setAddProgress({ done: 0, total: selected.length });
     setAddError(null);
     try {
       // mapWithConcurrency rejects on first failure, so each add is wrapped to
@@ -130,15 +145,32 @@ export function useImportReview<TRow>(
         const args = toAddArgs(row);
         if (!args) return null;
         try {
-          const { book } = await addToLibrary(args.slug, statusFor(keyOf(row)), args.rawFields);
+          // enrich: false -- the rows carry everything the resolve step found,
+          // and letting the server chase the rest cost a provider round trip
+          // per book, which is what made a 300-book add take minutes (LOS-202).
+          const { book } = await addToLibrary(args.slug, statusFor(keyOf(row)), args.rawFields, {
+            enrich: false,
+          });
           return book.id;
         } catch {
           return null;
+        } finally {
+          // Counted as each row settles, failures included: this reports work
+          // done, not work succeeded, so the bar cannot stall on a bad row.
+          setAddProgress((current) => ({ ...current, done: current.done + 1 }));
         }
       });
 
       const addedIds = outcomes.filter((id): id is number => id !== null);
       const added = addedIds.length;
+
+      // Recorded whatever the outcome, so the caller can drop these rows from
+      // its list. Accumulated rather than replaced: a retry of the failures
+      // must not forget what the first attempt already got in.
+      const landedKeys = selected.filter((_, i) => outcomes[i] !== null).map(keyOf);
+      if (landedKeys.length > 0) {
+        setAddedKeys((current) => new Set([...current, ...landedKeys]));
+      }
 
       // One call for everything that landed, rather than one per book as the
       // add path used to do: the model can only group books it sees together
@@ -151,16 +183,17 @@ export function useImportReview<TRow>(
         // Rows that landed stop being selected, so the count and any retry
         // cover only the failures. Without this the button still offered to add
         // all five after three of them were already in (LOS-198).
-        const addedKeys = selected.filter((_, i) => outcomes[i] !== null).map(keyOf);
         setTickOverrides((current) => ({
           ...current,
-          ...Object.fromEntries(addedKeys.map((key) => [key, false])),
+          ...Object.fromEntries(landedKeys.map((key) => [key, false])),
         }));
 
+        // Only the failure. What landed is the caller's to report — CsvImportModal
+        // states it in the summary, and saying it twice read as two outcomes.
         setAddError(
           added === 0
             ? "Couldn't add those books — please try again."
-            : `Added ${added} of ${selected.length}. The rest couldn't be added — you can retry them.`,
+            : `${selected.length - added} of ${selected.length} couldn't be added — you can retry them.`,
         );
         toast({
           text: `Imported ${added} of ${selected.length} books. ${selected.length - added} books had errors.`,
@@ -171,6 +204,7 @@ export function useImportReview<TRow>(
       return true;
     } finally {
       setAdding(false);
+      setAddProgress({ done: 0, total: 0 });
     }
   }
 
@@ -181,6 +215,8 @@ export function useImportReview<TRow>(
     cycleStatus,
     toggle,
     adding,
+    addProgress,
+    addedKeys,
     addError,
     confirm,
     registerRows,
