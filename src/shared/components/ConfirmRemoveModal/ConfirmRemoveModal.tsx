@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Modal } from '../../../../shared/components/Modal/Modal';
-import modal from '../../../../shared/components/Modal/Modal.module.css';
+import { Modal } from '../Modal/Modal';
+import modal from '../Modal/Modal.module.css';
 import styles from './ConfirmRemoveModal.module.css';
 
 export interface ConfirmRemoveModalProps {
@@ -59,10 +59,6 @@ export function ConfirmRemoveModal({ title, count, onConfirm, onCancel }: Confir
       <p className={styles.body}>
         {subject} will be taken out of your library, along with any rating, review and notes. That
         cannot be undone.
-      </p>
-      <p className={styles.aside}>
-        {count === 1 ? 'The book itself stays' : 'The books themselves stay'} in the catalog, and can
-        be added again later.
       </p>
     </Modal>
   );

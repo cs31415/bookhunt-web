@@ -12,6 +12,8 @@ import { addToLibrary } from '../../api/library/add-to-library';
 import type { AddToLibraryRawFields } from '../../api/library/add-to-library';
 import { updateEntry } from '../../api/library/update-entry';
 import { removeEntry } from '../../api/library/remove-entry';
+import { ConfirmRemoveModal } from '../../shared/components/ConfirmRemoveModal/ConfirmRemoveModal';
+import { toast } from '../../shared/toast/toast-store';
 import { addRelated } from '../../api/library/add-related';
 import { removeRelated } from '../../api/library/remove-related';
 import type { BookDetail } from '../../normalize/book-detail';
@@ -50,6 +52,7 @@ export function BookDetailPage() {
   const book = detail?.book ?? null;
   const libraryEntry = detail?.libraryEntry;
   const [addingToLibrary, setAddingToLibrary] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   const { themes, moods, loading: themesLoading } = useThemes(
     book?.cataloged ? book.id : null,
@@ -115,6 +118,20 @@ export function BookDetailPage() {
     } finally {
       setAddingToLibrary(false);
     }
+  }
+
+  /**
+   * Removal from this page. Split out of handleToggleLibrary, whose remove
+   * branch was unreachable: the button that called it only rendered when the
+   * book was *not* in the library, so a book already on the shelf had no way
+   * off it from here (LOS-206).
+   */
+  async function handleRemoveFromLibrary() {
+    if (!book) return;
+    await removeEntry(book.id);
+    setConfirmingRemove(false);
+    toast({ text: `Removed \u201C${book.title}\u201D from your library` });
+    reload();
   }
 
   async function handleStatusChange(status: LibraryStatus) {
@@ -185,6 +202,7 @@ export function BookDetailPage() {
         moods={moods}
         addingToLibrary={addingToLibrary}
         onToggleLibrary={handleToggleLibrary}
+        onRemoveFromLibrary={() => setConfirmingRemove(true)}
         onStatusChange={handleStatusChange}
         onRate={handleRate}
         onOpenAuthor={() => navigate(`/authors/${book.authorSlug}`)}
@@ -231,6 +249,15 @@ export function BookDetailPage() {
         onAddToLibrary={handleAddRelatedBookToLibrary}
         onRemoveFromLibrary={handleRemoveRelatedBookFromLibrary}
       />
+
+      {confirmingRemove && (
+        <ConfirmRemoveModal
+          count={1}
+          title={book.title}
+          onConfirm={handleRemoveFromLibrary}
+          onCancel={() => setConfirmingRemove(false)}
+        />
+      )}
     </div>
   );
 }

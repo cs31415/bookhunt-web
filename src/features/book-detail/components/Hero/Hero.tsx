@@ -15,6 +15,8 @@ export interface HeroProps {
   moods: string[];
   addingToLibrary: boolean;
   onToggleLibrary: () => void;
+  /** Offered in the status menu once the book is in the library. */
+  onRemoveFromLibrary?: () => void;
   onStatusChange: (status: LibraryStatus) => void;
   onRate: (rating: number) => void;
   onOpenAuthor: () => void;
@@ -30,6 +32,7 @@ export function Hero({
   moods,
   addingToLibrary,
   onToggleLibrary,
+  onRemoveFromLibrary,
   onStatusChange,
   onRate,
   onOpenAuthor,
@@ -52,7 +55,11 @@ export function Hero({
         </div>
 
         {libraryEntry ? (
-          <ActionMenu current={libraryEntry.status} onSelect={onStatusChange} />
+          <ActionMenu
+            current={libraryEntry.status}
+            onSelect={onStatusChange}
+            onRemove={onRemoveFromLibrary}
+          />
         ) : (
           <button
             type="button"
