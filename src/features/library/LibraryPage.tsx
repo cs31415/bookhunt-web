@@ -12,7 +12,7 @@ import { LibraryEmptyState } from './components/LibraryEmptyState/LibraryEmptySt
 import { ScanModal } from './components/ScanModal/ScanModal';
 import { CsvImportModal } from './components/CsvImportModal/CsvImportModal';
 import { LibraryCardMenu } from './components/LibraryCardMenu/LibraryCardMenu';
-import { ConfirmRemoveModal } from './components/ConfirmRemoveModal/ConfirmRemoveModal';
+import { ConfirmRemoveModal } from '../../shared/components/ConfirmRemoveModal/ConfirmRemoveModal';
 import { SelectionToolbar } from './components/SelectionToolbar/SelectionToolbar';
 import { useLibraryData } from './hooks/useLibraryData';
 import { useLibrarySelection } from './hooks/useLibrarySelection';

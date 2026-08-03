@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BookDetailPage } from './BookDetailPage';
@@ -307,6 +307,63 @@ describe('BookDetailPage', () => {
         ),
       );
       expect(await screen.findByTestId('location')).toHaveTextContent('/books/sapiens');
+    });
+  });
+
+  /**
+   * A book already in the library had no way off the shelf from its own page:
+   * handleToggleLibrary could remove, but the button calling it only rendered
+   * when the book was *not* in the library (LOS-206).
+   */
+  describe('removing from the library', () => {
+    function inLibrary() {
+      mockedGetBook.mockResolvedValue({
+        book: rawBook,
+        inLibrary: true,
+        libraryEntry: { status: 'reading', userRating: 0, notes: '', userRelatedIds: [] },
+      } as never);
+    }
+
+    it('offers Remove in the status menu', async () => {
+      inLibrary();
+      renderBookDetailPage('night-watch');
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Reading' }));
+      expect(screen.getByRole('menuitem', { name: 'Remove from library' })).toBeInTheDocument();
+    });
+
+    it('confirms before removing, and names what is lost', async () => {
+      inLibrary();
+      renderBookDetailPage('night-watch');
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Reading' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from library' }));
+
+      const dialog = await screen.findByRole('dialog');
+      expect(dialog).toHaveTextContent(/rating, review and notes/);
+      expect(mockedRemoveEntry).not.toHaveBeenCalled();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
+      await waitFor(() => expect(mockedRemoveEntry).toHaveBeenCalledWith(rawBook.id));
+    });
+
+    it('does not remove when the confirmation is cancelled', async () => {
+      inLibrary();
+      renderBookDetailPage('night-watch');
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Reading' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from library' }));
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(mockedRemoveEntry).not.toHaveBeenCalled();
+    });
+
+    it('offers no Remove for a book not in the library', async () => {
+      renderBookDetailPage('night-watch');
+
+      expect(await screen.findByRole('button', { name: /Add to library/ })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'Remove from library' })).not.toBeInTheDocument();
     });
   });
 });
