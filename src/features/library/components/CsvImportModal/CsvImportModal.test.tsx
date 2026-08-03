@@ -281,6 +281,7 @@ describe('CsvImportModal', () => {
           'hong-kong',
           'queued',
           expect.objectContaining({ googleBooksId: 'g2' }),
+          { enrich: false },
         ),
       );
     });
@@ -311,7 +312,7 @@ describe('CsvImportModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add 2 to library' }));
 
     expect(await screen.findByText('Imported 1 of 2 books. 1 books had errors.')).toBeInTheDocument();
-    expect(await within(dialog).findByText(/Added 1 of 2/)).toBeInTheDocument();
+    expect(await within(dialog).findByText(/1 of 2 couldn.t be added/)).toBeInTheDocument();
 
     // The row that landed stops being selected, so the retry covers only what
     // failed. It used to still offer "Add 2 to library" and re-send the one
@@ -541,7 +542,8 @@ describe('CsvImportModal', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add 2 to library' }));
 
-    expect(await screen.findByText(/Added 1 of 2/)).toBeInTheDocument();
+    // addError now carries only the failure; the summary reports what landed.
+    expect(await screen.findByText(/1 of 2 couldn.t be added/)).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
@@ -731,6 +733,63 @@ describe('CsvImportModal', () => {
 
       const reopened = await openModal();
       expect(within(reopened).getByText('Drop a CSV of your books')).toBeInTheDocument();
+    });
+  });
+
+  // Adding 336 books used to say "Adding…" and nothing else for minutes (LOS-202).
+  describe('progress and aftermath', () => {
+    it('counts the books as they are written', async () => {
+      let release: (v: { entry: object; book: { id: number; slug: string } }) => void = () => {};
+      mockedResolve.mockResolvedValue({ rows: [resolved(), resolved({ title: 'Ubik' })] });
+      mockedAddToLibrary
+        .mockResolvedValueOnce({ entry: {}, book: { id: 9, slug: 'dune' } })
+        .mockReturnValueOnce(new Promise((r) => (release = r)));
+
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title\nDune\nUbik'));
+
+      await screen.findByRole('button', { name: 'Add 2 to library' });
+      fireEvent.click(screen.getByRole('button', { name: 'Add 2 to library' }));
+
+      expect(await within(dialog).findByText('Adding 1 of 2 books…')).toBeInTheDocument();
+      release({ entry: {}, book: { id: 10, slug: 'ubik' } });
+    });
+
+    it('drops added books from the list and says how many landed', async () => {
+      // Each row needs its own candidate: the row title is only a hint, and the
+      // list renders the candidate, so a shared one shows the same book twice.
+      mockedResolve.mockResolvedValue({
+        rows: [
+          resolved(),
+          resolved({
+            title: 'Ubik',
+            candidates: [candidate({ title: 'Ubik', googleBooksId: 'gb-2' })],
+          }),
+        ],
+      });
+      mockedAddToLibrary
+        .mockResolvedValueOnce({ entry: {}, book: { id: 9, slug: 'dune' } })
+        .mockRejectedValueOnce(new ApiError(500, 'nope'));
+
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title\nDune\nUbik'));
+
+      await screen.findByRole('button', { name: 'Add 2 to library' });
+      fireEvent.click(screen.getByRole('button', { name: 'Add 2 to library' }));
+
+      // The summary reports the add, not the lookup it has moved on from.
+      expect(await within(dialog).findByText(/^Added/)).toHaveTextContent(
+        'Added 1 book to your library.',
+      );
+      expect(within(dialog).queryByText(/Found matches for/)).not.toBeInTheDocument();
+
+      // The one that landed is gone from the list; the failure remains to retry.
+      // AllBy because a placeholder cover repeats the title as SVG text.
+      expect(within(dialog).queryAllByText('Dune')).toHaveLength(0);
+      expect(within(dialog).getAllByText('Ubik').length).toBeGreaterThan(0);
+      expect(within(dialog).getByRole('button', { name: 'Add 1 to library' })).toBeInTheDocument();
     });
   });
 });

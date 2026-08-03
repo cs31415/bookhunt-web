@@ -32,9 +32,24 @@ export function addToLibrary(
   slug: string,
   status: LibraryStatus = 'queued',
   rawFields?: AddToLibraryRawFields,
+  options?: AddToLibraryOptions,
 ): Promise<AddToLibraryResponse> {
   return apiFetch(`/library/${slug}`, {
     method: 'POST',
-    body: JSON.stringify({ status, ...rawFields }),
+    body: JSON.stringify({ status, ...rawFields, ...options }),
   });
+}
+
+export interface AddToLibraryOptions {
+  /**
+   * Whether the server should fetch whatever this payload is missing before
+   * saving. Defaults to true on the server, which is right for adding one book
+   * with someone waiting on it.
+   *
+   * An import passes false. The fields it left out are the ones the provider's
+   * search response never carried — publisher most of all — so enriching costs
+   * a round trip per row, and a 300-book import spent minutes on it (LOS-202).
+   * Those blanks are filled instead on first view of the book.
+   */
+  enrich?: boolean;
 }
