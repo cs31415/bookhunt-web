@@ -290,10 +290,13 @@ describe('ScanModal', () => {
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(mockedAddToLibrary).toHaveBeenCalledTimes(2);
+    // enrich: false -- an import trusts what the search step already found
+    // rather than paying a provider round trip per book (LOS-202).
     expect(mockedAddToLibrary).toHaveBeenCalledWith(
       'spine-1',
       'queued',
       expect.objectContaining({ title: 'Spine 1', googleBooksId: 'gb-1' }),
+      { enrich: false },
     );
   });
 
@@ -323,7 +326,11 @@ describe('ScanModal', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add 1 to library' }));
 
-    await waitFor(() => expect(mockedAddToLibrary).toHaveBeenCalledWith('dune', 'queued', undefined));
+    await waitFor(() =>
+      expect(mockedAddToLibrary).toHaveBeenCalledWith('dune', 'queued', undefined, {
+        enrich: false,
+      }),
+    );
   });
 
   // AC7
@@ -563,7 +570,9 @@ describe('ScanModal', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add 2 to library' }));
 
-    expect(await screen.findByText(/Added 1 of 2/)).toBeInTheDocument();
+    // addError reports the failure only; the toast below carries the count that
+    // landed, so the two do not say the same thing twice (LOS-202).
+    expect(await screen.findByText(/1 of 2 couldn.t be added/)).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(mockedAddToLibrary).toHaveBeenCalledTimes(2);
     expect(screen.getByText('Imported 1 of 2 books. 1 books had errors.')).toBeInTheDocument();
