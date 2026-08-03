@@ -54,6 +54,17 @@ export interface RawResolvedRow {
   matchedBook?: RawCatalogBook;
   /** Ranked best-first; empty when nothing was found. */
   candidates: RawAiSearchBook[];
+  /**
+   * True when no candidate answers the row's title — the provider offered a
+   * book by the same author instead. Sometimes that is a retitled edition
+   * ("Fermat's Enigma" is shelved as "Fermat's Last Theorem"), sometimes an
+   * unrelated book, and nothing in the response separates the two.
+   *
+   * So these must never be preselected. A row asking for "From So Simple a
+   * Beginning" by Clive Gamble came back with Cyclops by Clive Cussler, and
+   * because this flag was ignored it went into the library unnoticed (LOS-205).
+   */
+  tentative?: boolean;
 }
 
 /**

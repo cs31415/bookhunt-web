@@ -733,4 +733,65 @@ describe('CsvImportModal', () => {
       expect(within(reopened).getByText('Drop a CSV of your books')).toBeInTheDocument();
     });
   });
+
+  /**
+   * The row that put Cyclops by Clive Cussler into a library that had asked for
+   * "From So Simple a Beginning" by Clive Gamble. The server marked it
+   * tentative; the client ignored the flag, preselected it, and added it
+   * silently (LOS-205).
+   */
+  describe('tentative rows', () => {
+    const cyclops = () =>
+      resolved({
+        title: 'From So Simple a Beginning',
+        author: 'Clive Gamble',
+        tentative: true,
+        candidates: [candidate({ title: 'Cyclops', authors: ['Clive Cussler'], googleBooksId: 'r-sli' })],
+      });
+
+    it('does not tick a row nothing matched the title of', async () => {
+      mockedResolve.mockResolvedValue({ rows: [cyclops()] });
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title,author\nFrom So Simple a Beginning,Clive Gamble'));
+
+      await within(dialog).findByText(/Nothing matched/);
+      // Nothing selected means nothing to add, so the button has nothing to offer.
+      expect(within(dialog).getByRole('button', { name: /^Add 0 to library/ })).toBeDisabled();
+    });
+
+    it('says why, rather than leaving the row mysteriously unticked', async () => {
+      mockedResolve.mockResolvedValue({ rows: [cyclops()] });
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title,author\nFrom So Simple a Beginning,Clive Gamble'));
+
+      expect(await within(dialog).findByText(/Nothing matched/)).toHaveTextContent(
+        'From So Simple a Beginning',
+      );
+    });
+
+    it('still lets the reader tick it themselves', async () => {
+      mockedResolve.mockResolvedValue({ rows: [cyclops()] });
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title,author\nFrom So Simple a Beginning,Clive Gamble'));
+
+      await within(dialog).findByText(/Nothing matched/);
+      fireEvent.click(within(dialog).getAllByRole('checkbox')[0]);
+
+      expect(within(dialog).getByRole('button', { name: /^Add 1 to library/ })).toBeEnabled();
+    });
+
+    it('leaves an ordinary match ticked', async () => {
+      mockedResolve.mockResolvedValue({ rows: [resolved()] });
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(SIMPLE_CSV));
+
+      await screen.findByText(/Found matches for/);
+      expect(within(dialog).queryByText(/Nothing matched/)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Add 1 to library' })).toBeEnabled();
+    });
+  });
 });
