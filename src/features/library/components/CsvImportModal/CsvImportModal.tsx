@@ -257,7 +257,13 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
                 note={
                   row.resolved && row.candidates.length === 0
                     ? `Couldn’t find “${row.hint.title}” — add it as-is?`
-                    : undefined
+                    : // Nothing matched the title, so this is a guess: it may be
+                      // the same book retitled, or another book by that author.
+                      // Named rather than merely unticked, or an unticked row
+                      // looks like a bug (LOS-205).
+                      row.tentative
+                      ? `Nothing matched “${row.hint.title}” — is this the same book?`
+                      : undefined
                 }
                 candidates={row.candidates.map((c) => ({ id: c.id, label: c.label }))}
                 selectedCandidateId={session.selectedCandidateId(row.key)}

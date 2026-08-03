@@ -42,6 +42,12 @@ export interface CsvRow {
   candidates: CsvCandidate[];
   /** Book id when this row is already in the library. */
   alreadyInLibraryId?: number;
+  /**
+   * The provider offered a book by the right author under the wrong title, and
+   * could not say whether that is a retitled edition or a different book. Such
+   * a row is a suggestion: it starts unticked and says so (LOS-205).
+   */
+  tentative?: boolean;
 }
 
 export interface UseCsvImportSessionResult extends UseImportReviewResult<CsvRow> {
@@ -192,7 +198,13 @@ export function useCsvImportSession(
     // adding an unmatched row upserts a title-and-author-only catalog entry.
     // Already-owned rows can't be added at all.
     startsUnticked: (row) =>
-      !row.resolved || row.candidates.length === 0 || row.alreadyInLibraryId !== undefined,
+      !row.resolved ||
+      row.candidates.length === 0 ||
+      row.alreadyInLibraryId !== undefined ||
+      // Nothing matched the title, so this is the provider's guess at a
+      // retitled edition. Ticking it by default is what put books nobody asked
+      // for into the library (LOS-205).
+      row.tentative === true,
     onAdded,
   });
 
@@ -301,6 +313,7 @@ export function useCsvImportSession(
             hint: parsed[offset + i],
             resolved: true,
             candidates,
+            ...(raw.tentative ? { tentative: true } : {}),
             ...(raw.matchedBookId !== undefined && owned.has(raw.matchedBookId)
               ? { alreadyInLibraryId: raw.matchedBookId }
               : {}),
