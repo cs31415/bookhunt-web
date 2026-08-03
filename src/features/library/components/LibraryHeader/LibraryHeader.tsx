@@ -8,6 +8,8 @@ export interface LibraryHeaderProps {
   onImportCsv: () => void;
   query: string;
   onQueryChange: (value: string) => void;
+  /** Enters multi-select. Hidden while it is already on; the toolbar owns leaving it. */
+  onSelect?: () => void;
 }
 
 export function LibraryHeader({
@@ -16,6 +18,7 @@ export function LibraryHeader({
   onImportCsv,
   query,
   onQueryChange,
+  onSelect,
 }: LibraryHeaderProps) {
   return (
     <header className={styles.header}>
@@ -37,6 +40,11 @@ export function LibraryHeader({
       {/* Wrapper so a second import source (LOS-169) can sit alongside without
           the max-width:560px column stack going ragged. */}
       <div className={styles.actions}>
+        {onSelect && (
+          <button type="button" className={styles.secondaryButton} onClick={onSelect}>
+            Select
+          </button>
+        )}
         {onAddFromPhoto && (
           <button type="button" className={styles.secondaryButton} onClick={onAddFromPhoto}>
             Add from a photo

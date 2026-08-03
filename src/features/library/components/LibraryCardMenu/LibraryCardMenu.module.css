@@ -1,0 +1,68 @@
+.wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--faint);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/*
+ * Borderless until reached for, so a grid of sixty cards is not a grid of sixty
+ * buttons. It stays a real focus target throughout -- :focus-visible is what
+ * keeps it reachable without a pointer.
+ */
+.trigger:hover,
+.trigger:focus-visible {
+  color: var(--ink);
+  border-color: var(--line);
+  background: var(--card);
+}
+
+/*
+ * Opens upward and right-aligned, both forced by where the trigger sits: level
+ * with the card's last row, at its right edge. Downward would be clipped by the
+ * next row of the grid, and left-aligned would hang off the card.
+ */
+.menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  min-width: 170px;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-2);
+  z-index: 10;
+}
+
+/* --rust rather than a red: the palette has no destructive colour and should
+   not gain one for a single menu item. */
+.remove {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13.5px;
+  white-space: nowrap;
+  color: var(--rust);
+}
+
+.remove:hover,
+.remove:focus-visible {
+  background: var(--paper-2);
+  outline: none;
+}

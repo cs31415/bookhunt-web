@@ -11,9 +11,15 @@ import { LibraryFilters } from './components/LibraryFilters/LibraryFilters';
 import { LibraryEmptyState } from './components/LibraryEmptyState/LibraryEmptyState';
 import { ScanModal } from './components/ScanModal/ScanModal';
 import { CsvImportModal } from './components/CsvImportModal/CsvImportModal';
+import { LibraryCardMenu } from './components/LibraryCardMenu/LibraryCardMenu';
+import { ConfirmRemoveModal } from './components/ConfirmRemoveModal/ConfirmRemoveModal';
+import { SelectionToolbar } from './components/SelectionToolbar/SelectionToolbar';
 import { useLibraryData } from './hooks/useLibraryData';
+import { useLibrarySelection } from './hooks/useLibrarySelection';
 import { useScanSession } from './hooks/useScanSession';
 import { useCsvImportSession } from './hooks/useCsvImportSession';
+import { removeEntry } from '../../api/library/remove-entry';
+import { removeEntries, MAX_REMOVE_PER_REQUEST } from '../../api/library/remove-entries';
 import { toast } from '../../shared/toast/toast-store';
 import { isPhotoImportEnabled } from '../../shared/config/features';
 import { filterEntries, sortByAddedDesc } from './lib/breakdowns';
@@ -34,6 +40,12 @@ export function LibraryPage() {
   const [page, setPage] = useState(1);
   const [scanOpen, setScanOpen] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
+  const selection = useLibrarySelection();
+  // What the confirm modal is asking about: one named book, or the selection.
+  // Null when it is closed, which is also what Cancel restores.
+  const [pendingRemoval, setPendingRemoval] = useState<
+    { kind: 'one'; bookId: number; title: string } | { kind: 'selected' } | null
+  >(null);
 
   // The scan session lives here, not in ScanModal, so closing the modal mid-scan
   // doesn't abandon the in-flight promise. scanOpenRef lets the completion
@@ -168,7 +180,44 @@ export function LibraryPage() {
     [entries, status, category, mood, theme, q],
   );
   const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
-  const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Clamped rather than clipped: removing the last few books on the final page
+  // would otherwise leave `page` past the end and the grid blank, with the only
+  // way back being a filter change.
+  const safePage = Math.min(page, Math.max(pageCount, 1));
+  const pageItems = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  /**
+   * Removes in chunks, because the endpoint caps a request at 20 ids and a
+   * "select all" over a filtered library routinely exceeds that. Sequential
+   * rather than parallel: these are deletes, and a burst of them racing each
+   * other is not worth the second it saves.
+   */
+  async function removeSelected() {
+    const ids = [...selection.selectedIds];
+    let removed = 0;
+    for (let i = 0; i < ids.length; i += MAX_REMOVE_PER_REQUEST) {
+      const result = await removeEntries(ids.slice(i, i + MAX_REMOVE_PER_REQUEST));
+      removed += result.removed;
+    }
+    return removed;
+  }
+
+  async function confirmRemoval() {
+    if (!pendingRemoval) return;
+
+    if (pendingRemoval.kind === 'one') {
+      await removeEntry(pendingRemoval.bookId);
+      setPendingRemoval(null);
+      toast({ text: `Removed “${pendingRemoval.title}” from your library` });
+    } else {
+      const removed = await removeSelected();
+      setPendingRemoval(null);
+      selection.exit();
+      toast({ text: `Removed ${removed} ${removed === 1 ? 'book' : 'books'} from your library` });
+    }
+
+    reload();
+  }
 
   if (loading) {
     return (
@@ -203,6 +252,7 @@ export function LibraryPage() {
         onImportCsv={importCsv}
         query={q}
         onQueryChange={setQ}
+        onSelect={selection.selecting ? undefined : selection.enter}
       />
 
       <div className={styles.layout}>
@@ -220,6 +270,17 @@ export function LibraryPage() {
         />
 
         <div className={styles.results}>
+          {selection.selecting && (
+            <SelectionToolbar
+              selectedCount={selection.selectedIds.size}
+              visibleCount={sorted.length}
+              onSelectAll={() => selection.selectAll(sorted.map((entry) => entry.book.id))}
+              onClear={selection.clear}
+              onRemove={() => setPendingRemoval({ kind: 'selected' })}
+              onDone={selection.exit}
+            />
+          )}
+
           {sorted.length === 0 ? (
             <p className={styles.noMatch}>
               {q ? `No books in your library match “${q}”.` : 'No books match this filter.'}
@@ -231,16 +292,51 @@ export function LibraryPage() {
                   key={entry.book.id}
                   book={entry.book}
                   status={entry.status}
-                  onClick={() => navigate(buildBookHref(entry.book))}
+                  // While selecting, the card picks rather than navigates —
+                  // leaving the page mid-selection would discard it.
+                  onClick={
+                    selection.selecting
+                      ? () => selection.toggle(entry.book.id)
+                      : () => navigate(buildBookHref(entry.book))
+                  }
+                  action={
+                    selection.selecting ? (
+                      <input
+                        type="checkbox"
+                        className={styles.selectBox}
+                        checked={selection.selectedIds.has(entry.book.id)}
+                        onChange={() => selection.toggle(entry.book.id)}
+                        aria-label={`Select ${entry.book.title}`}
+                      />
+                    ) : (
+                      <LibraryCardMenu
+                        onRemove={() =>
+                          setPendingRemoval({
+                            kind: 'one',
+                            bookId: entry.book.id,
+                            title: entry.book.title,
+                          })
+                        }
+                      />
+                    )
+                  }
                 />
               ))}
             </div>
           )}
 
-          <Pagination page={page} pageCount={pageCount} onChange={setPage} />
+          <Pagination page={safePage} pageCount={pageCount} onChange={setPage} />
         </div>
       </div>
       {modals}
+      {pendingRemoval && (
+        <ConfirmRemoveModal
+          count={pendingRemoval.kind === 'one' ? 1 : selection.selectedIds.size}
+          title={pendingRemoval.kind === 'one' ? pendingRemoval.title : undefined}
+          onConfirm={confirmRemoval}
+          onCancel={() => setPendingRemoval(null)}
+        />
+      )}
     </div>
   );
 }

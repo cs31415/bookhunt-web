@@ -3,12 +3,20 @@ import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-do
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { LibraryPage } from './LibraryPage';
 import { getLibrary } from '../../api/library/get-library';
+import { removeEntry } from '../../api/library/remove-entry';
+import { removeEntries } from '../../api/library/remove-entries';
+import { ToastHost } from '../../shared/toast/ToastHost';
+import { clearToasts } from '../../shared/toast/toast-store';
 import type { RawLibraryEntry } from '../../normalize/library';
 import type { LibraryStatus } from '../../shared/types/library-status';
 
 vi.mock('../../api/library/get-library');
+vi.mock('../../api/library/remove-entry');
+vi.mock('../../api/library/remove-entries');
 
 const mockedGetLibrary = vi.mocked(getLibrary);
+const mockedRemoveEntry = vi.mocked(removeEntry);
+const mockedRemoveEntries = vi.mocked(removeEntries);
 
 let idSeq = 1;
 
@@ -54,6 +62,9 @@ function renderLibrary(initialEntry = '/library') {
           <>
             <LibraryPage />
             <LocationProbe />
+            {/* App renders this, not the page -- without it a toast has
+                nowhere to appear and the assertions below cannot see one. */}
+            <ToastHost />
           </>
         ),
       },
@@ -94,6 +105,11 @@ describe('LibraryPage', () => {
     // button is offered, so without this the suite passes or fails according to
     // whichever way the developer's own .env has the flag set.
     vi.stubEnv('VITE_ENABLE_PHOTO_IMPORT', 'true');
+    mockedRemoveEntry.mockReset();
+    mockedRemoveEntry.mockResolvedValue(undefined);
+    mockedRemoveEntries.mockReset();
+    mockedRemoveEntries.mockResolvedValue({ removed: 0, requested: 0 });
+    clearToasts();
   });
 
   afterEach(() => {
@@ -423,6 +439,99 @@ describe('LibraryPage', () => {
       const rail = screen.getByLabelText('Library filters');
       expect(within(rail).getByText('Finished 1')).toBeInTheDocument();
       expect(within(rail).getByText('History')).toBeInTheDocument();
+    });
+  });
+
+  describe('removing books', () => {
+    /** The menu trigger for one card, found via the group named after the book. */
+    function menuFor(title: string) {
+      const card = screen.getByRole('group', { name: title });
+      return within(card).getByRole('button', { name: 'Book actions' });
+    }
+
+    it('removes a single book once the confirmation is accepted', async () => {
+      mockLibrary([dune, sapiens], { reading: 1, finished: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '2 books' });
+
+      fireEvent.click(menuFor('Dune'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from library' }));
+
+      // Names the book, and says what removal costs beyond the entry itself.
+      expect(await screen.findByRole('dialog')).toHaveTextContent('Remove this book?');
+      expect(screen.getByRole('dialog')).toHaveTextContent(/rating, review and notes/);
+
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }));
+
+      await screen.findByText(/Removed .Dune. from your library/);
+      expect(mockedRemoveEntry).toHaveBeenCalledWith(dune.book_id);
+    });
+
+    it('does not call the api when the confirmation is cancelled', async () => {
+      mockLibrary([dune], { reading: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '1 book' });
+
+      fireEvent.click(menuFor('Dune'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from library' }));
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(mockedRemoveEntry).not.toHaveBeenCalled();
+    });
+
+    it('selects several books and removes them in one request', async () => {
+      mockedRemoveEntries.mockResolvedValue({ removed: 2, requested: 2 });
+      mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '3 books' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select Dune' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select Sapiens' }));
+
+      expect(screen.getByText('2 selected')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }));
+
+      expect(await screen.findByRole('dialog')).toHaveTextContent('Remove 2 books?');
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }));
+
+      await screen.findByText('Removed 2 books from your library');
+      expect(mockedRemoveEntries).toHaveBeenCalledTimes(1);
+      expect(mockedRemoveEntries).toHaveBeenCalledWith([dune.book_id, sapiens.book_id]);
+    });
+
+    // Select all means what is on screen. A reader who has filtered to one
+    // status should not be selecting the books that filter is hiding.
+    it('limits select all to the filtered set', async () => {
+      mockLibrary([dune, sapiens, clockwork], { reading: 1, finished: 1, queued: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '3 books' });
+
+      fireEvent.click(await screen.findByRole('button', { name: /^Finished/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select all 1' }));
+
+      expect(screen.getByText('1 selected')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Remove 1' }));
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }));
+
+      await screen.findByText(/Removed/);
+      expect(mockedRemoveEntries).toHaveBeenCalledWith([sapiens.book_id]);
+    });
+
+    it('offers the menu again after leaving selection mode', async () => {
+      mockLibrary([dune], { reading: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '1 book' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+      expect(screen.getByRole('checkbox', { name: 'Select Dune' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Book actions' })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+      expect(screen.queryByRole('checkbox', { name: 'Select Dune' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Book actions' })).toBeInTheDocument();
     });
   });
 });
