@@ -37,11 +37,6 @@
   position: relative;
 }
 
-.badgeOverlay {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-}
 
 .eyebrow {
   font-family: var(--mono);

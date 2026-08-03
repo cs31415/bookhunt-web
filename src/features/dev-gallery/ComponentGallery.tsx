@@ -8,6 +8,7 @@ import { ActionMenu } from '../../shared/components/ActionMenu/ActionMenu';
 import { SectionHead } from '../../shared/components/SectionHead/SectionHead';
 import { Stars } from '../../shared/components/Stars/Stars';
 import { StatusBadge } from '../../shared/components/StatusBadge/StatusBadge';
+import { CoverFold } from '../../shared/components/CoverFold/CoverFold';
 import { ALL_LIBRARY_STATUSES } from '../../shared/types/library-status';
 import type { LibraryStatus } from '../../shared/types/library-status';
 import {
@@ -51,6 +52,29 @@ export function ComponentGallery() {
         <div style={{ display: 'flex', gap: 12 }}>
           {ALL_LIBRARY_STATUSES.map((status) => (
             <StatusBadge key={status} status={status} />
+          ))}
+        </div>
+      </section>
+
+      <section style={{ marginBottom: 40 }}>
+        <SectionHead title="CoverFold" />
+        {/* Over three very different covers, which is the point of it: the flap
+            is paper-coloured so it separates from artwork we cannot inspect. */}
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          {ALL_LIBRARY_STATUSES.map((status) => (
+            <div key={status} style={{ width: 92 }}>
+              <div style={{ position: 'relative', borderRadius: '3px 5px 5px 3px' }}>
+                <div
+                  style={{
+                    height: 132,
+                    borderRadius: '3px 5px 5px 3px',
+                    background: status === 'reading' ? '#1f3a63' : status === 'finished' ? '#101010' : '#e9e4d8',
+                  }}
+                />
+                <CoverFold status={status} />
+              </div>
+              <div style={{ fontSize: 12, marginTop: 6, color: 'var(--muted)' }}>{status}</div>
+            </div>
           ))}
         </div>
       </section>
