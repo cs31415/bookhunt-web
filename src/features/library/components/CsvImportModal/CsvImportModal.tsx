@@ -16,7 +16,8 @@ function looksLikeCsv(file: File): boolean {
 }
 
 export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
-  const { phase, rows, error, warning, addError, resolving, progress } = session;
+  const { phase, rows, error, warning, addError, resolving, progress, addProgress, addedKeys } =
+    session;
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
@@ -72,8 +73,14 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
    * decision is the entire review. The summary still counts them, so nothing
    * disappears unaccounted for.
    */
-  const importable = rows.filter((row) => row.alreadyInLibraryId === undefined);
-  const alreadyOwned = rows.length - importable.length;
+  // Books now in the library drop out too, for the same reason already-owned
+  // ones do: there is nothing left to decide about them, and after a 336-row
+  // import they would bury the few that failed (LOS-202).
+  const importable = rows.filter(
+    (row) => row.alreadyInLibraryId === undefined && !addedKeys.has(row.key),
+  );
+  const alreadyOwned = rows.filter((row) => row.alreadyInLibraryId !== undefined).length;
+  const justAdded = addedKeys.size;
 
   /**
    * A row nothing matched is not a match. It stays listed, unticked, offering to
@@ -104,7 +111,9 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
         disabled={session.selectedCount === 0 || session.adding || resolving}
         onClick={handleAdd}
       >
-        {session.adding ? 'Adding…' : `Add ${session.selectedCount} to library`}
+        {session.adding
+          ? `Adding ${addProgress.done} of ${addProgress.total}…`
+          : `Add ${session.selectedCount} to library`}
       </button>
     </>
   ) : undefined;
@@ -174,28 +183,47 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
 
       {phase === 'review' && !confirming && (
         <div>
-          {resolving ? (
+          {/* The add reuses the lookup's bar rather than a second kind of
+              waiting: same shape, same place, only the label differs. */}
+          {resolving || session.adding ? (
             <div className={styles.status}>
-              <div
-                className={styles.progressTrack}
-                role="progressbar"
-                aria-valuenow={progress.done}
-                aria-valuemin={0}
-                aria-valuemax={progress.total}
-                aria-label="Books looked up"
-              >
-                <div
-                  className={styles.progressBar}
-                  style={{ width: `${(progress.done / Math.max(progress.total, 1)) * 100}%` }}
-                />
-              </div>
-              <p className={styles.progressLabel}>
-                Looking up {progress.done} of {progress.total} books…
-              </p>
+              {(() => {
+                const bar = session.adding ? addProgress : progress;
+                const label = session.adding ? 'Books added' : 'Books looked up';
+                return (
+                  <>
+                    <div
+                      className={styles.progressTrack}
+                      role="progressbar"
+                      aria-valuenow={bar.done}
+                      aria-valuemin={0}
+                      aria-valuemax={bar.total}
+                      aria-label={label}
+                    >
+                      <div
+                        className={styles.progressBar}
+                        style={{ width: `${(bar.done / Math.max(bar.total, 1)) * 100}%` }}
+                      />
+                    </div>
+                    <p className={styles.progressLabel}>
+                      {session.adding
+                        ? `Adding ${bar.done} of ${bar.total} books…`
+                        : `Looking up ${bar.done} of ${bar.total} books…`}
+                    </p>
+                  </>
+                );
+              })()}
             </div>
           ) : (
             <p className={styles.summary}>
-              {importable.length === 0 && alreadyOwned > 0 ? (
+              {/* Once an add has run, what happened is the news -- the original
+                  "found matches for 336 books" is about work already done. */}
+              {justAdded > 0 ? (
+                <>
+                  Added <strong>{justAdded}</strong> {justAdded === 1 ? 'book' : 'books'} to your
+                  library.
+                </>
+              ) : importable.length === 0 && alreadyOwned > 0 ? (
                 <>All {alreadyOwned === 1 ? 'this book is' : 'these books are'} already in your library.</>
               ) : (
                 <>
@@ -229,7 +257,13 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
                 note={
                   row.resolved && row.candidates.length === 0
                     ? `Couldn’t find “${row.hint.title}” — add it as-is?`
-                    : undefined
+                    : // Nothing matched the title, so this is a guess: it may be
+                      // the same book retitled, or another book by that author.
+                      // Named rather than merely unticked, or an unticked row
+                      // looks like a bug (LOS-205).
+                      row.tentative
+                      ? `Nothing matched “${row.hint.title}” — is this the same book?`
+                      : undefined
                 }
                 candidates={row.candidates.map((c) => ({ id: c.id, label: c.label }))}
                 selectedCandidateId={session.selectedCandidateId(row.key)}

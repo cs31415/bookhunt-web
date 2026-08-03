@@ -38,3 +38,11 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Sits in the card's action slot while selecting, level with the rating row. */
+.selectBox {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--rust);
+  cursor: pointer;
+}
