@@ -1,0 +1,70 @@
+/*
+ * The turned-down corner itself: the upper-right triangle, clipped so the crease
+ * runs from the cover's top-left of the flap down to its bottom-right.
+ *
+ * --card rather than --paper so the flap stays a shade lighter than the page in
+ * dark mode, where a pure --paper fold would disappear into a dark cover.
+ */
+.fold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 34px;
+  height: 34px;
+  /* Matches Cover's own top-right radius, so the folded corner sits flush. */
+  border-top-right-radius: 5px;
+  background: linear-gradient(
+    225deg,
+    color-mix(in srgb, var(--card) 92%, var(--ink)) 0%,
+    var(--card) 42%
+  );
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  /* drop-shadow follows the clipped triangle; box-shadow would be clipped away
+     with it. Cast down-left, away from the crease. */
+  filter: drop-shadow(-1.5px 1.5px 1.5px rgba(42, 38, 32, 0.3));
+  pointer-events: none;
+}
+
+/* Sits in the meat of the triangle rather than its centre, which is empty. */
+.glyph {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+/*
+ * Visually hidden, still announced. The fold is a glyph, and the pill it
+ * replaced carried the status as readable text.
+ */
+.label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The same colours the pill, the charts and the filter pills already use. */
+.queued {
+  color: var(--slate);
+}
+
+.reading {
+  color: var(--rust);
+}
+
+.finished {
+  color: var(--sage);
+}
+
+.abandoned {
+  color: var(--muted);
+}

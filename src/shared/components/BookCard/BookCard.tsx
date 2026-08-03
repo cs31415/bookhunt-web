@@ -2,7 +2,7 @@ import type { BookSummary } from '../../types/book';
 import type { LibraryStatus } from '../../types/library-status';
 import { Cover } from '../Cover/Cover';
 import { Stars } from '../Stars/Stars';
-import { StatusBadge } from '../StatusBadge/StatusBadge';
+import { CoverFold } from '../CoverFold/CoverFold';
 import styles from './BookCard.module.css';
 
 export interface BookCardProps {
@@ -17,11 +17,7 @@ export function BookCard({ book, status, reason, onClick }: BookCardProps) {
     <button type="button" className={`${styles.card} fade-up`} onClick={onClick}>
       <div className={styles.coverWrap}>
         <Cover book={book} width="100%" />
-        {status && (
-          <div className={styles.badgeOverlay}>
-            <StatusBadge status={status} />
-          </div>
-        )}
+        {status && <CoverFold status={status} />}
       </div>
       <div>
         {reason && <div className={styles.eyebrow}>{reason}</div>}
