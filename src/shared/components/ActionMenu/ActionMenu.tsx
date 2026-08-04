@@ -3,18 +3,13 @@ import type { LibraryStatus } from '../../types/library-status';
 import { ALL_LIBRARY_STATUSES, LIBRARY_STATUS_LABELS } from '../../types/library-status';
 import styles from './ActionMenu.module.css';
 
+/** Filing only — removal is its own button beside this menu (LOS-207). */
 export interface ActionMenuProps {
   current: LibraryStatus;
   onSelect: (status: LibraryStatus) => void;
-  /**
-   * Offered below the statuses when given. This menu is the only control a book
-   * already in the library has on its own page — without it there was no way to
-   * take a book back out from there at all (LOS-206).
-   */
-  onRemove?: () => void;
 }
 
-export function ActionMenu({ current, onSelect, onRemove }: ActionMenuProps) {
+export function ActionMenu({ current, onSelect }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -66,27 +61,6 @@ export function ActionMenu({ current, onSelect, onRemove }: ActionMenuProps) {
               {LIBRARY_STATUS_LABELS[status]}
             </li>
           ))}
-          {onRemove && (
-            // Separated from the statuses: the others change how a book is
-            // filed, this one takes it off the shelf and cannot be undone.
-            <li
-              role="menuitem"
-              tabIndex={0}
-              className={`${styles.item} ${styles.remove}`}
-              onClick={() => {
-                setOpen(false);
-                onRemove();
-              }}
-              onKeyDown={(event) => {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-                event.preventDefault();
-                setOpen(false);
-                onRemove();
-              }}
-            >
-              Remove from library
-            </li>
-          )}
         </ul>
       )}
     </div>

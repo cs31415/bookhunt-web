@@ -15,7 +15,7 @@ export interface HeroProps {
   moods: string[];
   addingToLibrary: boolean;
   onToggleLibrary: () => void;
-  /** Offered in the status menu once the book is in the library. */
+  /** Offered as its own button once the book is in the library. */
   onRemoveFromLibrary?: () => void;
   onStatusChange: (status: LibraryStatus) => void;
   onRate: (rating: number) => void;
@@ -55,11 +55,20 @@ export function Hero({
         </div>
 
         {libraryEntry ? (
-          <ActionMenu
-            current={libraryEntry.status}
-            onSelect={onStatusChange}
-            onRemove={onRemoveFromLibrary}
-          />
+          <>
+            <ActionMenu current={libraryEntry.status} onSelect={onStatusChange} />
+            {/*
+             * Its own button rather than an item in the status menu: removing is
+             * the counterpart to adding, so it sits where + Add to library sat
+             * and is visible without opening anything (LOS-207). Outlined, not
+             * filled — it should not read as the page's primary action.
+             */}
+            {onRemoveFromLibrary && (
+              <button type="button" className={styles.removeButton} onClick={onRemoveFromLibrary}>
+                Remove from library
+              </button>
+            )}
+          </>
         ) : (
           <button
             type="button"

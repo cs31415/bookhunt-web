@@ -42,15 +42,3 @@
   font-weight: 600;
   color: var(--rust);
 }
-
-/*
- * --rust rather than a red: the palette has no destructive colour and should
- * not gain one. The rule above it is what separates filing a book from
- * removing it.
- */
-.remove {
-  border-top: 1px solid var(--line);
-  margin-top: 4px;
-  padding-top: 8px;
-  color: var(--rust);
-}

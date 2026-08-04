@@ -313,7 +313,8 @@ describe('BookDetailPage', () => {
   /**
    * A book already in the library had no way off the shelf from its own page:
    * handleToggleLibrary could remove, but the button calling it only rendered
-   * when the book was *not* in the library (LOS-206).
+   * when the book was *not* in the library (LOS-206). Remove now stands beside
+   * the status menu as its own button rather than inside it (LOS-207).
    */
   describe('removing from the library', () => {
     function inLibrary() {
@@ -324,20 +325,26 @@ describe('BookDetailPage', () => {
       } as never);
     }
 
-    it('offers Remove in the status menu', async () => {
+    it('offers Remove as a button, without opening the status menu', async () => {
+      inLibrary();
+      renderBookDetailPage('night-watch');
+
+      expect(await screen.findByRole('button', { name: 'Remove from library' })).toBeInTheDocument();
+    });
+
+    it('keeps the status menu to statuses only', async () => {
       inLibrary();
       renderBookDetailPage('night-watch');
 
       fireEvent.click(await screen.findByRole('button', { name: 'Reading' }));
-      expect(screen.getByRole('menuitem', { name: 'Remove from library' })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'Remove from library' })).not.toBeInTheDocument();
     });
 
     it('confirms before removing, and names what is lost', async () => {
       inLibrary();
       renderBookDetailPage('night-watch');
 
-      fireEvent.click(await screen.findByRole('button', { name: 'Reading' }));
-      fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from library' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove from library' }));
 
       const dialog = await screen.findByRole('dialog');
       expect(dialog).toHaveTextContent(/rating, review and notes/);
@@ -351,8 +358,7 @@ describe('BookDetailPage', () => {
       inLibrary();
       renderBookDetailPage('night-watch');
 
-      fireEvent.click(await screen.findByRole('button', { name: 'Reading' }));
-      fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from library' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove from library' }));
       fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -363,7 +369,7 @@ describe('BookDetailPage', () => {
       renderBookDetailPage('night-watch');
 
       expect(await screen.findByRole('button', { name: /Add to library/ })).toBeInTheDocument();
-      expect(screen.queryByRole('menuitem', { name: 'Remove from library' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Remove from library' })).not.toBeInTheDocument();
     });
   });
 });
