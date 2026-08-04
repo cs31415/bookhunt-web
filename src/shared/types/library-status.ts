@@ -19,7 +19,7 @@ export const LIBRARY_STATUS_GLYPHS: Record<LibraryStatus, string> = {
   queued: '★',
   reading: '◐',
   finished: '✓',
-  abandoned: '–',
+  abandoned: '⊘',
 };
 
 // Shared across the Library page charts and Discover's snapshot pie so a status

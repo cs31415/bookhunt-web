@@ -44,6 +44,17 @@
 }
 
 /*
+ * U+2298 is drawn at about three quarters the ink height of the other three
+ * marks, so at a shared font-size it reads as a smaller symbol. 1.34x is what
+ * measuring the four glyphs' ink boxes puts it level at; the taller em box is
+ * why it also loses the 2px top offset.
+ */
+.glyphAbandoned {
+  font-size: 17.5px;
+  top: 0;
+}
+
+/*
  * Visually hidden, still announced. The fold is a glyph, and the pill it
  * replaced carried the status as readable text.
  */

@@ -27,7 +27,12 @@ export interface CoverFoldProps {
 export function CoverFold({ status }: CoverFoldProps) {
   return (
     <span className={styles.fold}>
-      <span className={styles.glyph} aria-hidden="true">
+      <span
+        className={
+          status === 'abandoned' ? `${styles.glyph} ${styles.glyphAbandoned}` : styles.glyph
+        }
+        aria-hidden="true"
+      >
         {LIBRARY_STATUS_GLYPHS[status]}
       </span>
       {/* The glyph alone says nothing to a screen reader, and the pill it

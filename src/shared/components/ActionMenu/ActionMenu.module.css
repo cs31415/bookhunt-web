@@ -86,6 +86,11 @@
   color: var(--slate);
 }
 
+/* Same 1.34x correction the fold makes — see CoverFold.module.css. */
+.glyphAbandoned {
+  font-size: 18px;
+}
+
 .item:hover {
   background: var(--paper-2);
 }
