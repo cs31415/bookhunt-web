@@ -15,7 +15,12 @@
   position: relative;
 }
 
-.addButton {
+/*
+ * Shared by Add and Remove: the two are the same control in the same slot,
+ * swapping according to whether the book is on the shelf, so they are the
+ * same filled rust pill and differ only in their +/- label (LOS-207).
+ */
+.libraryButton {
   width: 100%;
   padding: 10px 16px;
   border: none;
@@ -27,35 +32,13 @@
   cursor: pointer;
 }
 
-.addButton:hover {
+.libraryButton:hover {
   background: var(--rust-deep);
 }
 
-.addButton:disabled {
+.libraryButton:disabled {
   opacity: 0.7;
   cursor: default;
-}
-
-/*
- * Same pill footprint as .addButton so the two read as one control swapping
- * places, but outlined and rust-on-paper rather than filled: --rust is the
- * palette's only warning colour and it has no destructive red by design.
- */
-.removeButton {
-  width: 100%;
-  padding: 10px 16px;
-  border: 1px solid var(--line-2);
-  border-radius: 999px;
-  background: var(--card);
-  color: var(--rust);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.removeButton:hover {
-  border-color: var(--rust);
-  background: var(--paper-2);
 }
 
 .googleLink {

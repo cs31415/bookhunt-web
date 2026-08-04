@@ -329,7 +329,7 @@ describe('BookDetailPage', () => {
       inLibrary();
       renderBookDetailPage('night-watch');
 
-      expect(await screen.findByRole('button', { name: 'Remove from library' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: '- Remove from library' })).toBeInTheDocument();
     });
 
     it('keeps the status menu to statuses only', async () => {
@@ -344,7 +344,7 @@ describe('BookDetailPage', () => {
       inLibrary();
       renderBookDetailPage('night-watch');
 
-      fireEvent.click(await screen.findByRole('button', { name: 'Remove from library' }));
+      fireEvent.click(await screen.findByRole('button', { name: '- Remove from library' }));
 
       const dialog = await screen.findByRole('dialog');
       expect(dialog).toHaveTextContent(/rating, review and notes/);
@@ -358,7 +358,7 @@ describe('BookDetailPage', () => {
       inLibrary();
       renderBookDetailPage('night-watch');
 
-      fireEvent.click(await screen.findByRole('button', { name: 'Remove from library' }));
+      fireEvent.click(await screen.findByRole('button', { name: '- Remove from library' }));
       fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -369,7 +369,7 @@ describe('BookDetailPage', () => {
       renderBookDetailPage('night-watch');
 
       expect(await screen.findByRole('button', { name: /Add to library/ })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Remove from library' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '- Remove from library' })).not.toBeInTheDocument();
     });
   });
 });

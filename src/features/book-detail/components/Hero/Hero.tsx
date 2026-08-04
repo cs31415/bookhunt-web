@@ -59,20 +59,20 @@ export function Hero({
             <ActionMenu current={libraryEntry.status} onSelect={onStatusChange} />
             {/*
              * Its own button rather than an item in the status menu: removing is
-             * the counterpart to adding, so it sits where + Add to library sat
-             * and is visible without opening anything (LOS-207). Outlined, not
-             * filled — it should not read as the page's primary action.
+             * the counterpart to adding, so it takes the same slot and the same
+             * styling as + Add to library, visible without opening anything
+             * (LOS-207).
              */}
             {onRemoveFromLibrary && (
-              <button type="button" className={styles.removeButton} onClick={onRemoveFromLibrary}>
-                Remove from library
+              <button type="button" className={styles.libraryButton} onClick={onRemoveFromLibrary}>
+                - Remove from library
               </button>
             )}
           </>
         ) : (
           <button
             type="button"
-            className={styles.addButton}
+            className={styles.libraryButton}
             disabled={addingToLibrary}
             onClick={onToggleLibrary}
           >
