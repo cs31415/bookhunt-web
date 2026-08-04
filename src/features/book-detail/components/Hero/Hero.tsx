@@ -60,12 +60,20 @@ export function Hero({
             {/*
              * Its own button rather than an item in the status menu: removing is
              * the counterpart to adding, so it takes the same slot and the same
-             * styling as + Add to library, visible without opening anything
+             * styling as the add button, visible without opening anything
              * (LOS-207).
              */}
             {onRemoveFromLibrary && (
-              <button type="button" className={styles.libraryButton} onClick={onRemoveFromLibrary}>
-                - Remove from library
+              <button
+                type="button"
+                className={styles.libraryButton}
+                // Visible label is trimmed to fit the 144px cover column on one
+                // line; the accessible name keeps the full phrase, which on its
+                // own out of context is what "- library" fails to convey.
+                aria-label="Remove from library"
+                onClick={onRemoveFromLibrary}
+              >
+                - library
               </button>
             )}
           </>
@@ -74,9 +82,10 @@ export function Hero({
             type="button"
             className={styles.libraryButton}
             disabled={addingToLibrary}
+            aria-label={addingToLibrary ? 'Adding…' : 'Add to library'}
             onClick={onToggleLibrary}
           >
-            {addingToLibrary ? 'Adding…' : '+ Add to library'}
+            {addingToLibrary ? 'Adding…' : '+ library'}
           </button>
         )}
 

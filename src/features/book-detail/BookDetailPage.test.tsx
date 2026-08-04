@@ -176,7 +176,7 @@ describe('BookDetailPage', () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });
 
-    fireEvent.click(screen.getByRole('button', { name: '+ Add to library' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add to library' }));
 
     await waitFor(() => expect(mockedAddToLibrary).toHaveBeenCalledWith('night-watch', 'queued', undefined));
   });
@@ -192,7 +192,7 @@ describe('BookDetailPage', () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });
 
-    fireEvent.click(screen.getByRole('button', { name: '+ Add to library' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add to library' }));
 
     const pendingButton = await screen.findByRole('button', { name: 'Adding…' });
     expect(pendingButton).toBeDisabled();
@@ -200,7 +200,7 @@ describe('BookDetailPage', () => {
     resolveAdd({ entry: {}, book: { id: 95, slug: 'night-watch' } });
 
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: '+ Add to library' })).not.toBeDisabled(),
+      expect(screen.getByRole('button', { name: 'Add to library' })).not.toBeDisabled(),
     );
   });
 
@@ -297,7 +297,7 @@ describe('BookDetailPage', () => {
       renderBookDetailPage('sapiens?a=yuval-noah-harari');
       await screen.findByRole('heading', { name: 'Sapiens' });
 
-      fireEvent.click(screen.getByRole('button', { name: '+ Add to library' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add to library' }));
 
       await waitFor(() =>
         expect(mockedAddToLibrary).toHaveBeenCalledWith(
@@ -329,7 +329,7 @@ describe('BookDetailPage', () => {
       inLibrary();
       renderBookDetailPage('night-watch');
 
-      expect(await screen.findByRole('button', { name: '- Remove from library' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Remove from library' })).toBeInTheDocument();
     });
 
     it('keeps the status menu to statuses only', async () => {
@@ -344,7 +344,7 @@ describe('BookDetailPage', () => {
       inLibrary();
       renderBookDetailPage('night-watch');
 
-      fireEvent.click(await screen.findByRole('button', { name: '- Remove from library' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove from library' }));
 
       const dialog = await screen.findByRole('dialog');
       expect(dialog).toHaveTextContent(/rating, review and notes/);
@@ -358,7 +358,7 @@ describe('BookDetailPage', () => {
       inLibrary();
       renderBookDetailPage('night-watch');
 
-      fireEvent.click(await screen.findByRole('button', { name: '- Remove from library' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove from library' }));
       fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -369,7 +369,7 @@ describe('BookDetailPage', () => {
       renderBookDetailPage('night-watch');
 
       expect(await screen.findByRole('button', { name: /Add to library/ })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: '- Remove from library' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Remove from library' })).not.toBeInTheDocument();
     });
   });
 });

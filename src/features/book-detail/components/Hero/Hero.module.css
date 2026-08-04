@@ -29,6 +29,8 @@
   color: #fff;
   font: inherit;
   font-size: 14px;
+  /* The column is only as wide as the cover; the label must not wrap in it. */
+  white-space: nowrap;
   cursor: pointer;
 }
 
