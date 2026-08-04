@@ -19,7 +19,7 @@ export interface CoverFoldProps {
  * provider's CDN, so reading its pixels would mean drawing it to a canvas, which
  * a cross-origin image taints. Paper over artwork separates whatever the
  * artwork is, and the glyph on it needs to contrast only with that paper — so
- * it is one ink colour for every status, the mark alone carrying which.
+ * it is one colour for every status, the mark alone carrying which.
  *
  * BookRow and RelatedCard keep the pill: their badge sits in a text column,
  * where there is no corner to turn down and nothing to stay legible against.

@@ -77,13 +77,13 @@
 }
 
 /*
- * Fixed width so the labels line up under each other, marks or not. One ink
- * colour for every status, matching the fold these marks appear on.
+ * Fixed width so the labels line up under each other, marks or not. One colour
+ * for every status, matching the fold these marks appear on.
  */
 .glyph {
   width: 12px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--slate);
 }
 
 .item:hover {

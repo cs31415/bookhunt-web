@@ -28,9 +28,10 @@
 /*
  * Sits in the meat of the triangle rather than its centre, which is empty.
  *
- * One ink colour for every status rather than the status colour: four folds in
- * four hues across a grid read as decoration, and the mark itself already says
- * which status it is.
+ * One colour for every status rather than the status colour: four folds in four
+ * hues across a grid read as decoration, and the mark itself already says which
+ * status it is. --slate, which New already used, reads as ink without the
+ * hardness of it against the pale fold.
  */
 .glyph {
   position: absolute;
@@ -39,7 +40,7 @@
   font-size: 13px;
   line-height: 1;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--slate);
 }
 
 /*
