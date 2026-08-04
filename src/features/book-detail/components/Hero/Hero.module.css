@@ -16,12 +16,20 @@
 }
 
 /*
- * Right-aligned directly under the cover, pulled up out of the column's 14px
- * gap so it reads as belonging to the cover rather than heading the buttons.
+ * The fold's own 34px corner, turned into the hit area that opens the status
+ * menu. CoverFold draws itself absolutely from this box, so the two coincide
+ * and clicking the dog-ear is what a reader would expect it to be.
  */
-.statusTag {
-  align-self: flex-end;
-  margin-top: -8px;
+/*
+ * Doubled to outweigh ActionMenu's own .wrap { position: relative } without
+ * depending on which module's CSS the bundler happens to emit second.
+ */
+.statusFold.statusFold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 34px;
+  height: 34px;
 }
 
 /*

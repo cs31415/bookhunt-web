@@ -1,15 +1,30 @@
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { LibraryStatus } from '../../types/library-status';
-import { ALL_LIBRARY_STATUSES, LIBRARY_STATUS_LABELS } from '../../types/library-status';
+import {
+  ALL_LIBRARY_STATUSES,
+  LIBRARY_STATUS_GLYPHS,
+  LIBRARY_STATUS_LABELS,
+} from '../../types/library-status';
 import styles from './ActionMenu.module.css';
 
 /** Filing only — removal is its own button beside this menu (LOS-207). */
 export interface ActionMenuProps {
   current: LibraryStatus;
   onSelect: (status: LibraryStatus) => void;
+  /**
+   * Replaces the default text trigger. The book page hands in a CoverFold, so
+   * the dog-ear on the cover is itself what opens the menu; whatever is given
+   * must carry the status as text for the button to have an accessible name.
+   */
+  trigger?: ReactNode;
+  /** Applied to the positioning wrapper, for callers that place the menu. */
+  className?: string;
+  /** Which edge the dropdown hangs from — right when the trigger sits at one. */
+  align?: 'left' | 'right';
 }
 
-export function ActionMenu({ current, onSelect }: ActionMenuProps) {
+export function ActionMenu({ current, onSelect, trigger, className, align = 'left' }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -35,18 +50,18 @@ export function ActionMenu({ current, onSelect }: ActionMenuProps) {
   }, [open]);
 
   return (
-    <div className={styles.wrap} ref={containerRef}>
+    <div className={className ? `${styles.wrap} ${className}` : styles.wrap} ref={containerRef}>
       <button
         type="button"
-        className={styles.trigger}
+        className={trigger ? styles.bareTrigger : styles.trigger}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        {LIBRARY_STATUS_LABELS[current]}
+        {trigger ?? LIBRARY_STATUS_LABELS[current]}
       </button>
       {open && (
-        <ul className={styles.menu} role="menu">
+        <ul className={align === 'right' ? `${styles.menu} ${styles.menuRight}` : styles.menu} role="menu">
           {ALL_LIBRARY_STATUSES.map((status) => (
             <li
               key={status}
@@ -58,6 +73,11 @@ export function ActionMenu({ current, onSelect }: ActionMenuProps) {
                 setOpen(false);
               }}
             >
+              {/* The same mark the cover fold carries, so which fold means what
+                  is learnable from the menu that sets it. */}
+              <span className={`${styles.glyph} ${styles[status]}`} aria-hidden="true">
+                {LIBRARY_STATUS_GLYPHS[status]}
+              </span>
               {LIBRARY_STATUS_LABELS[status]}
             </li>
           ))}

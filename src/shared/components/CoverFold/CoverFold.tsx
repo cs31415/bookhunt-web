@@ -1,17 +1,6 @@
 import type { LibraryStatus } from '../../types/library-status';
-import { LIBRARY_STATUS_LABELS } from '../../types/library-status';
+import { LIBRARY_STATUS_GLYPHS, LIBRARY_STATUS_LABELS } from '../../types/library-status';
 import styles from './CoverFold.module.css';
-
-/**
- * One mark per status, legible at 13px over artwork. Deliberately not emoji:
- * these render in the reader's text colour, and emoji would bring their own.
- */
-const GLYPHS: Record<LibraryStatus, string> = {
-  queued: '★',
-  reading: '◐',
-  finished: '✓',
-  abandoned: '–',
-};
 
 export interface CoverFoldProps {
   status: LibraryStatus;
@@ -39,7 +28,7 @@ export function CoverFold({ status }: CoverFoldProps) {
   return (
     <span className={`${styles.fold} ${styles[status]}`}>
       <span className={styles.glyph} aria-hidden="true">
-        {GLYPHS[status]}
+        {LIBRARY_STATUS_GLYPHS[status]}
       </span>
       {/* The glyph alone says nothing to a screen reader, and the pill it
           replaced carried the status as text. */}

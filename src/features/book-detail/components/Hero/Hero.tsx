@@ -1,5 +1,6 @@
 import { Cover } from '../../../../shared/components/Cover/Cover';
 import { ActionMenu } from '../../../../shared/components/ActionMenu/ActionMenu';
+import { CoverFold } from '../../../../shared/components/CoverFold/CoverFold';
 import { Stars } from '../../../../shared/components/Stars/Stars';
 import type { BookDetail, LibraryEntrySummary } from '../../../../normalize/book-detail';
 import type { LibraryStatus } from '../../../../shared/types/library-status';
@@ -52,14 +53,21 @@ export function Hero({
       <div className={styles.left}>
         <div className={styles.coverWrap}>
           <Cover book={book} width={144} />
+          {/*
+           * The same dog-eared corner the library grid uses, so a book carries
+           * one status mark everywhere — here it is also the control that
+           * changes it, rather than a second thing sitting beside it.
+           */}
+          {libraryEntry && (
+            <ActionMenu
+              current={libraryEntry.status}
+              onSelect={onStatusChange}
+              trigger={<CoverFold status={libraryEntry.status} />}
+              className={styles.statusFold}
+              align="right"
+            />
+          )}
         </div>
-
-        {/* Tucked under the cover's bottom-right corner, like a shelf label. */}
-        {libraryEntry && (
-          <div className={styles.statusTag}>
-            <ActionMenu current={libraryEntry.status} onSelect={onStatusChange} />
-          </div>
-        )}
 
         {/*
          * Remove is its own button rather than an item in the status menu: it is
@@ -67,7 +75,7 @@ export function Hero({
          * styling as the add button, visible without opening anything (LOS-207).
          * The visible labels are trimmed to fit the 144px cover column on one
          * line; the accessible names keep the full phrase, which on its own out
-         * of context is what "- library" fails to convey.
+         * of context is what "- Library" fails to convey.
          */}
         {libraryEntry ? (
           onRemoveFromLibrary && (
@@ -77,7 +85,7 @@ export function Hero({
               aria-label="Remove from library"
               onClick={onRemoveFromLibrary}
             >
-              - library
+              - Library
             </button>
           )
         ) : (
@@ -88,7 +96,7 @@ export function Hero({
             aria-label={addingToLibrary ? 'Adding…' : 'Add to library'}
             onClick={onToggleLibrary}
           >
-            {addingToLibrary ? 'Adding…' : '+ library'}
+            {addingToLibrary ? 'Adding…' : '+ Library'}
           </button>
         )}
 
