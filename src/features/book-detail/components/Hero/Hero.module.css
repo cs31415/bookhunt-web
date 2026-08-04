@@ -16,6 +16,15 @@
 }
 
 /*
+ * Right-aligned directly under the cover, pulled up out of the column's 14px
+ * gap so it reads as belonging to the cover rather than heading the buttons.
+ */
+.statusTag {
+  align-self: flex-end;
+  margin-top: -8px;
+}
+
+/*
  * Shared by Add and Remove: the two are the same control in the same slot,
  * swapping according to whether the book is on the shelf, so they are the
  * same filled rust pill and differ only in their +/- label (LOS-207).

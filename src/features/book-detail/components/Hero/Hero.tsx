@@ -54,29 +54,32 @@ export function Hero({
           <Cover book={book} width={144} />
         </div>
 
-        {libraryEntry ? (
-          <>
+        {/* Tucked under the cover's bottom-right corner, like a shelf label. */}
+        {libraryEntry && (
+          <div className={styles.statusTag}>
             <ActionMenu current={libraryEntry.status} onSelect={onStatusChange} />
-            {/*
-             * Its own button rather than an item in the status menu: removing is
-             * the counterpart to adding, so it takes the same slot and the same
-             * styling as the add button, visible without opening anything
-             * (LOS-207).
-             */}
-            {onRemoveFromLibrary && (
-              <button
-                type="button"
-                className={styles.libraryButton}
-                // Visible label is trimmed to fit the 144px cover column on one
-                // line; the accessible name keeps the full phrase, which on its
-                // own out of context is what "- library" fails to convey.
-                aria-label="Remove from library"
-                onClick={onRemoveFromLibrary}
-              >
-                - library
-              </button>
-            )}
-          </>
+          </div>
+        )}
+
+        {/*
+         * Remove is its own button rather than an item in the status menu: it is
+         * the counterpart to adding, so it takes the same slot and the same
+         * styling as the add button, visible without opening anything (LOS-207).
+         * The visible labels are trimmed to fit the 144px cover column on one
+         * line; the accessible names keep the full phrase, which on its own out
+         * of context is what "- library" fails to convey.
+         */}
+        {libraryEntry ? (
+          onRemoveFromLibrary && (
+            <button
+              type="button"
+              className={styles.libraryButton}
+              aria-label="Remove from library"
+              onClick={onRemoveFromLibrary}
+            >
+              - library
+            </button>
+          )
         ) : (
           <button
             type="button"

@@ -4,19 +4,29 @@
 }
 
 /*
- * Deliberately quieter than the library button it sits above: filing a book
- * is a smaller act than putting it on the shelf or taking it off, so the
- * trigger is flatter and set a step down in size.
+ * Reads as a label stamped on the book rather than a button: small caps in a
+ * plain grotesque, square-cornered, on a pale gray. Deliberately quieter than
+ * the library button, since filing a book is a smaller act than shelving or
+ * unshelving it.
  */
 .trigger {
-  padding: 5px 10px;
-  border: 1px solid var(--line-2);
-  border-radius: var(--r-md);
-  background: var(--card);
-  color: var(--ink);
-  font: inherit;
-  font-size: 12.5px;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-family: var(--ui-sans);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  line-height: 1.4;
   cursor: pointer;
+}
+
+.trigger:hover {
+  color: var(--ink);
+  border-color: var(--line-2);
 }
 
 .menu {
