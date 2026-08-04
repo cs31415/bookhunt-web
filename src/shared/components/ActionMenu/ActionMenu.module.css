@@ -3,13 +3,19 @@
   display: inline-block;
 }
 
+/*
+ * Deliberately quieter than the library button it sits above: filing a book
+ * is a smaller act than putting it on the shelf or taking it off, so the
+ * trigger is flatter and set a step down in size.
+ */
 .trigger {
-  padding: 8px 12px;
+  padding: 5px 10px;
   border: 1px solid var(--line-2);
   border-radius: var(--r-md);
   background: var(--card);
   color: var(--ink);
   font: inherit;
+  font-size: 12.5px;
   cursor: pointer;
 }
 
