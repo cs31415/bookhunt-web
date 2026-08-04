@@ -18,15 +18,15 @@ export interface CoverFoldProps {
  * over artwork whose colours we cannot know. A cover image comes from the
  * provider's CDN, so reading its pixels would mean drawing it to a canvas, which
  * a cross-origin image taints. Paper over artwork separates whatever the
- * artwork is; the status colour rides on the glyph, where it needs to contrast
- * only with the paper beneath it.
+ * artwork is, and the glyph on it needs to contrast only with that paper — so
+ * it is one ink colour for every status, the mark alone carrying which.
  *
  * BookRow and RelatedCard keep the pill: their badge sits in a text column,
  * where there is no corner to turn down and nothing to stay legible against.
  */
 export function CoverFold({ status }: CoverFoldProps) {
   return (
-    <span className={`${styles.fold} ${styles[status]}`}>
+    <span className={styles.fold}>
       <span className={styles.glyph} aria-hidden="true">
         {LIBRARY_STATUS_GLYPHS[status]}
       </span>

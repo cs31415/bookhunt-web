@@ -25,7 +25,13 @@
   pointer-events: none;
 }
 
-/* Sits in the meat of the triangle rather than its centre, which is empty. */
+/*
+ * Sits in the meat of the triangle rather than its centre, which is empty.
+ *
+ * One ink colour for every status rather than the status colour: four folds in
+ * four hues across a grid read as decoration, and the mark itself already says
+ * which status it is.
+ */
 .glyph {
   position: absolute;
   top: 2px;
@@ -33,6 +39,7 @@
   font-size: 13px;
   line-height: 1;
   font-weight: 600;
+  color: var(--ink);
 }
 
 /*
@@ -50,21 +57,4 @@
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
-}
-
-/* The same colours the pill, the charts and the filter pills already use. */
-.queued {
-  color: var(--slate);
-}
-
-.reading {
-  color: var(--rust);
-}
-
-.finished {
-  color: var(--sage);
-}
-
-.abandoned {
-  color: var(--muted);
 }

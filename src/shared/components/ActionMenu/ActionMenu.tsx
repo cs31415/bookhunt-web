@@ -75,7 +75,7 @@ export function ActionMenu({ current, onSelect, trigger, className, align = 'lef
             >
               {/* The same mark the cover fold carries, so which fold means what
                   is learnable from the menu that sets it. */}
-              <span className={`${styles.glyph} ${styles[status]}`} aria-hidden="true">
+              <span className={styles.glyph} aria-hidden="true">
                 {LIBRARY_STATUS_GLYPHS[status]}
               </span>
               {LIBRARY_STATUS_LABELS[status]}

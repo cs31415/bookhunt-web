@@ -76,27 +76,14 @@
   font-size: 13.5px;
 }
 
-/* Fixed width so the labels line up under each other, marks or not. */
+/*
+ * Fixed width so the labels line up under each other, marks or not. One ink
+ * colour for every status, matching the fold these marks appear on.
+ */
 .glyph {
   width: 12px;
   font-weight: 600;
-}
-
-/* The same colours the fold, the charts and the filter pills already use. */
-.queued {
-  color: var(--slate);
-}
-
-.reading {
-  color: var(--rust);
-}
-
-.finished {
-  color: var(--sage);
-}
-
-.abandoned {
-  color: var(--muted);
+  color: var(--ink);
 }
 
 .item:hover {
