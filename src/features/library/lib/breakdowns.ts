@@ -81,17 +81,44 @@ export function filterEntries(entries: LibraryEntry[], filter: LibraryFilter): L
   });
 }
 
+/**
+ * The order the shelves read in, which is not the order they are declared in.
+ * What someone is reading right now leads, then what is waiting to be read;
+ * the two settled states come last, since neither asks anything of the reader.
+ *
+ * A Record rather than an array so a fifth status could not be added without
+ * being given a place here — an unranked one would otherwise sort silently to
+ * the front. ALL_LIBRARY_STATUSES stays the display order for filters and
+ * charts, where starting at New is the natural reading.
+ */
+const SHELF_ORDER: Record<LibraryStatus, number> = {
+  reading: 0,
+  queued: 1,
+  finished: 2,
+  abandoned: 3,
+};
+
 // Newest first. Entries without a date_added fall back to book id (a monotonic
 // proxy for insertion order) and sort after any dated entries.
-export function sortByAddedDesc(entries: LibraryEntry[]): LibraryEntry[] {
+function byAddedDesc(a: LibraryEntry, b: LibraryEntry): number {
+  const ta = a.addedAt ? Date.parse(a.addedAt) : NaN;
+  const tb = b.addedAt ? Date.parse(b.addedAt) : NaN;
+  const aValid = !Number.isNaN(ta);
+  const bValid = !Number.isNaN(tb);
+  if (aValid && bValid && ta !== tb) return tb - ta;
+  if (aValid && !bValid) return -1;
+  if (!aValid && bValid) return 1;
+  return b.book.id - a.book.id;
+}
+
+/**
+ * Shelf first, then newest added within each — so the grid opens on what is
+ * being read rather than on whatever happened to be added last, and a book
+ * keeps its familiar place inside its own group.
+ */
+export function sortByShelf(entries: LibraryEntry[]): LibraryEntry[] {
   return [...entries].sort((a, b) => {
-    const ta = a.addedAt ? Date.parse(a.addedAt) : NaN;
-    const tb = b.addedAt ? Date.parse(b.addedAt) : NaN;
-    const aValid = !Number.isNaN(ta);
-    const bValid = !Number.isNaN(tb);
-    if (aValid && bValid && ta !== tb) return tb - ta;
-    if (aValid && !bValid) return -1;
-    if (!aValid && bValid) return 1;
-    return b.book.id - a.book.id;
+    const shelf = SHELF_ORDER[a.status] - SHELF_ORDER[b.status];
+    return shelf !== 0 ? shelf : byAddedDesc(a, b);
   });
 }

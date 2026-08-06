@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   filterEntries,
-  sortByAddedDesc,
+  sortByShelf,
   statusCounts,
   topCategories,
   topMoods,
@@ -226,11 +226,39 @@ describe('topThemes', () => {
   });
 });
 
-describe('sortByAddedDesc', () => {
+describe('sortByShelf', () => {
+  it('orders the shelves Reading, New, Finished, Abandoned', () => {
+    const entries = [
+      makeEntry({ status: 'abandoned' }),
+      makeEntry({ status: 'finished' }),
+      makeEntry({ status: 'queued' }),
+      makeEntry({ status: 'reading' }),
+    ];
+
+    expect(sortByShelf(entries).map((e) => e.status)).toEqual([
+      'reading',
+      'queued',
+      'finished',
+      'abandoned',
+    ]);
+  });
+
+  // Shelf is the outer key: a book added years ago still leads if it's the one
+  // being read now.
+  it('puts an older Reading book ahead of a newer New one', () => {
+    const oldReading = makeEntry({ status: 'reading', addedAt: '2020-01-01T00:00:00Z' });
+    const newQueued = makeEntry({ status: 'queued', addedAt: '2026-06-01T00:00:00Z' });
+
+    expect(sortByShelf([newQueued, oldReading]).map((e) => e.status)).toEqual([
+      'reading',
+      'queued',
+    ]);
+  });
+
   it('sorts by addedAt newest first', () => {
     const older = makeEntry({ addedAt: '2026-01-01T00:00:00Z' });
     const newer = makeEntry({ addedAt: '2026-06-01T00:00:00Z' });
-    const sorted = sortByAddedDesc([older, newer]);
+    const sorted = sortByShelf([older, newer]);
     expect(sorted.map((e) => e.addedAt)).toEqual([newer.addedAt, older.addedAt]);
   });
 
@@ -238,7 +266,7 @@ describe('sortByAddedDesc', () => {
     const dated = makeEntry({ addedAt: '2026-01-01T00:00:00Z', book: { id: 1 } as LibraryEntry['book'] });
     const undatedLow = makeEntry({ book: { id: 5 } as LibraryEntry['book'] });
     const undatedHigh = makeEntry({ book: { id: 9 } as LibraryEntry['book'] });
-    const sorted = sortByAddedDesc([undatedLow, dated, undatedHigh]);
+    const sorted = sortByShelf([undatedLow, dated, undatedHigh]);
     expect(sorted.map((e) => e.book.id)).toEqual([1, 9, 5]);
   });
 });
