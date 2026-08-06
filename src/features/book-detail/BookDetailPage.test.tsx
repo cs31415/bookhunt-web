@@ -99,7 +99,7 @@ function setupHappyPathMocks() {
   mockedGetAuthor.mockResolvedValue(rawAuthor);
   mockedGetBooksByIds.mockResolvedValue({ books: [] });
   mockedGenerateThemes.mockResolvedValue({ genres: [], themes: [], moods: [] });
-  mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
+  mockedGetLibrary.mockResolvedValue({ entries: [], total: 0, stats: { total: 0, by_status: {} } });
   mockedAddToLibrary.mockResolvedValue({ entry: {}, book: { id: 95, slug: 'night-watch' } });
   mockedUpdateEntry.mockResolvedValue({ entry: {} });
   mockedRemoveEntry.mockResolvedValue(undefined);

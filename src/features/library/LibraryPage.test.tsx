@@ -44,6 +44,7 @@ function makeRaw(overrides: Partial<RawLibraryEntry> = {}): RawLibraryEntry {
 function mockLibrary(entries: RawLibraryEntry[], byStatus: Partial<Record<LibraryStatus, number>> = {}) {
   mockedGetLibrary.mockResolvedValue({
     entries,
+    total: entries.length,
     stats: { total: entries.length, by_status: byStatus },
   });
 }
