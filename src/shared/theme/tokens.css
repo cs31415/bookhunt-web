@@ -30,6 +30,8 @@
   --sans: 'Cabin Sketch', Georgia, 'Times New Roman', serif;
   --cover: 'Cabin Sketch', Georgia, 'Times New Roman', serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Plain grotesque for small UI chrome, where the sketch face turns to mush. */
+  --ui-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
   --r-sm: 4px;
   --r-md: 8px;

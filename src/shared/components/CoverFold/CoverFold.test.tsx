@@ -16,6 +16,12 @@ describe('CoverFold', () => {
     expect(container.textContent).toContain('★');
   });
 
+  // A dash read as "abandoned" only in contrast with the other three marks.
+  it('marks Abandoned with a struck-through circle', () => {
+    const { container } = render(<CoverFold status="abandoned" />);
+    expect(container.textContent).toContain('⊘');
+  });
+
   // Otherwise a reader hears the glyph read out as punctuation alongside the label.
   it('hides the glyph from assistive tech', () => {
     const { container } = render(<CoverFold status="finished" />);

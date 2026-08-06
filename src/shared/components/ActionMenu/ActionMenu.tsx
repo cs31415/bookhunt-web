@@ -1,20 +1,30 @@
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { LibraryStatus } from '../../types/library-status';
-import { ALL_LIBRARY_STATUSES, LIBRARY_STATUS_LABELS } from '../../types/library-status';
+import {
+  ALL_LIBRARY_STATUSES,
+  LIBRARY_STATUS_GLYPHS,
+  LIBRARY_STATUS_LABELS,
+} from '../../types/library-status';
 import styles from './ActionMenu.module.css';
 
+/** Filing only — removal is its own button beside this menu (LOS-207). */
 export interface ActionMenuProps {
   current: LibraryStatus;
   onSelect: (status: LibraryStatus) => void;
   /**
-   * Offered below the statuses when given. This menu is the only control a book
-   * already in the library has on its own page — without it there was no way to
-   * take a book back out from there at all (LOS-206).
+   * Replaces the default text trigger. The book page hands in a CoverFold, so
+   * the dog-ear on the cover is itself what opens the menu; whatever is given
+   * must carry the status as text for the button to have an accessible name.
    */
-  onRemove?: () => void;
+  trigger?: ReactNode;
+  /** Applied to the positioning wrapper, for callers that place the menu. */
+  className?: string;
+  /** Which edge the dropdown hangs from — right when the trigger sits at one. */
+  align?: 'left' | 'right';
 }
 
-export function ActionMenu({ current, onSelect, onRemove }: ActionMenuProps) {
+export function ActionMenu({ current, onSelect, trigger, className, align = 'left' }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -40,18 +50,18 @@ export function ActionMenu({ current, onSelect, onRemove }: ActionMenuProps) {
   }, [open]);
 
   return (
-    <div className={styles.wrap} ref={containerRef}>
+    <div className={className ? `${styles.wrap} ${className}` : styles.wrap} ref={containerRef}>
       <button
         type="button"
-        className={styles.trigger}
+        className={trigger ? styles.bareTrigger : styles.trigger}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        {LIBRARY_STATUS_LABELS[current]}
+        {trigger ?? LIBRARY_STATUS_LABELS[current]}
       </button>
       {open && (
-        <ul className={styles.menu} role="menu">
+        <ul className={align === 'right' ? `${styles.menu} ${styles.menuRight}` : styles.menu} role="menu">
           {ALL_LIBRARY_STATUSES.map((status) => (
             <li
               key={status}
@@ -63,30 +73,19 @@ export function ActionMenu({ current, onSelect, onRemove }: ActionMenuProps) {
                 setOpen(false);
               }}
             >
+              {/* The same mark the cover fold carries, so which fold means what
+                  is learnable from the menu that sets it. */}
+              <span
+                className={
+                  status === 'abandoned' ? `${styles.glyph} ${styles.glyphAbandoned}` : styles.glyph
+                }
+                aria-hidden="true"
+              >
+                {LIBRARY_STATUS_GLYPHS[status]}
+              </span>
               {LIBRARY_STATUS_LABELS[status]}
             </li>
           ))}
-          {onRemove && (
-            // Separated from the statuses: the others change how a book is
-            // filed, this one takes it off the shelf and cannot be undone.
-            <li
-              role="menuitem"
-              tabIndex={0}
-              className={`${styles.item} ${styles.remove}`}
-              onClick={() => {
-                setOpen(false);
-                onRemove();
-              }}
-              onKeyDown={(event) => {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-                event.preventDefault();
-                setOpen(false);
-                onRemove();
-              }}
-            >
-              Remove from library
-            </li>
-          )}
         </ul>
       )}
     </div>

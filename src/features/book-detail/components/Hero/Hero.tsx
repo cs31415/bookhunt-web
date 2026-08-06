@@ -1,5 +1,6 @@
 import { Cover } from '../../../../shared/components/Cover/Cover';
 import { ActionMenu } from '../../../../shared/components/ActionMenu/ActionMenu';
+import { CoverFold } from '../../../../shared/components/CoverFold/CoverFold';
 import { Stars } from '../../../../shared/components/Stars/Stars';
 import type { BookDetail, LibraryEntrySummary } from '../../../../normalize/book-detail';
 import type { LibraryStatus } from '../../../../shared/types/library-status';
@@ -15,7 +16,7 @@ export interface HeroProps {
   moods: string[];
   addingToLibrary: boolean;
   onToggleLibrary: () => void;
-  /** Offered in the status menu once the book is in the library. */
+  /** Offered as its own button once the book is in the library. */
   onRemoveFromLibrary?: () => void;
   onStatusChange: (status: LibraryStatus) => void;
   onRate: (rating: number) => void;
@@ -52,22 +53,50 @@ export function Hero({
       <div className={styles.left}>
         <div className={styles.coverWrap}>
           <Cover book={book} width={144} />
+          {/*
+           * The same dog-eared corner the library grid uses, so a book carries
+           * one status mark everywhere — here it is also the control that
+           * changes it, rather than a second thing sitting beside it.
+           */}
+          {libraryEntry && (
+            <ActionMenu
+              current={libraryEntry.status}
+              onSelect={onStatusChange}
+              trigger={<CoverFold status={libraryEntry.status} />}
+              className={styles.statusFold}
+              align="right"
+            />
+          )}
         </div>
 
+        {/*
+         * Remove is its own button rather than an item in the status menu: it is
+         * the counterpart to adding, so it takes the same slot and the same
+         * styling as the add button, visible without opening anything (LOS-207).
+         * The visible labels are trimmed to fit the 144px cover column on one
+         * line; the accessible names keep the full phrase, which on its own out
+         * of context is what "- Library" fails to convey.
+         */}
         {libraryEntry ? (
-          <ActionMenu
-            current={libraryEntry.status}
-            onSelect={onStatusChange}
-            onRemove={onRemoveFromLibrary}
-          />
+          onRemoveFromLibrary && (
+            <button
+              type="button"
+              className={styles.libraryButton}
+              aria-label="Remove from library"
+              onClick={onRemoveFromLibrary}
+            >
+              - Library
+            </button>
+          )
         ) : (
           <button
             type="button"
-            className={styles.addButton}
+            className={styles.libraryButton}
             disabled={addingToLibrary}
+            aria-label={addingToLibrary ? 'Adding…' : 'Add to library'}
             onClick={onToggleLibrary}
           >
-            {addingToLibrary ? 'Adding…' : '+ Add to library'}
+            {addingToLibrary ? 'Adding…' : '+ Library'}
           </button>
         )}
 
