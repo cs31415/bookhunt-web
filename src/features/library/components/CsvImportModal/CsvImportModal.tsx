@@ -161,15 +161,13 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
 
           <div className={styles.format}>
             <div className={styles.formatLabel}>Expected format</div>
-            {/* The asterisk marks title as the one column a file must have. It
-                survives being copied verbatim: header matching folds away
-                punctuation, so "title*" still reads as title. */}
+            {/* Kept copy-pasteable: the header is exactly what a file should
+                say, with no annotation a reader might carry into their own. */}
             <pre className={styles.sample}>
               {
-                'title*,author,publisher,isbn,status\nDune,Frank Herbert,Ace,9780441013593,Finished\nHong Kong,,Frommer’s,,New'
+                'title,author,publisher,isbn,status\nDune,Frank Herbert,Ace,9780441013593,Finished\nHong Kong,,Frommer’s,,New'
               }
             </pre>
-            <p className={styles.formatHint}>*: required field</p>
             <p className={styles.formatHint}>
               {/* Listed from the shared labels, so this can't come to disagree
                   with what the parser takes or the shelves the app shows. */}

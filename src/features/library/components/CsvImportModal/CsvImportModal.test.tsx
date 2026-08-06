@@ -165,8 +165,7 @@ describe('CsvImportModal', () => {
     const dialog = await openModal();
 
     expect(within(dialog).getByText('Drop a CSV of your books')).toBeInTheDocument();
-    expect(within(dialog).getByText(/title\*,author,publisher,isbn,status/)).toBeInTheDocument();
-    expect(within(dialog).getByText('*: required field')).toBeInTheDocument();
+    expect(within(dialog).getByText(/title,author,publisher,isbn,status/)).toBeInTheDocument();
   });
 
   // A reader shouldn't have to guess between "Finished" and "Read", or find out
