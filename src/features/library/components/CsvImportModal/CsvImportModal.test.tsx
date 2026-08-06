@@ -148,6 +148,7 @@ describe('CsvImportModal', () => {
     vi.stubEnv('VITE_ENABLE_PHOTO_IMPORT', 'false');
     mockedGetLibrary.mockResolvedValue({
       entries: [makeEntry({ book_id: 1, title: 'Existing' })],
+      total: 1,
       stats: { total: 1, by_status: { queued: 1 } },
     });
     mockedGetBooksByIds.mockResolvedValue({ books: [] });
@@ -181,7 +182,7 @@ describe('CsvImportModal', () => {
   });
 
   it('opens from the empty state too', async () => {
-    mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
+    mockedGetLibrary.mockResolvedValue({ entries: [], total: 0, stats: { total: 0, by_status: {} } });
     renderLibrary();
 
     await screen.findByText('Your shelves are empty');
@@ -481,6 +482,7 @@ describe('CsvImportModal', () => {
     });
     mockedGetLibrary.mockResolvedValue({
       entries: [makeEntry({ book_id: 1 }), makeEntry({ book_id: 2 })],
+      total: 2,
       stats: { total: 2, by_status: { queued: 2 } },
     });
 

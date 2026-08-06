@@ -45,8 +45,11 @@ export function useDiscoverData(): UseDiscoverDataResult {
         setData({
           currentlyReading: entries.filter((entry) => entry.status === 'reading'),
           recommendations: recs.recommendations.map(normalizeRecommendation),
-          totalBooks: library.stats.total,
-          statusCounts: normalizeLibraryStatusCounts(library.stats.by_status),
+          // `total` rides every page; `stats` only comes back on the first one
+          // (LOS-118). This is page one, so stats is present — but fall back
+          // rather than assume, since nothing in the type says so.
+          totalBooks: library.total,
+          statusCounts: normalizeLibraryStatusCounts(library.stats?.by_status ?? {}),
         });
       } catch (err) {
         // No login flow exists yet (LOS-144), so every visitor is

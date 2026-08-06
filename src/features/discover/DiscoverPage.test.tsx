@@ -71,6 +71,7 @@ describe('DiscoverPage', () => {
   it('shows Currently Reading, Recommended, and Library Snapshot when the library has entries', async () => {
     mockedGetLibrary.mockResolvedValue({
       entries: [readingEntry],
+      total: 4,
       stats: { total: 4, by_status: { reading: 1, finished: 3 } },
     });
     mockedGetRecommendations.mockResolvedValue({ recommendations: [recommendation] });
@@ -88,6 +89,7 @@ describe('DiscoverPage', () => {
   it('hides Currently Reading when there are no reading-status books', async () => {
     mockedGetLibrary.mockResolvedValue({
       entries: [],
+      total: 0,
       stats: { total: 0, by_status: {} },
     });
     mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
@@ -99,7 +101,7 @@ describe('DiscoverPage', () => {
   });
 
   it('shows the empty Library Snapshot state for a new user', async () => {
-    mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
+    mockedGetLibrary.mockResolvedValue({ entries: [], total: 0, stats: { total: 0, by_status: {} } });
     mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
 
     renderDiscoverPage();
@@ -111,6 +113,7 @@ describe('DiscoverPage', () => {
   it('navigates to the book detail page when a BookCard is clicked', async () => {
     mockedGetLibrary.mockResolvedValue({
       entries: [readingEntry],
+      total: 1,
       stats: { total: 1, by_status: { reading: 1 } },
     });
     mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
@@ -122,7 +125,7 @@ describe('DiscoverPage', () => {
   });
 
   it('navigates to Search with the query when an example pill is clicked', async () => {
-    mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
+    mockedGetLibrary.mockResolvedValue({ entries: [], total: 0, stats: { total: 0, by_status: {} } });
     mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
 
     renderDiscoverPage();
@@ -134,7 +137,7 @@ describe('DiscoverPage', () => {
   });
 
   it('navigates to Search in recommendations mode when See more is clicked', async () => {
-    mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
+    mockedGetLibrary.mockResolvedValue({ entries: [], total: 0, stats: { total: 0, by_status: {} } });
     mockedGetRecommendations.mockResolvedValue({ recommendations: [recommendation] });
 
     renderDiscoverPage();
@@ -146,6 +149,7 @@ describe('DiscoverPage', () => {
   it('navigates to Library filtered by status when a pie slice is picked', async () => {
     mockedGetLibrary.mockResolvedValue({
       entries: [],
+      total: 3,
       stats: { total: 3, by_status: { finished: 3 } },
     });
     mockedGetRecommendations.mockResolvedValue({ recommendations: [] });

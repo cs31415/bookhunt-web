@@ -133,6 +133,7 @@ describe('ScanModal', () => {
 
     mockedGetLibrary.mockResolvedValue({
       entries: [makeEntry({ book_id: 1, title: 'Existing' })],
+      total: 1,
       stats: { total: 1, by_status: { queued: 1 } },
     });
     mockedPresign.mockResolvedValue([
@@ -181,7 +182,7 @@ describe('ScanModal', () => {
 
   it('hides photo import from the empty state too when the flag is off', async () => {
     vi.stubEnv('VITE_ENABLE_PHOTO_IMPORT', 'false');
-    mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
+    mockedGetLibrary.mockResolvedValue({ entries: [], total: 0, stats: { total: 0, by_status: {} } });
     renderLibrary();
 
     await screen.findByText('Your shelves are empty');
@@ -191,7 +192,7 @@ describe('ScanModal', () => {
 
   // AC1 — the empty-state button is a separate branch and must open it too.
   it('opens from the empty state as well', async () => {
-    mockedGetLibrary.mockResolvedValue({ entries: [], stats: { total: 0, by_status: {} } });
+    mockedGetLibrary.mockResolvedValue({ entries: [], total: 0, stats: { total: 0, by_status: {} } });
     mockedScan.mockResolvedValue({ detectedBooks: [] });
     renderLibrary();
 
