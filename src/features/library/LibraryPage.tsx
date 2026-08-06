@@ -22,7 +22,7 @@ import { removeEntry } from '../../api/library/remove-entry';
 import { removeEntries, MAX_REMOVE_PER_REQUEST } from '../../api/library/remove-entries';
 import { toast } from '../../shared/toast/toast-store';
 import { isPhotoImportEnabled } from '../../shared/config/features';
-import { filterEntries, sortByAddedDesc } from './lib/breakdowns';
+import { filterEntries, sortByShelf } from './lib/breakdowns';
 import styles from './LibraryPage.module.css';
 
 const PAGE_SIZE = 60;
@@ -176,7 +176,7 @@ export function LibraryPage() {
   );
 
   const sorted = useMemo(
-    () => sortByAddedDesc(filterEntries(entries, { status, category, mood, theme, q })),
+    () => sortByShelf(filterEntries(entries, { status, category, mood, theme, q })),
     [entries, status, category, mood, theme, q],
   );
   const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
