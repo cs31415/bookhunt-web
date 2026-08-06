@@ -165,7 +165,19 @@ describe('CsvImportModal', () => {
     const dialog = await openModal();
 
     expect(within(dialog).getByText('Drop a CSV of your books')).toBeInTheDocument();
-    expect(within(dialog).getByText(/title,author,publisher,isbn/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/title,author,publisher,isbn,status/)).toBeInTheDocument();
+  });
+
+  // A reader shouldn't have to guess between "Finished" and "Read", or find out
+  // which words we take from a warning after the import has already run.
+  it('names every status the file may use', async () => {
+    renderLibrary();
+    const dialog = await openModal();
+
+    const hint = within(dialog).getByText(/status can be one of/);
+    expect(hint).toHaveTextContent(
+      'status can be one of: New, Reading, Finished, Abandoned. Defaults to New.',
+    );
   });
 
   it('opens from the empty state too', async () => {
@@ -230,7 +242,10 @@ describe('CsvImportModal', () => {
   it('warns about skipped ragged rows while still importing the rest', async () => {
     renderLibrary();
     const dialog = await openModal();
-    dropFile(dialog, csvFile("title,author,publisher\nHong Kong, Macau,,Frommer's\nDune,Frank Herbert,Ace"));
+    dropFile(
+      dialog,
+      csvFile("title,author,publisher\nHong Kong, Macau,,Frommer's\nDune,Frank Herbert,Ace"),
+    );
 
     expect(await screen.findByText(/Skipped 1 row/)).toBeInTheDocument();
     expect(screen.getByText(/Found matches for/)).toHaveTextContent('Found matches for 1');
@@ -245,7 +260,11 @@ describe('CsvImportModal', () => {
             author: null,
             publisher: "Frommer's",
             candidates: [
-              candidate({ googleBooksId: 'g1', title: "Frommer's Hong Kong", publisher: "Frommer's" }),
+              candidate({
+                googleBooksId: 'g1',
+                title: "Frommer's Hong Kong",
+                publisher: "Frommer's",
+              }),
               candidate({ googleBooksId: 'g2', title: 'Hong Kong', publisher: 'Lonely Planet' }),
             ],
           }),
@@ -311,13 +330,17 @@ describe('CsvImportModal', () => {
     await screen.findByRole('button', { name: 'Add 2 to library' });
     fireEvent.click(screen.getByRole('button', { name: 'Add 2 to library' }));
 
-    expect(await screen.findByText('Imported 1 of 2 books. 1 books had errors.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Imported 1 of 2 books. 1 books had errors.'),
+    ).toBeInTheDocument();
     expect(await within(dialog).findByText(/1 of 2 couldn.t be added/)).toBeInTheDocument();
 
     // The row that landed stops being selected, so the retry covers only what
     // failed. It used to still offer "Add 2 to library" and re-send the one
     // already in (LOS-198).
-    expect(await within(dialog).findByRole('button', { name: 'Add 1 to library' })).toBeInTheDocument();
+    expect(
+      await within(dialog).findByRole('button', { name: 'Add 1 to library' }),
+    ).toBeInTheDocument();
   });
 
   // One call for the whole import, not one per book: the model can only group
@@ -465,7 +488,9 @@ describe('CsvImportModal', () => {
     const dialog = await openModal();
     dropFile(dialog, csvFile('title\nExisting\nExisting 2'));
 
-    expect(await within(dialog).findByText('All these books are already in your library.')).toBeInTheDocument();
+    expect(
+      await within(dialog).findByText('All these books are already in your library.'),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/Found matches for/)).not.toBeInTheDocument();
   });
 
@@ -528,6 +553,67 @@ describe('CsvImportModal', () => {
 
     fireEvent.click(screen.getAllByRole('checkbox')[0]);
     expect(screen.getByRole('button', { name: 'Add 1 to library' })).toBeInTheDocument();
+  });
+
+  describe('a status column', () => {
+    it('shelves each row where the file said, and adds it there', async () => {
+      mockedResolve.mockResolvedValue({ rows: [resolved(), resolved({ title: 'Ubik' })] });
+      mockedAddToLibrary.mockResolvedValue({ entry: {}, book: { id: 9, slug: 'dune' } });
+
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title,status\nDune,Finished\nUbik,Abandoned'));
+
+      await screen.findByRole('button', { name: 'Add 2 to library' });
+      expect(screen.getByRole('button', { name: 'Finished' })).toBeInTheDocument();
+      // Abandoned isn't in the cycle, but a file may still ask for it.
+      expect(screen.getByRole('button', { name: 'Abandoned' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add 2 to library' }));
+
+      await waitFor(() => expect(mockedAddToLibrary).toHaveBeenCalledTimes(2));
+      expect(mockedAddToLibrary.mock.calls.map((call) => call[1])).toEqual([
+        'finished',
+        'abandoned',
+      ]);
+    });
+
+    // The lookup identifies a book; where it goes on the shelf is ours to apply.
+    it('does not send the status to the resolve endpoint', async () => {
+      mockedResolve.mockResolvedValue({ rows: [resolved()] });
+
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title,status\nDune,Finished'));
+
+      await waitFor(() => expect(mockedResolve).toHaveBeenCalled());
+      expect(mockedResolve.mock.calls[0][0]).toEqual([
+        { title: 'Dune', author: null, publisher: null, isbn: null },
+      ]);
+    });
+
+    // Cycling must walk on from what the file said, not restart from New.
+    it('cycles on from the status the file gave', async () => {
+      mockedResolve.mockResolvedValue({ rows: [resolved()] });
+
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title,status\nDune,Reading'));
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Reading' }));
+      expect(screen.getByRole('button', { name: 'Finished' })).toBeInTheDocument();
+    });
+
+    it('warns about a status it could not read', async () => {
+      mockedResolve.mockResolvedValue({ rows: [resolved()] });
+
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title,status\nDune,currently-reading'));
+
+      expect(await screen.findByText(/Didn.t recognise the status/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'New' })).toBeInTheDocument();
+    });
   });
 
   it('stays open and reports the count when only some books are added', async () => {
@@ -805,7 +891,9 @@ describe('CsvImportModal', () => {
         title: 'From So Simple a Beginning',
         author: 'Clive Gamble',
         tentative: true,
-        candidates: [candidate({ title: 'Cyclops', authors: ['Clive Cussler'], googleBooksId: 'r-sli' })],
+        candidates: [
+          candidate({ title: 'Cyclops', authors: ['Clive Cussler'], googleBooksId: 'r-sli' }),
+        ],
       });
 
     it('does not tick a row nothing matched the title of', async () => {

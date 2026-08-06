@@ -1,5 +1,9 @@
 import { useRef, useState } from 'react';
 import { Modal } from '../../../../shared/components/Modal/Modal';
+import {
+  ALL_LIBRARY_STATUSES,
+  LIBRARY_STATUS_LABELS,
+} from '../../../../shared/types/library-status';
 import { ImportRow } from '../ImportReview/ImportRow';
 import type { UseCsvImportSessionResult } from '../../hooks/useCsvImportSession';
 import modal from '../../../../shared/components/Modal/Modal.module.css';
@@ -157,13 +161,19 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
 
           <div className={styles.format}>
             <div className={styles.formatLabel}>Expected format</div>
+            {/* Kept copy-pasteable: the header is exactly what a file should
+                say, with no annotation a reader might carry into their own. */}
             <pre className={styles.sample}>
-              {'title,author,publisher,isbn\nDune,Frank Herbert,Ace,9780441013593\nHong Kong,,Frommer’s,'}
+              {
+                'title,author,publisher,isbn,status\nDune,Frank Herbert,Ace,9780441013593,Finished\nHong Kong,,Frommer’s,,New'
+              }
             </pre>
             <p className={styles.formatHint}>
-              Only <code>title</code> is required. An <code>isbn</code> pins the exact edition and is
-              by far the most reliable — a Goodreads or StoryGraph export already has one. Otherwise
-              a publisher helps us pick between editions, and the author can be left blank.
+              {/* Listed from the shared labels, so this can't come to disagree
+                  with what the parser takes or the shelves the app shows. */}
+              status can be one of:{' '}
+              {ALL_LIBRARY_STATUSES.map((status) => LIBRARY_STATUS_LABELS[status]).join(', ')}.
+              Defaults to {LIBRARY_STATUS_LABELS.queued}.
             </p>
           </div>
 
@@ -224,12 +234,16 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
                   library.
                 </>
               ) : importable.length === 0 && alreadyOwned > 0 ? (
-                <>All {alreadyOwned === 1 ? 'this book is' : 'these books are'} already in your library.</>
+                <>
+                  All {alreadyOwned === 1 ? 'this book is' : 'these books are'} already in your
+                  library.
+                </>
               ) : (
                 <>
                   {matched > 0 ? (
                     <>
-                      Found matches for <strong>{matched}</strong> {matched === 1 ? 'book' : 'books'}.
+                      Found matches for <strong>{matched}</strong>{' '}
+                      {matched === 1 ? 'book' : 'books'}.
                     </>
                   ) : (
                     <>No matches found.</>

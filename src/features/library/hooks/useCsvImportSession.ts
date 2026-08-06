@@ -205,6 +205,8 @@ export function useCsvImportSession(
       // retitled edition. Ticking it by default is what put books nobody asked
       // for into the library (LOS-205).
       row.tentative === true,
+    // A file may say what shelf each book belongs on; rows without one stay New.
+    defaultStatusOf: (row) => row.hint.status,
     onAdded,
   });
 
@@ -260,7 +262,11 @@ export function useCsvImportSession(
     };
 
     try {
-      const { rows: parsed, error: parseError, warning: parseWarning } = parseCsv(await file.text());
+      const {
+        rows: parsed,
+        error: parseError,
+        warning: parseWarning,
+      } = parseCsv(await file.text());
       if (parseError) return fail(parseError);
       if (parsed.length > MAX_CSV_ROWS) {
         return fail(
@@ -288,7 +294,16 @@ export function useCsvImportSession(
       const batchSize = rowsPerRequest();
 
       for (let offset = 0; offset < parsed.length; offset += batchSize) {
-        const batch = parsed.slice(offset, offset + batchSize);
+        // Only the identifying fields go out: status is the reader's shelf
+        // choice, applied here at add time, and means nothing to the lookup.
+        const batch = parsed
+          .slice(offset, offset + batchSize)
+          .map(({ title, author, publisher, isbn }) => ({
+            title,
+            author,
+            publisher,
+            isbn,
+          }));
         const { rows: resolvedRows } = await resolveImportRows(batch, signal);
 
         if (runId !== runIdRef.current) return;
