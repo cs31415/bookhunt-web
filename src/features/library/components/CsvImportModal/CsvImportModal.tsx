@@ -1,5 +1,9 @@
 import { useRef, useState } from 'react';
 import { Modal } from '../../../../shared/components/Modal/Modal';
+import {
+  ALL_LIBRARY_STATUSES,
+  LIBRARY_STATUS_LABELS,
+} from '../../../../shared/types/library-status';
 import { ImportRow } from '../ImportReview/ImportRow';
 import type { UseCsvImportSessionResult } from '../../hooks/useCsvImportSession';
 import modal from '../../../../shared/components/Modal/Modal.module.css';
@@ -158,12 +162,28 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
           <div className={styles.format}>
             <div className={styles.formatLabel}>Expected format</div>
             <pre className={styles.sample}>
-              {'title,author,publisher,isbn\nDune,Frank Herbert,Ace,9780441013593\nHong Kong,,Frommer’s,'}
+              {
+                'title,author,publisher,isbn,status\nDune,Frank Herbert,Ace,9780441013593,Finished\nHong Kong,,Frommer’s,,New'
+              }
             </pre>
             <p className={styles.formatHint}>
-              Only <code>title</code> is required. An <code>isbn</code> pins the exact edition and is
-              by far the most reliable — a Goodreads or StoryGraph export already has one. Otherwise
-              a publisher helps us pick between editions, and the author can be left blank.
+              Only <code>title</code> is required. An <code>isbn</code> pins the exact edition and
+              is by far the most reliable — a Goodreads or StoryGraph export already has one.
+              Otherwise a publisher helps us pick between editions, and the author can be left
+              blank.
+            </p>
+            <p className={styles.formatHint}>
+              <code>status</code> puts each book straight onto a shelf. Use{' '}
+              {/* Listed from the shared labels, so this can't come to disagree
+                  with what the parser takes or the shelves the app shows. */}
+              {ALL_LIBRARY_STATUSES.map((status, i) => (
+                <span key={status}>
+                  {i > 0 && (i === ALL_LIBRARY_STATUSES.length - 1 ? ' or ' : ', ')}
+                  <code>{LIBRARY_STATUS_LABELS[status]}</code>
+                </span>
+              ))}
+              . Anything else comes in as {LIBRARY_STATUS_LABELS.queued}, and you can change any of
+              them before adding.
             </p>
           </div>
 
@@ -224,12 +244,16 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
                   library.
                 </>
               ) : importable.length === 0 && alreadyOwned > 0 ? (
-                <>All {alreadyOwned === 1 ? 'this book is' : 'these books are'} already in your library.</>
+                <>
+                  All {alreadyOwned === 1 ? 'this book is' : 'these books are'} already in your
+                  library.
+                </>
               ) : (
                 <>
                   {matched > 0 ? (
                     <>
-                      Found matches for <strong>{matched}</strong> {matched === 1 ? 'book' : 'books'}.
+                      Found matches for <strong>{matched}</strong>{' '}
+                      {matched === 1 ? 'book' : 'books'}.
                     </>
                   ) : (
                     <>No matches found.</>

@@ -29,6 +29,11 @@ export interface UseImportReviewOptions<TRow> {
   toAddArgs: (row: TRow) => AddArgs | null;
   /** Rows that start unticked — e.g. ones nothing could be matched to. */
   startsUnticked?: (row: TRow) => boolean;
+  /**
+   * The status a row starts on, when its source knows one — a CSV may carry a
+   * status column. Null, or omitted entirely, leaves the row on 'queued'.
+   */
+  defaultStatusOf?: (row: TRow) => LibraryStatus | null;
   onAdded?: (count: number) => void;
 }
 
@@ -68,32 +73,39 @@ export interface UseImportReviewResult<TRow> {
 export function useImportReview<TRow>(
   options: UseImportReviewOptions<TRow>,
 ): UseImportReviewResult<TRow> {
-  const { rows, keyOf, toAddArgs, startsUnticked, onAdded } = options;
+  const { rows, keyOf, toAddArgs, startsUnticked, defaultStatusOf, onAdded } = options;
 
   const [statusByKey, setStatusByKey] = useState<Record<string, LibraryStatus>>({});
   // Split into "what this row defaults to" and "what the reader chose", so rows
   // arriving mid-review get their default without disturbing existing choices.
   // A single Set rebuilt per batch would wipe them.
   const [defaultUnticked, setDefaultUnticked] = useState<Set<string>>(new Set());
+  const [defaultStatusByKey, setDefaultStatusByKey] = useState<Record<string, LibraryStatus>>({});
   const [tickOverrides, setTickOverrides] = useState<Record<string, boolean>>({});
   const [adding, setAdding] = useState(false);
   const [addProgress, setAddProgress] = useState({ done: 0, total: 0 });
   const [addedKeys, setAddedKeys] = useState<Set<string>>(new Set());
   const [addError, setAddError] = useState<string | null>(null);
 
+  // The reader's own choice first, then whatever the file said, then New.
   function statusFor(key: string): LibraryStatus {
-    return statusByKey[key] ?? 'queued';
+    return statusByKey[key] ?? defaultStatusByKey[key] ?? 'queued';
   }
 
   function isTicked(key: string): boolean {
     return tickOverrides[key] ?? !defaultUnticked.has(key);
   }
 
+  /**
+   * Walks on from whatever the row currently shows, file-supplied or not. A row
+   * that arrived as 'abandoned' isn't in the cycle at all, so indexOf gives -1
+   * and the next click lands on the first entry — which is the way out of a
+   * status the button can't otherwise reach.
+   */
   function cycleStatus(key: string) {
-    setStatusByKey((current) => {
-      const index = IMPORT_STATUS_CYCLE.indexOf(current[key] ?? 'queued');
-      return { ...current, [key]: IMPORT_STATUS_CYCLE[(index + 1) % IMPORT_STATUS_CYCLE.length] };
-    });
+    const index = IMPORT_STATUS_CYCLE.indexOf(statusFor(key));
+    const next = IMPORT_STATUS_CYCLE[(index + 1) % IMPORT_STATUS_CYCLE.length];
+    setStatusByKey((current) => ({ ...current, [key]: next }));
   }
 
   // Tick state is tracked separately from status so unticking and re-ticking
@@ -110,21 +122,35 @@ export function useImportReview<TRow>(
    * a match arrives, unless the reader has since said otherwise.
    */
   function registerRows(newRows: TRow[]) {
-    if (!startsUnticked) return;
-    setDefaultUnticked((current) => {
-      const next = new Set(current);
-      for (const row of newRows) {
-        if (startsUnticked(row)) next.add(keyOf(row));
-        else next.delete(keyOf(row));
-      }
-      return next;
-    });
+    if (startsUnticked) {
+      setDefaultUnticked((current) => {
+        const next = new Set(current);
+        for (const row of newRows) {
+          if (startsUnticked(row)) next.add(keyOf(row));
+          else next.delete(keyOf(row));
+        }
+        return next;
+      });
+    }
+
+    if (defaultStatusOf) {
+      setDefaultStatusByKey((current) => {
+        const next = { ...current };
+        for (const row of newRows) {
+          const status = defaultStatusOf(row);
+          if (status) next[keyOf(row)] = status;
+          else delete next[keyOf(row)];
+        }
+        return next;
+      });
+    }
   }
 
   /** Wipes every default and choice — for starting an import over. */
   function clearSelection() {
     setStatusByKey({});
     setDefaultUnticked(new Set());
+    setDefaultStatusByKey({});
     setTickOverrides({});
     setAddedKeys(new Set());
     setAddError(null);

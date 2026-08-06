@@ -42,7 +42,7 @@ describe('parseCsvRows', () => {
   });
 
   it('keeps empty middle cells', () => {
-    expect(parseCsvRows('Hong Kong,,Frommer\'s')).toEqual([['Hong Kong', '', "Frommer's"]]);
+    expect(parseCsvRows("Hong Kong,,Frommer's")).toEqual([['Hong Kong', '', "Frommer's"]]);
   });
 
   it('returns nothing for empty input', () => {
@@ -55,33 +55,47 @@ describe('parseCsv', () => {
     const { rows, error } = parseCsv('title,author,publisher\nDune,Frank Herbert,Ace');
 
     expect(error).toBeNull();
-    expect(rows).toEqual([{ title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null }]);
+    expect(rows).toEqual([
+      { title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null, status: null },
+    ]);
   });
 
   // The case that motivated the feature: a travel guide with no author.
   it('reads a row with an empty author', () => {
     const { rows } = parseCsv("title,author,publisher\nHong Kong,,Frommer's");
 
-    expect(rows).toEqual([{ title: 'Hong Kong', author: null, publisher: "Frommer's", isbn: null }]);
+    expect(rows).toEqual([
+      { title: 'Hong Kong', author: null, publisher: "Frommer's", isbn: null, status: null },
+    ]);
   });
 
   it('matches headers regardless of case, spacing or order', () => {
     const { rows } = parseCsv(' Publisher , Book Title ,AUTHOR\nAce,Dune,Frank Herbert');
 
-    expect(rows).toEqual([{ title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null }]);
+    expect(rows).toEqual([
+      { title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null, status: null },
+    ]);
   });
 
   it('accepts a file with only a title column', () => {
     const { rows, error } = parseCsv('title\nDune');
 
     expect(error).toBeNull();
-    expect(rows).toEqual([{ title: 'Dune', author: null, publisher: null, isbn: null }]);
+    expect(rows).toEqual([
+      { title: 'Dune', author: null, publisher: null, isbn: null, status: null },
+    ]);
   });
 
   it('trims surrounding whitespace from values', () => {
     const { rows } = parseCsv('title,author\n  Dune  ,  Frank Herbert  ');
 
-    expect(rows[0]).toEqual({ title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null });
+    expect(rows[0]).toEqual({
+      title: 'Dune',
+      author: 'Frank Herbert',
+      publisher: null,
+      isbn: null,
+      status: null,
+    });
   });
 
   // Two identical lines must survive as two rows — the reader may genuinely own
@@ -117,7 +131,13 @@ describe('parseCsv', () => {
 
       expect(warning).toBeNull();
       expect(rows).toEqual([
-        { title: 'Hong Kong, Macau and Guangzhou', author: null, publisher: "Frommer's", isbn: null },
+        {
+          title: 'Hong Kong, Macau and Guangzhou',
+          author: null,
+          publisher: "Frommer's",
+          isbn: null,
+          status: null,
+        },
       ]);
     });
 
@@ -128,7 +148,9 @@ describe('parseCsv', () => {
         "title,author,publisher\nHong Kong, Macau,,Frommer's\nDune,Frank Herbert,Ace",
       );
 
-      expect(rows).toEqual([{ title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null }]);
+      expect(rows).toEqual([
+        { title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null, status: null },
+      ]);
       expect(warning).toContain('Skipped 1 row');
       expect(warning).toContain('quotes');
     });
@@ -152,7 +174,9 @@ describe('parseCsv', () => {
       const { rows, warning } = parseCsv('title,author,publisher\nDune,Frank Herbert');
 
       expect(warning).toBeNull();
-      expect(rows).toEqual([{ title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null }]);
+      expect(rows).toEqual([
+        { title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null, status: null },
+      ]);
     });
   });
 
@@ -189,6 +213,65 @@ describe('parseCsv', () => {
     it('leaves isbn null when the column is absent or blank', () => {
       expect(parseCsv('title\nDune').rows[0].isbn).toBeNull();
       expect(parseCsv('title,isbn\nDune,').rows[0].isbn).toBeNull();
+    });
+  });
+
+  describe('status', () => {
+    // The four the app itself shows, so a reader copies what's on their shelves.
+    it.each([
+      ['New', 'queued'],
+      ['Reading', 'reading'],
+      ['Finished', 'finished'],
+      ['Abandoned', 'abandoned'],
+    ])('reads %s as %s', (label, status) => {
+      const { rows, warning } = parseCsv(`title,status\nDune,${label}`);
+
+      expect(rows[0].status).toBe(status);
+      expect(warning).toBeNull();
+    });
+
+    it('matches the value regardless of case or surrounding space', () => {
+      const { rows } = parseCsv('title,status\nDune,  FINISHED  \nUbik,reading');
+
+      expect(rows.map((r) => r.status)).toEqual(['finished', 'reading']);
+    });
+
+    it('accepts "shelf" as the header', () => {
+      expect(parseCsv('title,Shelf\nDune,Finished').rows[0].status).toBe('finished');
+    });
+
+    it('leaves status null when the column is absent or blank', () => {
+      expect(parseCsv('title\nDune').rows[0].status).toBeNull();
+      expect(parseCsv('title,status\nDune,').rows[0].status).toBeNull();
+    });
+
+    // Deliberately not translated: "read" means finished on Goodreads and unread
+    // to plenty of people, and guessing wrong files the book on the wrong shelf.
+    it('warns rather than guesses at a status it does not know', () => {
+      const { rows, warning } = parseCsv('title,status\nDune,currently-reading');
+
+      expect(rows[0].status).toBeNull();
+      expect(warning).toContain('2'); // the line, counting the header as line 1
+      expect(warning).toContain('New, Reading, Finished or Abandoned');
+    });
+
+    // A row nobody could shelve is still a row worth importing.
+    it('keeps the book when its status is unreadable', () => {
+      const { rows, error } = parseCsv('title,author,status\nDune,Frank Herbert,read');
+
+      expect(error).toBeNull();
+      expect(rows).toEqual([
+        { title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null, status: null },
+      ]);
+    });
+
+    it('reports an unreadable status alongside a skipped row', () => {
+      const { warning } = parseCsv(
+        'title,status\nDune,nonsense\nHong Kong, Macau,Finished\nUbik,Finished',
+      );
+
+      expect(warning).toContain('Skipped 1 row');
+      expect(warning).toContain("Didn't recognise the status on 1 row");
     });
   });
 
