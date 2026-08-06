@@ -1,12 +1,12 @@
-/* Mirrors the search rail (FilterSidebar.module.css) so the two pages read as
-   one layout. */
+/* Laid out like the search rail (FilterSidebar.module.css), but scrolls with the
+   page rather than pinning: the library rail carries four facets — status,
+   categories, moods, themes — and a sticky one that long needs its own
+   scrollbar to stay reachable, which is a second scrollbar on a page that only
+   ever needed one. */
 .rail {
-  position: sticky;
-  top: 88px;
-  max-height: calc(100vh - 108px);
-  overflow-y: auto;
-  padding-right: 8px;
-  margin-right: -8px;
+  /* A grid item defaults to min-width:auto, so one long unbroken category name
+     would widen the whole 232px track rather than wrap inside it. */
+  min-width: 0;
 }
 
 .clearButton {
@@ -25,9 +25,5 @@
   color: var(--rust);
 }
 
-@media (max-width: 860px) {
-  .rail {
-    position: static;
-    max-height: none;
-  }
-}
+/* No narrow-viewport override needed: the rail is in normal flow at every
+   width, so it stacks above the grid on its own. */
