@@ -165,7 +165,8 @@ describe('CsvImportModal', () => {
     const dialog = await openModal();
 
     expect(within(dialog).getByText('Drop a CSV of your books')).toBeInTheDocument();
-    expect(within(dialog).getByText(/title,author,publisher,isbn,status/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/title\*,author,publisher,isbn,status/)).toBeInTheDocument();
+    expect(within(dialog).getByText('*: required field')).toBeInTheDocument();
   });
 
   // A reader shouldn't have to guess between "Finished" and "Read", or find out
@@ -174,8 +175,10 @@ describe('CsvImportModal', () => {
     renderLibrary();
     const dialog = await openModal();
 
-    const hint = within(dialog).getByText(/puts each book straight onto a shelf/);
-    expect(hint).toHaveTextContent('Use New, Reading, Finished or Abandoned.');
+    const hint = within(dialog).getByText(/status can be one of/);
+    expect(hint).toHaveTextContent(
+      'status can be one of: New, Reading, Finished, Abandoned. Defaults to New.',
+    );
   });
 
   it('opens from the empty state too', async () => {

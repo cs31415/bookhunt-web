@@ -161,29 +161,21 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
 
           <div className={styles.format}>
             <div className={styles.formatLabel}>Expected format</div>
+            {/* The asterisk marks title as the one column a file must have. It
+                survives being copied verbatim: header matching folds away
+                punctuation, so "title*" still reads as title. */}
             <pre className={styles.sample}>
               {
-                'title,author,publisher,isbn,status\nDune,Frank Herbert,Ace,9780441013593,Finished\nHong Kong,,Frommer’s,,New'
+                'title*,author,publisher,isbn,status\nDune,Frank Herbert,Ace,9780441013593,Finished\nHong Kong,,Frommer’s,,New'
               }
             </pre>
+            <p className={styles.formatHint}>*: required field</p>
             <p className={styles.formatHint}>
-              Only <code>title</code> is required. An <code>isbn</code> pins the exact edition and
-              is by far the most reliable — a Goodreads or StoryGraph export already has one.
-              Otherwise a publisher helps us pick between editions, and the author can be left
-              blank.
-            </p>
-            <p className={styles.formatHint}>
-              <code>status</code> puts each book straight onto a shelf. Use{' '}
               {/* Listed from the shared labels, so this can't come to disagree
                   with what the parser takes or the shelves the app shows. */}
-              {ALL_LIBRARY_STATUSES.map((status, i) => (
-                <span key={status}>
-                  {i > 0 && (i === ALL_LIBRARY_STATUSES.length - 1 ? ' or ' : ', ')}
-                  <code>{LIBRARY_STATUS_LABELS[status]}</code>
-                </span>
-              ))}
-              . Anything else comes in as {LIBRARY_STATUS_LABELS.queued}, and you can change any of
-              them before adding.
+              status can be one of:{' '}
+              {ALL_LIBRARY_STATUSES.map((status) => LIBRARY_STATUS_LABELS[status]).join(', ')}.
+              Defaults to {LIBRARY_STATUS_LABELS.queued}.
             </p>
           </div>
 

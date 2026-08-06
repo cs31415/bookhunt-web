@@ -77,6 +77,15 @@ describe('parseCsv', () => {
     ]);
   });
 
+  // The import dialog marks title with an asterisk to show it's required, so a
+  // reader who copies that sample verbatim must still get a readable file.
+  it('reads a header copied from the dialog, asterisk and all', () => {
+    const { rows, error } = parseCsv('title*,author\nDune,Frank Herbert');
+
+    expect(error).toBeNull();
+    expect(rows[0].title).toBe('Dune');
+  });
+
   it('accepts a file with only a title column', () => {
     const { rows, error } = parseCsv('title\nDune');
 
