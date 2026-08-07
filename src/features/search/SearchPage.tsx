@@ -115,6 +115,13 @@ export function SearchPage() {
     <div className={styles.page}>
       <div className={styles.searchBarWrap}>
         <SearchBar value={queryInput} onChange={setQueryInput} onSubmit={handleSubmit} big placeholder="Refine your search…" />
+
+        {/* The query from the URL, not queryInput, even sitting directly under
+            the box: the pill should be the search these results came from, not
+            text typed into the box and not yet run. */}
+        <div className={styles.save}>
+          <SaveSearchButton query={parsed.q} />
+        </div>
       </div>
 
       <div className={styles.layout}>
@@ -140,12 +147,6 @@ export function SearchPage() {
                   {pluralize(parsed.inLibraryOnly ? owned.length : results.length + owned.length, 'book')}
                 </div>
               )}
-              {/* The query from the URL, not queryInput: the pill should be the
-                  search these results came from, not text half-typed into the
-                  refine box above them. */}
-              <div className={styles.save}>
-                <SaveSearchButton query={parsed.q} />
-              </div>
             </div>
             {parsed.q && (
               <select
