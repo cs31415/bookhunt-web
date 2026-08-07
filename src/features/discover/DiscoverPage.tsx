@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
 import { ExampleQueryPills } from './components/ExampleQueryPills/ExampleQueryPills';
 import { CurrentlyReadingSection } from './components/CurrentlyReadingSection/CurrentlyReadingSection';
-import { RecommendedSection } from './components/RecommendedSection/RecommendedSection';
-import { LibrarySnapshotCard } from './components/LibrarySnapshotCard/LibrarySnapshotCard';
 import { useDiscoverData } from './hooks/useDiscoverData';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import type { BookSummary } from '../../shared/types/book';
@@ -49,26 +47,8 @@ export function DiscoverPage() {
 
       {error && <p className={styles.error}>{error}</p>}
 
-      {!loading && data && (
-        <>
-          {data.currentlyReading.length > 0 && (
-            <CurrentlyReadingSection entries={data.currentlyReading} onSelectBook={goToBook} />
-          )}
-
-          <RecommendedSection
-            recommendations={data.recommendations}
-            onSelectBook={goToBook}
-            onSeeMore={() => navigate('/search?mode=recommendations')}
-          />
-
-          <LibrarySnapshotCard
-            total={data.totalBooks}
-            counts={data.statusCounts}
-            onSliceClick={(status) => navigate(`/library?status=${status}`)}
-            onOpenLibrary={() => navigate('/library')}
-            onAddFirstBook={() => navigate('/search')}
-          />
-        </>
+      {!loading && data && data.currentlyReading.length > 0 && (
+        <CurrentlyReadingSection entries={data.currentlyReading} onSelectBook={goToBook} />
       )}
     </div>
   );

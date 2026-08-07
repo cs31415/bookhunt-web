@@ -7,6 +7,8 @@ import { getLibrary } from '../../api/library/get-library';
 import { getRecommendations } from '../../api/recommendations/get-recommendations';
 
 vi.mock('../../api/library/get-library');
+// Still mocked, but only so the "no recommendations request" test below can
+// assert it stays untouched (LOS-211).
 vi.mock('../../api/recommendations/get-recommendations');
 
 const mockedGetLibrary = vi.mocked(getLibrary);
@@ -52,38 +54,50 @@ const readingEntry = {
   hue: '#6f7a55',
 };
 
-const recommendation = {
-  reason: 'More from Herbert',
-  book: {
-    id: 2,
-    slug: 'the-left-hand-of-darkness',
-    title: 'The Left Hand of Darkness',
-    authorName: 'Ursula K. Le Guin',
-    authorSlug: 'ursula-k-le-guin',
-    year: 1969,
-    rating: 4,
-    coverUrl: null,
-    hue: '#4a6670',
-  },
-};
-
 describe('DiscoverPage', () => {
-  it('shows Currently Reading, Recommended, and Library Snapshot when the library has entries', async () => {
+  it('shows Currently Reading when the library has reading-status entries', async () => {
     mockedGetLibrary.mockResolvedValue({
       entries: [readingEntry],
       total: 4,
       stats: { total: 4, by_status: { reading: 1, finished: 3 } },
     });
-    mockedGetRecommendations.mockResolvedValue({ recommendations: [recommendation] });
 
     renderDiscoverPage();
 
     expect(await screen.findByText('Currently reading')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Dune/ })).toBeInTheDocument();
-    expect(screen.getByText('Recommended for you')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /The Left Hand of Darkness/ })).toBeInTheDocument();
-    expect(screen.getByText('More from Herbert')).toBeInTheDocument();
-    expect(screen.getByText('4 books, and counting')).toBeInTheDocument();
+  });
+
+  // LOS-211 pared the page back to the hero, the pills, and Currently Reading.
+  it('renders neither Recommended nor the Library snapshot', async () => {
+    mockedGetLibrary.mockResolvedValue({
+      entries: [readingEntry],
+      total: 4,
+      stats: { total: 4, by_status: { reading: 1, finished: 3 } },
+    });
+
+    renderDiscoverPage();
+
+    await screen.findByText('Currently reading');
+    expect(screen.queryByText('Recommended for you')).not.toBeInTheDocument();
+    expect(screen.queryByText('See more')).not.toBeInTheDocument();
+    expect(screen.queryByText('4 books, and counting')).not.toBeInTheDocument();
+    expect(screen.queryByText('Your reading breakdown appears here')).not.toBeInTheDocument();
+  });
+
+  // The section is gone, so the request backing it should be too — otherwise
+  // every Discover load pays for a response nothing renders.
+  it('makes no recommendations request', async () => {
+    mockedGetLibrary.mockResolvedValue({
+      entries: [readingEntry],
+      total: 1,
+      stats: { total: 1, by_status: { reading: 1 } },
+    });
+
+    renderDiscoverPage();
+
+    await screen.findByText('Currently reading');
+    expect(mockedGetRecommendations).not.toHaveBeenCalled();
   });
 
   it('hides Currently Reading when there are no reading-status books', async () => {
@@ -92,22 +106,14 @@ describe('DiscoverPage', () => {
       total: 0,
       stats: { total: 0, by_status: {} },
     });
-    mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
 
     renderDiscoverPage();
 
-    await waitFor(() => expect(screen.getByText('Start your library')).toBeInTheDocument());
+    // The hero is all that is left, so wait on it rather than on a section.
+    await waitFor(() =>
+      expect(screen.getByText('where should I start with Dostoevsky')).toBeInTheDocument(),
+    );
     expect(screen.queryByText('Currently reading')).not.toBeInTheDocument();
-  });
-
-  it('shows the empty Library Snapshot state for a new user', async () => {
-    mockedGetLibrary.mockResolvedValue({ entries: [], total: 0, stats: { total: 0, by_status: {} } });
-    mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
-
-    renderDiscoverPage();
-
-    expect(await screen.findByText('Start your library')).toBeInTheDocument();
-    expect(screen.getByText('Your reading breakdown appears here')).toBeInTheDocument();
   });
 
   it('navigates to the book detail page when a BookCard is clicked', async () => {
@@ -116,7 +122,6 @@ describe('DiscoverPage', () => {
       total: 1,
       stats: { total: 1, by_status: { reading: 1 } },
     });
-    mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
 
     renderDiscoverPage();
 
@@ -124,9 +129,10 @@ describe('DiscoverPage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/books/dune');
   });
 
+  // /search stays routable after LOS-211 dropped it from the nav; the pills and
+  // the hero search bar are now the way in.
   it('navigates to Search with the query when an example pill is clicked', async () => {
     mockedGetLibrary.mockResolvedValue({ entries: [], total: 0, stats: { total: 0, by_status: {} } });
-    mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
 
     renderDiscoverPage();
 
@@ -136,42 +142,16 @@ describe('DiscoverPage', () => {
     );
   });
 
-  it('navigates to Search in recommendations mode when See more is clicked', async () => {
-    mockedGetLibrary.mockResolvedValue({ entries: [], total: 0, stats: { total: 0, by_status: {} } });
-    mockedGetRecommendations.mockResolvedValue({ recommendations: [recommendation] });
-
-    renderDiscoverPage();
-
-    fireEvent.click(await screen.findByText('See more'));
-    expect(screen.getByTestId('location')).toHaveTextContent('/search?mode=recommendations');
-  });
-
-  it('navigates to Library filtered by status when a pie slice is picked', async () => {
-    mockedGetLibrary.mockResolvedValue({
-      entries: [],
-      total: 3,
-      stats: { total: 3, by_status: { finished: 3 } },
-    });
-    mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
-
-    renderDiscoverPage();
-
-    fireEvent.click(await screen.findByText('Finished'));
-    expect(screen.getByTestId('location')).toHaveTextContent('/library?status=finished');
-  });
-
   it('shows an error message when the data fails to load', async () => {
     mockedGetLibrary.mockRejectedValue(new Error('network error'));
-    mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
 
     renderDiscoverPage();
 
     expect(await screen.findByText(/Could not load your Discover page/)).toBeInTheDocument();
   });
 
-  it('stays quiet (no error banner) when the calls 401 because the visitor is logged out', async () => {
+  it('stays quiet (no error banner) when the call 401s because the visitor is logged out', async () => {
     mockedGetLibrary.mockRejectedValue(new ApiError(401, 'Authentication required'));
-    mockedGetRecommendations.mockResolvedValue({ recommendations: [] });
 
     renderDiscoverPage();
 
