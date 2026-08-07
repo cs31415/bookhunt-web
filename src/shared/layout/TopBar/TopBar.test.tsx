@@ -50,21 +50,24 @@ describe('TopBar', () => {
   it('marks Discover active on the index route', () => {
     renderAt('/');
     expect(screen.getByRole('link', { name: 'Discover' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'Search' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Library' })).not.toHaveAttribute('aria-current');
   });
 
-  it('marks Search active on /search and renders no header search field', () => {
-    renderAt('/search');
-    expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
+  it('marks Library active on /library', () => {
+    renderAt('/library');
+    expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Discover' })).not.toHaveAttribute('aria-current');
-    expect(screen.queryByLabelText('Search')).not.toBeInTheDocument();
   });
 
-  it('navigates to /search when the Search nav link is clicked', () => {
-    renderAt('/');
-    fireEvent.click(screen.getByRole('link', { name: 'Search' }));
-    expect(screen.getByTestId('location')).toHaveTextContent('/search');
-    expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
+  // LOS-211 dropped Search from the nav. /search still renders, it just has no
+  // entry here and so nothing to mark active — and there is no header search
+  // field standing in for it either.
+  it('offers no Search link, and marks nothing active on /search', () => {
+    renderAt('/search');
+    expect(screen.queryByRole('link', { name: 'Search' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Search')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Discover' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Library' })).not.toHaveAttribute('aria-current');
   });
 
   it('shows a Sign in link to /login when logged out', () => {
