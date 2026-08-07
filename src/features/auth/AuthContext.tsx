@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { postLogin } from '../../api/auth/login';
+import { mergeGuestPins } from '../../api/canned-searches/merge-guest-pins';
 import { clearSession, getStoredUser, setSession } from '../../api/auth/token';
 import type { AuthUser } from '../../api/auth/token';
 
@@ -22,6 +23,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { user: loggedInUser, token } = await postLogin({ email, password });
     setSession(token, loggedInUser);
     setUser(loggedInUser);
+
+    // After the session is set, so the pin calls carry the new token. Awaited
+    // rather than fired and forgotten, so Discover renders the merged pins on
+    // first paint instead of visibly rearranging them a moment later. Never
+    // allowed to fail the login — the reader is signed in either way (LOS-212).
+    try {
+      await mergeGuestPins();
+    } catch {
+      // Guest pins stay in localStorage and merge on the next sign-in.
+    }
   }, []);
 
   const logout = useCallback(() => {
