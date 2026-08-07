@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/AuthContext';
 import { BackArrowIcon, LogoMark, UserIcon } from '../icons';
-import { NAV_ITEMS } from '../nav-items';
+import { useNavItems } from '../nav-items';
 import styles from './TopBar.module.css';
 
 function isActivePath(pathname: string, path: string): boolean {
@@ -82,6 +82,7 @@ function AccountMenu() {
 export function TopBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const navItems = useNavItems();
 
   return (
     <header className={styles.bar}>
@@ -95,12 +96,12 @@ export function TopBar() {
       </Link>
 
       <nav aria-label="Primary" className={styles.nav}>
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = isActivePath(pathname, item.path);
           return (
             <Link
               key={item.path}
-              to={item.path}
+              to={item.to}
               aria-current={active ? 'page' : undefined}
               className={active ? `${styles.navLink} ${styles.active}` : styles.navLink}
             >

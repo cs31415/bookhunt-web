@@ -36,6 +36,23 @@
   color: var(--rust);
 }
 
+/* A pinned pill is the reader's own, so it reads as filled rather than
+   outlined — the suggestions around it stay quiet by comparison. Literal white,
+   not --paper: the fill is rust in both themes, so the text on it cannot follow
+   the theme's background colour. */
+.pinnedQuery {
+  border-color: var(--rust);
+  background: var(--rust);
+  color: #ffffff;
+}
+
+/* The outline pills go rust on hover; a pill already rust has only its border
+   left to answer with. */
+.pinnedQuery:hover {
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
 .pin {
   position: absolute;
   top: -7px;

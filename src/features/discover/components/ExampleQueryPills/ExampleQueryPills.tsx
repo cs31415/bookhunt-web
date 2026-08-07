@@ -30,7 +30,11 @@ function Pill({ search, isPinned, onPick, onTogglePin }: PillProps) {
   // dropping the inner control out of the tab order entirely.
   return (
     <span className={styles.pill}>
-      <button type="button" className={styles.query} onClick={() => onPick(search.query)}>
+      <button
+        type="button"
+        className={`${styles.query} ${isPinned ? styles.pinnedQuery : ''}`}
+        onClick={() => onPick(search.query)}
+      >
         {search.query}
       </button>
 
