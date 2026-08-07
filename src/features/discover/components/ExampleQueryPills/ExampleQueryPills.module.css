@@ -1,12 +1,22 @@
 .row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
   justify-content: center;
+  /* Wider row gap than column gap: the pin sits above the pill's top edge, and
+     at an even 8px it would nearly touch the pills on the line above. */
+  gap: 14px 8px;
   margin-top: 18px;
 }
 
+/* Positioning context for the pin, and nothing else. All the pill's appearance
+   lives on .query so the pin cannot inherit it. */
 .pill {
+  position: relative;
+  display: inline-flex;
+}
+
+.query {
   display: inline-flex;
   align-items: center;
   padding: 4px 11px;
@@ -21,7 +31,142 @@
   transition: all 0.14s ease;
 }
 
-.pill:hover {
+.query:hover {
   border-color: var(--rust);
   color: var(--rust);
+}
+
+.pin {
+  position: absolute;
+  top: -7px;
+  right: -5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  /* --paper, not --paper-2: it overlaps the pill's edge and has to read as
+     sitting on top of it rather than merging into it. */
+  background: var(--paper);
+  color: var(--muted);
+  cursor: pointer;
+  /* Hidden, not absent — absolutely positioned, so revealing it never reflows
+     the row. Still in the tab order, and :focus-visible below brings it back
+     for anyone arriving by keyboard. */
+  opacity: 0;
+  transition: opacity 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.pinGlyph {
+  width: 10px;
+  height: 10px;
+}
+
+/* Hovering the pin itself also matches, since it is a child of .pill — so the
+   control is never invisible at the moment it is under the cursor. */
+.pill:hover .pin,
+.pin:focus-visible {
+  opacity: 1;
+}
+
+.pin:hover {
+  color: var(--rust);
+  border-color: var(--rust);
+}
+
+/* A pin the reader has set stays visible: it is state, not an affordance. */
+.pinnedPin,
+.pill:hover .pinnedPin {
+  opacity: 1;
+  color: var(--rust);
+  border-color: var(--rust);
+}
+
+/* Keeps < ↻ > together as one cluster, so a wrap never strands an arrow on the
+   line below its glyph. */
+.controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.refresh,
+.step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  /* No pill chrome: these are affordances for the row, not more suggestions in
+     it, and a bordered circle here reads as another pill. */
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.14s ease, opacity 0.14s ease;
+}
+
+.refresh {
+  width: 26px;
+}
+
+.step {
+  width: 20px;
+}
+
+.refresh:hover,
+.refresh:focus-visible,
+.step:hover,
+.step:focus-visible {
+  color: var(--rust);
+}
+
+/* Nothing further in that direction. Faded rather than hidden, so the pair does
+   not jump around as the reader steps through, and still focusable — see the
+   aria-disabled note in the component. */
+.stepSpent {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.stepSpent:hover {
+  color: var(--muted);
+}
+
+.refreshGlyph {
+  width: 15px;
+  height: 15px;
+}
+
+.stepGlyph {
+  width: 13px;
+  height: 13px;
+}
+
+.spinning {
+  animation: pill-refresh-spin 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes pill-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* No hover on touch, so a control that only appears on hover does not exist
+   there. Show every pin outright instead. */
+@media (pointer: coarse) {
+  .pin {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinning {
+    animation: none;
+  }
 }

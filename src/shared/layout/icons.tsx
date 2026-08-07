@@ -89,6 +89,76 @@ export function UserIcon({ className }: IconProps) {
   );
 }
 
+/**
+ * Draw-again glyph for the Discover pills: one open circular stroke with the
+ * gap and the arrowhead at the top right. Deliberately a single arc rather than
+ * the usual pair of chasing arrows — at 15px two arrows read as noise, and this
+ * sits next to DiscoverIcon, which is also a circle at this weight.
+ */
+export function RefreshIcon({ className }: IconProps) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M17.7 6.3A8 8 0 1 1 12 4" />
+      <path d="M10.2 2.4L12 4l-1.8 1.6" />
+    </svg>
+  );
+}
+
+/**
+ * Bare chevron for stepping through the draw history beside the refresh glyph.
+ *
+ * One component with a direction rather than a mirrored pair, and separate from
+ * BackArrowIcon, which is heavier and belongs to page navigation — these two
+ * sit at 13px next to RefreshIcon and have to match its weight, not the nav's.
+ */
+export function ChevronIcon({ className, direction }: IconProps & { direction: 'left' | 'right' }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={direction === 'left' ? 'M14.5 18l-6-6 6-6' : 'M9.5 6l6 6-6 6'} />
+    </svg>
+  );
+}
+
+/**
+ * Thumbtack, seen head on. Lighter stroke than the nav icons because it renders
+ * at roughly half their size, on the corner of a pill, where 1.9 goes muddy.
+ */
+export function PinIcon({ className, filled }: IconProps & { filled?: boolean }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9.5 3h5l-.9 5.7 2.9 2.7v1.6H7.5v-1.6l2.9-2.7z" />
+      <path d="M12 13v6" />
+    </svg>
+  );
+}
+
 export function BackArrowIcon({ className }: IconProps) {
   return (
     <svg
