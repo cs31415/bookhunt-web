@@ -7,14 +7,17 @@ import { AuthProvider } from '../auth/AuthContext';
 import { setSession } from '../../api/auth/token';
 import { aiSearch } from '../../api/ai/search';
 import { searchLibrary } from '../../api/library/search-library';
+import { saveCannedSearch } from '../../api/canned-searches/pin-canned-search';
 import type { RawAiSearchBook } from '../../normalize/search';
 import type { RawLibraryEntry } from '../../normalize/library';
 
 vi.mock('../../api/ai/search');
 vi.mock('../../api/library/search-library');
+vi.mock('../../api/canned-searches/pin-canned-search');
 
 const mockedAiSearch = vi.mocked(aiSearch);
 const mockedSearchLibrary = vi.mocked(searchLibrary);
+const mockedSaveCannedSearch = vi.mocked(saveCannedSearch);
 
 function LocationProbe() {
   const location = useLocation();
@@ -716,6 +719,60 @@ describe('SearchPage', () => {
 
       expect(await screen.findByRole('button', { name: /Night Watch/ })).toBeInTheDocument();
       expect(screen.queryByText(/Could not load search results/)).not.toBeInTheDocument();
+    });
+  });
+
+  // LOS-214. The offer only made sense on Discover before, which meant it was
+  // gone by the time the reader had seen the results and knew the search was
+  // worth keeping.
+  describe('keeping a search as a pill', () => {
+    it('saves the search from the results page', async () => {
+      mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'sagan' });
+      mockedSaveCannedSearch.mockResolvedValue({ id: 900, query: 'sagan', category: 'saved' });
+
+      renderSearchPage('/search?q=sagan');
+      await screen.findByRole('button', { name: /Night Watch/ });
+
+      fireEvent.click(screen.getByRole('button', { name: /Keep this search as a pill/ }));
+
+      await waitFor(() => expect(mockedSaveCannedSearch).toHaveBeenCalledWith('sagan'));
+    });
+
+    // What the reader can see the results of, not what they have half-typed
+    // into the refine box above them.
+    it('saves the query from the URL, not unsubmitted text in the refine box', async () => {
+      mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'sagan' });
+      mockedSaveCannedSearch.mockResolvedValue({ id: 900, query: 'sagan', category: 'saved' });
+
+      renderSearchPage('/search?q=sagan');
+      await screen.findByRole('button', { name: /Night Watch/ });
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'something else' } });
+      fireEvent.click(screen.getByRole('button', { name: /Keep this search as a pill/ }));
+
+      await waitFor(() => expect(mockedSaveCannedSearch).toHaveBeenCalledWith('sagan'));
+    });
+
+    it('offers nothing to a guest', async () => {
+      localStorage.clear();
+      mockedAiSearch.mockResolvedValue({ books: [makeBook()], query: 'sagan' });
+
+      renderSearchPage('/search?q=sagan');
+      await screen.findByRole('button', { name: /Night Watch/ });
+
+      expect(
+        screen.queryByRole('button', { name: /Keep this search as a pill/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    // A mood- or subject-only search has no text to keep.
+    it('offers nothing when there is no query text', async () => {
+      renderSearchPage('/search?mood=melancholy');
+
+      await screen.findByText(/Books that feel/);
+      expect(
+        screen.queryByRole('button', { name: /Keep this search as a pill/ }),
+      ).not.toBeInTheDocument();
     });
   });
 });

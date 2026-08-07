@@ -28,33 +28,17 @@
   font-size: 12px;
 }
 
-/* Between the search bar and the pills, where it reads as an action on what was
-   just typed rather than as one of the suggestions. */
-.saveSearch {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+/* Between the search bar and the pills, where the offer to keep a search reads
+   as an action on what was just typed rather than as one of the suggestions. */
+.save {
   margin-top: 12px;
-  padding: 3px 10px;
-  border: 1px dashed var(--line-2);
-  border-radius: 999px;
-  background: none;
-  color: var(--ink-2);
-  font-family: var(--ui-sans);
-  font-size: 12px;
-  transition: color 0.14s ease, border-color 0.14s ease;
 }
 
-/* Dashed, unlike the solid pills: it is an offer to make one, not one yet. */
-.saveSearch:hover,
-.saveSearch:focus-visible {
-  border-color: var(--rust);
-  color: var(--rust);
-}
-
-.saveGlyph {
-  width: 11px;
-  height: 11px;
+/* The button withholds itself from guests and from queries too short to save,
+   leaving this wrapper empty — which would otherwise still push the pills down
+   by its margin. */
+.save:empty {
+  display: none;
 }
 
 @media (max-width: 640px) {

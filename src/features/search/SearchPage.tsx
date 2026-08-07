@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
+import { SaveSearchButton } from '../../shared/components/SaveSearchButton/SaveSearchButton';
 import { FilterSidebar } from './components/FilterSidebar/FilterSidebar';
 import { ResultsGrid } from './components/ResultsGrid/ResultsGrid';
 import { AiInterpretationBanner } from './components/AiInterpretationBanner/AiInterpretationBanner';
@@ -139,6 +140,12 @@ export function SearchPage() {
                   {pluralize(parsed.inLibraryOnly ? owned.length : results.length + owned.length, 'book')}
                 </div>
               )}
+              {/* The query from the URL, not queryInput: the pill should be the
+                  search these results came from, not text half-typed into the
+                  refine box above them. */}
+              <div className={styles.save}>
+                <SaveSearchButton query={parsed.q} />
+              </div>
             </div>
             {parsed.q && (
               <select

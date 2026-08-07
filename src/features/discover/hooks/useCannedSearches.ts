@@ -7,11 +7,7 @@ import {
   setGuestDrawIds,
   setGuestPinnedIds,
 } from '../../../api/canned-searches/guest-state';
-import {
-  pinCannedSearch,
-  saveCannedSearch,
-  unpinCannedSearch,
-} from '../../../api/canned-searches/pin-canned-search';
+import { pinCannedSearch, unpinCannedSearch } from '../../../api/canned-searches/pin-canned-search';
 import { MAX_PINNED_SEARCHES } from '../../../api/canned-searches/types';
 import type { CannedSearch } from '../../../api/canned-searches/types';
 import { useAuth } from '../../auth/AuthContext';
@@ -36,8 +32,11 @@ export interface UseCannedSearchesResult {
   canGoBack: boolean;
   canGoForward: boolean;
   togglePin: (search: CannedSearch) => void;
-  /** Save text the reader typed as their own pill. Signed-in readers only. */
-  saveSearch: (query: string) => Promise<void>;
+  /**
+   * Put a search into the pinned row. For a pill saved elsewhere — the server
+   * pins it as part of saving, so the row has to catch up without a refetch.
+   */
+  addPinned: (search: CannedSearch) => void;
   /** Transient message about the last action: a pin refused, a refresh that failed. */
   notice: string | null;
 }
@@ -195,26 +194,12 @@ export function useCannedSearches(): UseCannedSearchesResult {
     });
   }, [pinned, suggested, isAuthenticated, replaceCurrentDraw]);
 
-  const saveSearch = useCallback(async (query: string) => {
-    setNotice(null);
-    try {
-      const saved = await saveCannedSearch(query);
-      if (!mounted.current) return;
-      // The server pins it as part of saving, so it belongs with the pinned
-      // pills. Guarded against a double submit of the same text, which the
-      // server answers idempotently with the row that already exists.
-      setPinned((current) =>
-        current.some((pin) => pin.id === saved.id) ? current : [...current, saved],
-      );
-      setNotice(`Saved "${saved.query}" as a pill.`);
-    } catch (error) {
-      if (!mounted.current) return;
-      setNotice(
-        error instanceof ApiError && error.status === 409
-          ? PIN_LIMIT_MESSAGE
-          : 'Could not save that search. Please try again.',
-      );
-    }
+  // Guarded against the same search arriving twice, which the server answers
+  // idempotently with the row that already exists.
+  const addPinned = useCallback((search: CannedSearch) => {
+    setPinned((current) =>
+      current.some((pin) => pin.id === search.id) ? current : [...current, search],
+    );
   }, []);
 
   return {
@@ -228,7 +213,7 @@ export function useCannedSearches(): UseCannedSearchesResult {
     canGoBack: position > 0,
     canGoForward: position < lastIndex,
     togglePin,
-    saveSearch,
+    addPinned,
     notice,
   };
 }

@@ -31,6 +31,18 @@
   color: var(--rust);
 }
 
+/* Under the heading and its count, so the offer to keep the search sits with
+   the search it would keep rather than with the sort control opposite. Empty
+   for guests and for a search with no query text — see DiscoverPage.module.css
+   for the same wrapper. */
+.save {
+  margin-top: 10px;
+}
+
+.save:empty {
+  display: none;
+}
+
 .count {
   font-size: 13px;
   color: var(--muted);
