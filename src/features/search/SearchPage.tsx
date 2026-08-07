@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
+import { SaveSearchButton } from '../../shared/components/SaveSearchButton/SaveSearchButton';
 import { FilterSidebar } from './components/FilterSidebar/FilterSidebar';
 import { ResultsGrid } from './components/ResultsGrid/ResultsGrid';
 import { AiInterpretationBanner } from './components/AiInterpretationBanner/AiInterpretationBanner';
@@ -114,6 +115,13 @@ export function SearchPage() {
     <div className={styles.page}>
       <div className={styles.searchBarWrap}>
         <SearchBar value={queryInput} onChange={setQueryInput} onSubmit={handleSubmit} big placeholder="Refine your search…" />
+
+        {/* The query from the URL, not queryInput, even sitting directly under
+            the box: the pill should be the search these results came from, not
+            text typed into the box and not yet run. */}
+        <div className={styles.save}>
+          <SaveSearchButton query={parsed.q} />
+        </div>
       </div>
 
       <div className={styles.layout}>

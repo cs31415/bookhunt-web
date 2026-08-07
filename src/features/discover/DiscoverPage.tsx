@@ -1,22 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
+import { SaveSearchButton } from '../../shared/components/SaveSearchButton/SaveSearchButton';
 import { ExampleQueryPills } from './components/ExampleQueryPills/ExampleQueryPills';
 import { CurrentlyReadingSection } from './components/CurrentlyReadingSection/CurrentlyReadingSection';
 import { useDiscoverData } from './hooks/useDiscoverData';
 import { useCannedSearches } from './hooks/useCannedSearches';
-import { useAuth } from '../auth/AuthContext';
-import { PinIcon } from '../../shared/layout/icons';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import type { BookSummary } from '../../shared/types/book';
 import styles from './DiscoverPage.module.css';
 
-/** Matches MIN_SAVED_QUERY_LENGTH in the API; the server enforces it with a 400. */
-const MIN_SAVED_QUERY_LENGTH = 3;
-
 function DiscoverHero({ onSearch }: { onSearch: (query: string) => void }) {
   const [query, setQuery] = useState('');
-  const { isAuthenticated } = useAuth();
   const {
     pinned,
     suggested,
@@ -27,7 +22,7 @@ function DiscoverHero({ onSearch }: { onSearch: (query: string) => void }) {
     canGoBack,
     canGoForward,
     togglePin,
-    saveSearch,
+    addPinned,
     notice,
   } = useCannedSearches();
 
@@ -36,26 +31,17 @@ function DiscoverHero({ onSearch }: { onSearch: (query: string) => void }) {
     onSearch(text);
   }
 
-  // Saving writes a row owned by the reader, so there is nowhere to put a
-  // guest's. They can still pin anything from the catalog.
-  const canSave = isAuthenticated && query.trim().length >= MIN_SAVED_QUERY_LENGTH;
-
   return (
     <div className={styles.hero}>
       <div className={styles.heroSearch}>
         <SearchBar value={query} onChange={setQuery} onSubmit={onSearch} big autoFocus />
       </div>
 
-      {canSave && (
-        <button
-          type="button"
-          className={styles.saveSearch}
-          onClick={() => void saveSearch(query)}
-        >
-          <PinIcon className={styles.saveGlyph} />
-          Keep this search as a pill
-        </button>
-      )}
+      {/* The saved pill is pinned server-side, so it joins the row without a
+          refetch. Withheld from guests and short queries by the button itself. */}
+      <div className={styles.save}>
+        <SaveSearchButton query={query} onSaved={addPinned} />
+      </div>
 
       <ExampleQueryPills
         pinned={pinned}
