@@ -41,10 +41,17 @@ function AccountMenu() {
   }, [open]);
 
   if (!isAuthenticated) {
+    // The avatar alone only ever offered sign-in, which left a first-time
+    // reader with no way into the app at all (LOS-219).
     return (
-      <Link to="/login" className={`${styles.avatar} ${styles.avatarPushRight}`} aria-label="Sign in">
-        <UserIcon className={styles.avatarIcon} />
-      </Link>
+      <div className={`${styles.account} ${styles.accountPushRight}`}>
+        <Link to="/register" className={styles.signUp}>
+          Sign up
+        </Link>
+        <Link to="/login" className={styles.avatar} aria-label="Sign in">
+          <UserIcon className={styles.avatarIcon} />
+        </Link>
+      </div>
     );
   }
 

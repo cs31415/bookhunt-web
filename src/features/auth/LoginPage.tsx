@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '../../api/client';
 import { useAuth } from './AuthContext';
+import { useResendVerification } from './use-resend-verification';
 import styles from './LoginPage.module.css';
 
 interface LocationState {
@@ -19,15 +20,28 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Set when the credentials were right but the address has never been
+  // confirmed, which is the one failure the reader can act on from here.
+  const [unverified, setUnverified] = useState(false);
+  const { status: resendStatus, resend } = useResendVerification(email);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setUnverified(false);
     setPending(true);
     try {
       await login(email, password);
       navigate(returnTo, { replace: true });
     } catch (err) {
+      // On login a 403 has only one meaning — the password was accepted but the
+      // address is unconfirmed (LOS-218) — so the status alone is enough and
+      // there is no need to read the response's `code`.
+      if (err instanceof ApiError && err.status === 403) {
+        setUnverified(true);
+        setPending(false);
+        return;
+      }
       // 401 is the expected "bad credentials" case; the backend returns the
       // same message for wrong password and unknown email (no user enumeration).
       const message =
@@ -79,9 +93,36 @@ export function LoginPage() {
           </p>
         )}
 
+        {unverified && (
+          <div className={styles.notice}>
+            <p className={styles.error} role="alert">
+              Confirm your email address before signing in. Check your inbox for the link we sent
+              when you signed up.
+            </p>
+            {resendStatus === 'sent' ? (
+              <p className={styles.noticeNote} role="status">
+                A new link is on its way.
+              </p>
+            ) : (
+              <button
+                className={styles.linkButton}
+                type="button"
+                onClick={resend}
+                disabled={resendStatus === 'sending'}
+              >
+                {resendStatus === 'sending' ? 'Sending…' : 'Send it again'}
+              </button>
+            )}
+          </div>
+        )}
+
         <button className={styles.submit} type="submit" disabled={pending}>
           {pending ? 'Signing in…' : 'Sign in'}
         </button>
+
+        <p className={styles.altAction}>
+          New to BookHunt? <Link to="/register">Create an account</Link>
+        </p>
       </form>
     </div>
   );

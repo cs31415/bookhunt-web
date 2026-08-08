@@ -1,3 +1,6 @@
+/* Deliberately the same card as LoginPage: the two screens sit either side of
+   one link, and any drift between them reads as landing somewhere else. */
+
 .page {
   display: flex;
   justify-content: center;
@@ -30,6 +33,11 @@
   margin: 6px 0 24px;
 }
 
+.address {
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -58,9 +66,32 @@
   border-color: var(--rust);
 }
 
+/* Wraps a field plus its hint so the pair keeps the spacing a bare field has. */
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.fieldTight {
+  margin-bottom: 0;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .error {
   font-size: 13px;
   color: var(--rust-deep);
+  margin: 0 0 16px;
+}
+
+.note {
+  font-size: 13px;
+  color: var(--muted);
   margin: 0 0 16px;
 }
 
@@ -86,31 +117,24 @@
   cursor: default;
 }
 
-.notice {
-  margin-bottom: 8px;
-}
-
-.noticeNote {
-  font-size: 13px;
-  color: var(--muted);
-  margin: 0 0 16px;
-}
-
-/* A button because it acts, not navigates; styled as a link because it is a
-   secondary offer sitting inside an error message. */
-.linkButton {
-  border: none;
-  background: none;
-  padding: 0;
-  margin: 0 0 16px;
+.secondary {
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
   font: inherit;
-  font-size: 13px;
-  color: var(--rust);
-  text-decoration: underline;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 11px 22px;
   cursor: pointer;
 }
 
-.linkButton:disabled {
+.secondary:hover:not(:disabled) {
+  border-color: var(--rust);
+  color: var(--rust);
+}
+
+.secondary:disabled {
   opacity: 0.6;
   cursor: default;
 }

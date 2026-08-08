@@ -127,6 +127,18 @@
   white-space: nowrap;
 }
 
+.signUp {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.signUp:hover {
+  text-decoration: underline;
+}
+
 .accountMenu {
   position: absolute;
   top: calc(100% + 8px);
