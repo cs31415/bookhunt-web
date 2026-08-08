@@ -5,10 +5,13 @@ import { LoginPage } from './LoginPage';
 import { AuthProvider } from './AuthContext';
 import { ApiError } from '../../api/client';
 import { postLogin } from '../../api/auth/login';
+import { postResendVerification } from '../../api/auth/resend-verification';
 
 vi.mock('../../api/auth/login');
+vi.mock('../../api/auth/resend-verification');
 
 const mockedPostLogin = vi.mocked(postLogin);
+const mockedPostResend = vi.mocked(postResendVerification);
 
 const user = { id: 7, email: 'reader@example.com', displayName: 'Ada Reader' };
 
@@ -44,6 +47,7 @@ function fillAndSubmit() {
 
 beforeEach(() => {
   localStorage.clear();
+  mockedPostResend.mockReset();
   mockedPostLogin.mockReset();
 });
 
@@ -87,5 +91,56 @@ describe('LoginPage', () => {
 
     await screen.findByRole('alert');
     expect(screen.getByRole('button', { name: /sign in/i })).toBeEnabled();
+  });
+
+  it('offers a route to sign up', async () => {
+    // Until LOS-219 nothing in the app linked to /register at all.
+    renderLoginPage();
+    expect(screen.getByRole('link', { name: /create an account/i })).toHaveAttribute(
+      'href',
+      '/register',
+    );
+  });
+
+  describe('when the address has not been verified', () => {
+    it('explains the 403 rather than showing a credentials error', async () => {
+      mockedPostLogin.mockRejectedValue(new ApiError(403, 'Please verify your email address'));
+      renderLoginPage();
+
+      fillAndSubmit();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Confirm your email address before signing in.',
+      );
+      expect(screen.queryByTestId('location')).not.toBeInTheDocument();
+      expect(localStorage.getItem('bookhunt_token')).toBeNull();
+    });
+
+    it('resends the verification email', async () => {
+      mockedPostLogin.mockRejectedValue(new ApiError(403, 'Please verify your email address'));
+      mockedPostResend.mockResolvedValue({ ok: true });
+      renderLoginPage();
+
+      fillAndSubmit();
+      fireEvent.click(await screen.findByRole('button', { name: /send it again/i }));
+
+      await waitFor(() => {
+        expect(mockedPostResend).toHaveBeenCalledWith({ email: 'reader@example.com' });
+      });
+      expect(await screen.findByRole('status')).toHaveTextContent('A new link is on its way.');
+    });
+
+    it('clears the notice on the next attempt', async () => {
+      mockedPostLogin.mockRejectedValue(new ApiError(403, 'unverified'));
+      renderLoginPage();
+      fillAndSubmit();
+      await screen.findByRole('alert');
+
+      mockedPostLogin.mockRejectedValue(new ApiError(401, 'Invalid credentials'));
+      fillAndSubmit();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect email or password.');
+      expect(screen.queryByRole('button', { name: /send it again/i })).not.toBeInTheDocument();
+    });
   });
 });

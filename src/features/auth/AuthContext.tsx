@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { postLogin } from '../../api/auth/login';
+import { postVerifyEmail } from '../../api/auth/verify-email';
 import { mergeGuestPins } from '../../api/canned-searches/merge-guest-pins';
 import { clearSession, getStoredUser, setSession } from '../../api/auth/token';
 import type { AuthUser } from '../../api/auth/token';
@@ -9,6 +10,10 @@ export interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  // Registering is not here on purpose: under the LOS-218 gate it creates no
+  // session, so it changes nothing this provider owns and RegisterPage calls
+  // postRegister directly. Verifying does create one.
+  verifyEmail: (token: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -19,10 +24,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // (the token itself is read per-request by apiFetch via getToken()).
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { user: loggedInUser, token } = await postLogin({ email, password });
-    setSession(token, loggedInUser);
-    setUser(loggedInUser);
+  // Shared by the two ways a session begins: signing in, and following the
+  // verification link from the sign-up email.
+  const startSession = useCallback(async (token: string, sessionUser: AuthUser) => {
+    setSession(token, sessionUser);
+    setUser(sessionUser);
 
     // After the session is set, so the pin calls carry the new token. Awaited
     // rather than fired and forgotten, so Discover renders the merged pins on
@@ -35,14 +41,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const { user: loggedInUser, token } = await postLogin({ email, password });
+      await startSession(token, loggedInUser);
+    },
+    [startSession],
+  );
+
+  // Carrying guest pins across matters more here than at sign-in: this is the
+  // moment a brand-new account first exists, and everything the reader pinned
+  // while browsing signed-out would otherwise be stranded in localStorage.
+  const verifyEmail = useCallback(
+    async (verificationToken: string) => {
+      const { user: verifiedUser, token } = await postVerifyEmail({ token: verificationToken });
+      await startSession(token, verifiedUser);
+    },
+    [startSession],
+  );
+
   const logout = useCallback(() => {
     clearSession();
     setUser(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: user !== null, login, logout }),
-    [user, login, logout],
+    () => ({ user, isAuthenticated: user !== null, login, verifyEmail, logout }),
+    [user, login, verifyEmail, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
