@@ -36,7 +36,6 @@ function makeResponse(overrides: Partial<RawGetAuthorResponse> = {}): RawGetAuth
       slug: 'lucille-fletcher',
       name: 'Lucille Fletcher',
       birth_year: 1912,
-      country: 'United States',
       bio: 'An American screenwriter and novelist.',
     },
     books: [makeWork()],
@@ -88,7 +87,7 @@ describe('AuthorPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Lucille Fletcher' })).toBeInTheDocument();
     expect(screen.getByText('An American screenwriter and novelist.')).toBeInTheDocument();
-    expect(screen.getByText('United States · b. 1912')).toBeInTheDocument();
+    expect(screen.getByText('b. 1912')).toBeInTheDocument();
     expect(screen.getByText('3 books')).toBeInTheDocument();
     expect(screen.getByText('Books by Lucille Fletcher')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Night Watch/ })).toBeInTheDocument();
@@ -110,7 +109,6 @@ describe('AuthorPage', () => {
           slug: 'marcus-aurelius',
           name: 'Marcus Aurelius',
           birth_year: 121,
-          country: 'Roman Empire',
           bio: 'Roman emperor and Stoic philosopher.',
         },
         books: [makeWork({ bookId: 10, slug: 'meditations', title: 'Meditations' })],
@@ -119,7 +117,7 @@ describe('AuthorPage', () => {
 
     renderAuthorPage('/authors/marcus-aurelius');
 
-    expect(await screen.findByText('Roman Empire · b. 121 CE')).toBeInTheDocument();
+    expect(await screen.findByText('b. 121 CE')).toBeInTheDocument();
   });
 
   it('shows "Author not found." on a 404', async () => {

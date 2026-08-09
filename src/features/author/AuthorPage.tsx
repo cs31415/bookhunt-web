@@ -14,13 +14,15 @@ function formatBirthYear(year: number): string {
 
 /**
  * Provider-neutral hero meta line, derived only from the author's own fields —
- * "{country} · b. {year}", or whichever piece is known, or "Author" when neither is.
+ * "b. {year}", or "Author" when even that is unknown.
+ *
+ * Country used to lead this line. It was dropped in LOS-228: no book provider
+ * could supply it, so it existed only to make an LLM call for one word, and it
+ * had reached 23 of 303 authors.
  */
-function metaLine(country: string | null, birthYear: number | null): string {
-  const parts: string[] = [];
-  if (country) parts.push(country);
-  if (birthYear != null) parts.push(`b. ${formatBirthYear(birthYear)}`);
-  return parts.length > 0 ? parts.join(' · ') : 'Author';
+function metaLine(birthYear: number | null): string {
+  if (birthYear == null) return 'Author';
+  return `b. ${formatBirthYear(birthYear)}`;
 }
 
 export function AuthorPage() {
@@ -50,7 +52,7 @@ export function AuthorPage() {
           portrait
         </div>
         <div>
-          <div className={styles.eyebrow}>{metaLine(author.country, author.birthYear)}</div>
+          <div className={styles.eyebrow}>{metaLine(author.birthYear)}</div>
           <h1 className={styles.name}>{author.name}</h1>
           {author.bio && <RichText className={styles.bio} text={author.bio} />}
           <div className={styles.count}>

@@ -8,7 +8,6 @@ const raw: RawGetAuthorResponse = {
     slug: 'lucille-fletcher',
     name: 'Lucille Fletcher',
     birth_year: 1912,
-    country: 'United States',
     bio: 'An American screenwriter and novelist…',
   },
   books: [
@@ -44,7 +43,6 @@ describe('normalizeAuthor', () => {
       slug: 'lucille-fletcher',
       name: 'Lucille Fletcher',
       birthYear: 1912,
-      country: 'United States',
       bio: 'An American screenwriter and novelist…',
     });
   });

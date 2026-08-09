@@ -88,7 +88,6 @@ const rawAuthor = {
     slug: 'lucille-fletcher',
     name: 'Lucille Fletcher',
     birth_year: 1912,
-    country: 'United States',
     bio: 'An American screenwriter and novelist…',
   },
   books: [{ bookId: 95, slug: 'night-watch', title: 'Night Watch', year: 2026, rating: null, coverUrl: null, inLibrary: false, libraryStatus: null }],
