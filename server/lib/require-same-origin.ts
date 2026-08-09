@@ -29,7 +29,10 @@ import type { NextFunction, Request, Response } from 'express';
  */
 export function requireSameOrigin(req: Request, res: Response, next: NextFunction): void {
   if (req.get('sec-fetch-site') !== 'same-origin') {
-    res.status(403).json({ error: 'This endpoint is only callable from the BookHunt app' });
+    // Bare 403. By definition the SPA never sees this response, so any body
+    // would be read only by whoever is poking at the endpoint — and describing
+    // how it is gated tells them something they have no need for.
+    res.status(403).end();
     return;
   }
   next();
