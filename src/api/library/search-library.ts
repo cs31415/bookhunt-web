@@ -2,7 +2,12 @@ import { apiFetch } from '../client';
 import type { RawLibraryEntry } from '../../normalize/library';
 
 export interface SearchLibraryParams {
-  q: string;
+  /**
+   * Optional: the API treats an absent query as a filter-only browse, with
+   * `terms` and `phrase` null and the sort defaulting to `added`. That is how
+   * Discover asks for "everything I am currently reading" without a search box.
+   */
+  q?: string;
   status?: string;
   sort?: string;
   limit?: number;
@@ -23,7 +28,8 @@ export function searchLibrary(
   params: SearchLibraryParams,
   signal?: AbortSignal,
 ): Promise<SearchLibraryResponse> {
-  const query = new URLSearchParams({ q: params.q });
+  const query = new URLSearchParams();
+  if (params.q) query.set('q', params.q);
   if (params.status) query.set('status', params.status);
   if (params.sort) query.set('sort', params.sort);
   if (params.limit !== undefined) query.set('limit', String(params.limit));
