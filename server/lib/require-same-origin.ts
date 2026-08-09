@@ -1,31 +1,36 @@
 import type { NextFunction, Request, Response } from 'express';
-import { getAppOrigin } from '../config/app-origin.js';
-
-const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
- * CSRF guard for the cookie session.
+ * Requires that the request came from the app itself, in a browser.
  *
- * A Bearer header could never be sent by another site; a cookie can, so moving
- * the token into one reintroduces CSRF. `SameSite=Lax` already blocks the
- * classic cross-site form POST, and this closes the rest: browsers always
- * attach `Origin` to a cross-origin fetch, so a mismatch is unambiguous.
+ * `Sec-Fetch-Site` is set by the browser and cannot be overridden by page
+ * script, which makes it a sharper instrument than comparing `Origin` against
+ * a configured value — there is no second copy of the origin to drift, and it
+ * covers reads as well as writes:
  *
- * A *missing* Origin is allowed through on purpose. Browsers send it on every
- * request this guard cares about, so absence means a non-browser client (curl,
- * a health probe) — which has no ambient cookie to abuse in the first place.
+ * | caller                        | Sec-Fetch-Site |     |
+ * |-------------------------------|----------------|-----|
+ * | the SPA calling fetch         | same-origin    | ok  |
+ * | a URL pasted in the addressbar| none           | 403 |
+ * | another site, any method      | cross-site     | 403 |
+ * | a bare non-browser client     | absent         | 403 |
+ *
+ * Rejecting the absent case is deliberate: the SPA is this server's only
+ * intended caller, and `/bff/health` is registered ahead of this guard for
+ * anything that needs a liveness probe. Reaching it from a terminal takes
+ * `-H 'Sec-Fetch-Site: same-origin'`.
+ *
+ * This is **not** a security boundary, and must not be relied on as one — that
+ * same one-line header defeats it. What it buys is that the browser cannot be
+ * used as a deputy (the CSRF risk the cookie session reintroduced, which a
+ * Bearer header never had) and that BFF URLs are not casually loadable. The
+ * defences that hold against a determined caller are the session itself, rate
+ * limiting, and not doing paid or persisting work on unauthenticated reads.
  */
 export function requireSameOrigin(req: Request, res: Response, next: NextFunction): void {
-  if (SAFE_METHODS.has(req.method)) {
-    next();
+  if (req.get('sec-fetch-site') !== 'same-origin') {
+    res.status(403).json({ error: 'This endpoint is only callable from the BookHunt app' });
     return;
   }
-
-  const origin = req.get('origin');
-  if (origin !== undefined && origin !== getAppOrigin()) {
-    res.status(403).json({ error: 'Cross-origin request rejected' });
-    return;
-  }
-
   next();
 }

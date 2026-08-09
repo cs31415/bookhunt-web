@@ -18,6 +18,7 @@ async function post(path: string, init: RequestInit & { cookie?: string } = {}):
     const { port } = server.address() as { port: number };
     const headers = new Headers(rest.headers);
     if (cookie) headers.set('Cookie', cookie);
+    if (!headers.has('Sec-Fetch-Site')) headers.set('Sec-Fetch-Site', 'same-origin');
     return await fetch(`http://127.0.0.1:${port}${path}`, { method: 'POST', ...rest, headers });
   } finally {
     server.close();
@@ -29,7 +30,6 @@ const realFetch = globalThis.fetch;
 
 beforeEach(() => {
   process.env.API_BASE_URL = API;
-  process.env.APP_ORIGIN = 'http://app.test';
   fetchMock = vi.fn();
   globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
     String(input).startsWith(API)
@@ -40,7 +40,6 @@ beforeEach(() => {
 afterEach(() => {
   globalThis.fetch = realFetch;
   delete process.env.API_BASE_URL;
-  delete process.env.APP_ORIGIN;
   delete process.env.NODE_ENV;
 });
 
@@ -135,45 +134,74 @@ describe('POST /bff/auth/logout', () => {
   });
 });
 
-describe('the CSRF guard', () => {
-  it('rejects a mutation from another origin', async () => {
-    const response = await post('/bff/library/dune', {
-      cookie: 'bh_session=jwt-123',
-      headers: { Origin: 'http://evil.test', 'content-type': 'application/json' },
-      body: '{}',
-    });
+describe('the same-origin guard', () => {
+  /** A raw request, so the helper does not supply Sec-Fetch-Site for us. */
+  async function raw(path: string, headers: Record<string, string> = {}): Promise<Response> {
+    const server = createApp().listen(0);
+    try {
+      const { port } = server.address() as { port: number };
+      return await fetch(`http://127.0.0.1:${port}${path}`, { headers });
+    } finally {
+      server.close();
+    }
+  }
+
+  beforeEach(() => {
+    fetchMock.mockResolvedValue(
+      new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+  });
+
+  it('allows what the SPA sends', async () => {
+    const response = await raw('/bff/books/dune', { 'Sec-Fetch-Site': 'same-origin' });
+    expect(response.status).toBe(200);
+  });
+
+  it('rejects a URL pasted into the address bar', async () => {
+    // Sec-Fetch-Site: none is a top-level navigation. This is the case that
+    // made /bff/books/... loadable in an incognito window (LOS-223).
+    const response = await raw('/bff/books/dune', { 'Sec-Fetch-Site': 'none' });
 
     expect(response.status).toBe(403);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('allows a mutation from the app itself', async () => {
-    fetchMock.mockResolvedValue(
-      new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }),
-    );
+  it('rejects a request from another site', async () => {
+    const response = await raw('/bff/books/dune', { 'Sec-Fetch-Site': 'cross-site' });
 
-    const response = await post('/bff/library/dune', {
-      cookie: 'bh_session=jwt-123',
-      headers: { Origin: 'http://app.test', 'content-type': 'application/json' },
-      body: '{}',
-    });
-
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('leaves reads alone whatever their origin', async () => {
-    fetchMock.mockResolvedValue(
-      new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }),
-    );
+  it('rejects a client that sends no Sec-Fetch-Site at all', async () => {
+    // Browsers always send it, so its absence means a non-browser caller, and
+    // the SPA is the only caller this server is for.
+    const response = await raw('/bff/books/dune');
+
+    expect(response.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('guards reads as well as writes', async () => {
+    // The Origin check this replaced only ran on mutating methods, which is
+    // exactly how a GET navigation slipped past it.
     const server = createApp().listen(0);
     const { port } = server.address() as { port: number };
-    const response = await fetch(`http://127.0.0.1:${port}/bff/books/dune`, {
-      headers: { Origin: 'http://evil.test' },
+    const response = await fetch(`http://127.0.0.1:${port}/bff/library/dune`, {
+      method: 'POST',
+      headers: { 'Sec-Fetch-Site': 'none', Cookie: 'bh_session=jwt-123' },
     });
     server.close();
 
-    // A cross-origin read cannot be read back by the attacker anyway, and the
-    // SameSite cookie means it carries no session.
+    expect(response.status).toBe(403);
+  });
+
+  it('leaves the health check reachable', async () => {
+    // Registered ahead of the guard: a liveness probe is not a browser and has
+    // no session to abuse.
+    const response = await raw('/bff/health');
+
     expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ status: 'ok' });
   });
 });

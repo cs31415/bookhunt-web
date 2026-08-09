@@ -40,7 +40,9 @@ Two things follow from that:
 - **No credential is reachable from JavaScript.** The session is an httpOnly cookie; `src/api/auth/stored-user.ts` caches only the user's display data.
 - **Only listed endpoints exist.** `server/routes/forward-manifest.ts` is the allowlist. Anything absent 404s at the BFF, so adding a page that needs a new endpoint means adding a line there.
 
-Two guards protect the cookie session: `SameSite=Lax`, and an Origin check on every mutating request (`server/lib/require-same-origin.ts`).
+Two guards sit in front of the cookie session. `SameSite=Lax` keeps it off cross-site requests, and `server/lib/require-same-origin.ts` requires `Sec-Fetch-Site: same-origin` on every route but `/bff/health` — a header browsers set and page script cannot forge. So an address-bar navigation to a `/bff/...` URL, and anything from another site, both get a 403.
+
+That second guard is **not** a security boundary: `curl -H 'Sec-Fetch-Site: same-origin'` defeats it, and reaching the BFF from a terminal is exactly how you do it. What it buys is that the browser cannot be used as a deputy and that BFF URLs are not casually loadable. The defences that hold are the session, rate limiting, and not doing paid or persisting work on unauthenticated reads.
 
 Env is read through functions, never a module-level `const` — ESM hoists imports above `dotenv.config()` in `server/index.ts`, so anything evaluated at module scope would see an unloaded environment.
 

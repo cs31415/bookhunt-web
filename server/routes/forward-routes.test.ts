@@ -19,6 +19,8 @@ async function request(
     const { port } = server.address() as { port: number };
     const headers = new Headers(rest.headers);
     if (cookie) headers.set('Cookie', cookie);
+    // Every route behind requireSameOrigin needs what a browser would send.
+    if (!headers.has('Sec-Fetch-Site')) headers.set('Sec-Fetch-Site', 'same-origin');
     return await fetch(`http://127.0.0.1:${port}${path}`, { ...rest, headers });
   } finally {
     server.close();
@@ -53,7 +55,6 @@ const realFetch = globalThis.fetch;
 
 beforeEach(() => {
   process.env.API_BASE_URL = API;
-  process.env.APP_ORIGIN = 'http://app.test';
   fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
   // Only calls aimed at the API are intercepted; the loopback request the test
   // itself makes has to go through for real.
@@ -66,7 +67,6 @@ beforeEach(() => {
 afterEach(() => {
   globalThis.fetch = realFetch;
   delete process.env.API_BASE_URL;
-  delete process.env.APP_ORIGIN;
 });
 
 describe('the forwarding manifest', () => {

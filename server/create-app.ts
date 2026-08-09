@@ -36,11 +36,14 @@ export function createApp(): Express {
   app.use(express.raw({ type: '*/*', limit: '2mb' }));
 
   const bff = Router();
-  bff.use(requireSameOrigin);
 
+  // Ahead of the guard on purpose: a liveness probe is not a browser and has
+  // no session to abuse.
   bff.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
+
+  bff.use(requireSameOrigin);
 
   // The three that touch the cookie, before the manifest registers the rest.
   bff.post('/auth/login', loginRoute);
