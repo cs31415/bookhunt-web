@@ -1,5 +1,5 @@
 import { apiFetch } from '../client';
-import type { AuthUser } from './token';
+import type { AuthUser } from './stored-user';
 
 export interface RegisterRequest {
   email: string;

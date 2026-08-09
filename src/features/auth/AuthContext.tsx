@@ -1,10 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { postLogin } from '../../api/auth/login';
+import { postLogout } from '../../api/auth/logout';
 import { postVerifyEmail } from '../../api/auth/verify-email';
 import { mergeGuestPins } from '../../api/canned-searches/merge-guest-pins';
-import { clearSession, getStoredUser, setSession } from '../../api/auth/token';
-import type { AuthUser } from '../../api/auth/token';
+import { SESSION_EXPIRED_EVENT } from '../../api/auth/session-expired';
+import { clearStoredUser, getStoredUser, setStoredUser } from '../../api/auth/stored-user';
+import type { AuthUser } from '../../api/auth/stored-user';
 
 export interface AuthContextValue {
   user: AuthUser | null;
@@ -14,20 +16,21 @@ export interface AuthContextValue {
   // session, so it changes nothing this provider owns and RegisterPage calls
   // postRegister directly. Verifying does create one.
   verifyEmail: (token: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Hydrate from the cached session so a reload keeps the user logged in
-  // (the token itself is read per-request by apiFetch via getToken()).
+  // Hydrate from the cached user so a reload keeps the reader logged in. The
+  // session itself is an httpOnly cookie the browser attaches on its own, so
+  // there is nothing here to read it from — which is the point (LOS-119).
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
 
   // Shared by the two ways a session begins: signing in, and following the
   // verification link from the sign-up email.
-  const startSession = useCallback(async (token: string, sessionUser: AuthUser) => {
-    setSession(token, sessionUser);
+  const startSession = useCallback(async (sessionUser: AuthUser) => {
+    setStoredUser(sessionUser);
     setUser(sessionUser);
 
     // After the session is set, so the pin calls carry the new token. Awaited
@@ -43,8 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const { user: loggedInUser, token } = await postLogin({ email, password });
-      await startSession(token, loggedInUser);
+      const { user: loggedInUser } = await postLogin({ email, password });
+      await startSession(loggedInUser);
     },
     [startSession],
   );
@@ -54,15 +57,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // while browsing signed-out would otherwise be stranded in localStorage.
   const verifyEmail = useCallback(
     async (verificationToken: string) => {
-      const { user: verifiedUser, token } = await postVerifyEmail({ token: verificationToken });
-      await startSession(token, verifiedUser);
+      const { user: verifiedUser } = await postVerifyEmail({ token: verificationToken });
+      await startSession(verifiedUser);
     },
     [startSession],
   );
 
-  const logout = useCallback(() => {
-    clearSession();
+  const logout = useCallback(async () => {
+    // Only the BFF can clear an httpOnly cookie, so this is a round trip now.
+    // A failed call must not strand the reader in a page they meant to leave —
+    // the local state is dropped either way, and a stale cookie is harmless
+    // once nothing is using it.
+    try {
+      await postLogout();
+    } catch {
+      // Signed out locally regardless.
+    }
+    clearStoredUser();
     setUser(null);
+  }, []);
+
+  // A session can also end without anyone asking: the cookie expires, and the
+  // next call comes back 401. apiFetch announces that here so the UI stops
+  // showing a reader who is no longer signed in.
+  useEffect(() => {
+    const handleExpiry = () => {
+      setUser(null);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpiry);
+    return () => {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpiry);
+    };
   }, []);
 
   const value = useMemo<AuthContextValue>(

@@ -3,10 +3,14 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
 import { postLogin } from '../../api/auth/login';
+import { postLogout } from '../../api/auth/logout';
+import { SESSION_EXPIRED_EVENT } from '../../api/auth/session-expired';
 
 vi.mock('../../api/auth/login');
+vi.mock('../../api/auth/logout');
 
 const mockedPostLogin = vi.mocked(postLogin);
+const mockedPostLogout = vi.mocked(postLogout);
 
 const user = { id: 7, email: 'reader@example.com', displayName: 'Ada Reader' };
 
@@ -17,6 +21,8 @@ function wrapper({ children }: { children: ReactNode }) {
 beforeEach(() => {
   localStorage.clear();
   mockedPostLogin.mockReset();
+  mockedPostLogout.mockReset();
+  mockedPostLogout.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -30,8 +36,8 @@ describe('useAuth', () => {
     expect(result.current.user).toBeNull();
   });
 
-  it('logs in: stores token + user and flips to authenticated', async () => {
-    mockedPostLogin.mockResolvedValue({ user, token: 'jwt-123' });
+  it('logs in: caches the user and flips to authenticated', async () => {
+    mockedPostLogin.mockResolvedValue({ user });
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     await act(async () => {
@@ -44,29 +50,58 @@ describe('useAuth', () => {
     });
     expect(result.current.isAuthenticated).toBe(true);
     expect(result.current.user).toEqual(user);
-    expect(localStorage.getItem('bookhunt_token')).toBe('jwt-123');
     expect(JSON.parse(localStorage.getItem('bookhunt_user')!)).toEqual(user);
+    // The session itself is an httpOnly cookie, so nothing lands here.
+    expect(localStorage.getItem('bookhunt_token')).toBeNull();
   });
 
-  it('logout clears the stored session', async () => {
-    mockedPostLogin.mockResolvedValue({ user, token: 'jwt-123' });
+  it('logout asks the BFF to drop the cookie and clears the cached user', async () => {
+    mockedPostLogin.mockResolvedValue({ user });
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     await act(async () => {
       await result.current.login('reader@example.com', 'b00kW0rm!');
     });
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(mockedPostLogout).toHaveBeenCalled();
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+    expect(localStorage.getItem('bookhunt_user')).toBeNull();
+  });
+
+  it('signs the reader out locally even when the logout call fails', async () => {
+    mockedPostLogin.mockResolvedValue({ user });
+    mockedPostLogout.mockRejectedValue(new Error('network down'));
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await act(async () => {
+      await result.current.login('reader@example.com', 'b00kW0rm!');
+    });
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(localStorage.getItem('bookhunt_user')).toBeNull();
+  });
+
+  it('drops the user when apiFetch reports the session expired', async () => {
+    localStorage.setItem('bookhunt_user', JSON.stringify(user));
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    expect(result.current.isAuthenticated).toBe(true);
+
     act(() => {
-      result.current.logout();
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
     });
 
     expect(result.current.isAuthenticated).toBe(false);
     expect(result.current.user).toBeNull();
-    expect(localStorage.getItem('bookhunt_token')).toBeNull();
-    expect(localStorage.getItem('bookhunt_user')).toBeNull();
   });
 
-  it('hydrates from a stored session on mount', () => {
-    localStorage.setItem('bookhunt_token', 'jwt-123');
+  it('hydrates from the cached user on mount', () => {
     localStorage.setItem('bookhunt_user', JSON.stringify(user));
     const { result } = renderHook(() => useAuth(), { wrapper });
 

@@ -347,7 +347,6 @@ describe('DiscoverPage', () => {
     // never restored, so every update behind an awaited request was skipped and
     // a save that succeeded server-side left the UI untouched.
     it('shows a saved search as a pinned pill', async () => {
-      localStorage.setItem('bookhunt_token', 'a-token');
       localStorage.setItem(
         'bookhunt_user',
         JSON.stringify({ id: 4, email: 'a@b.com', displayName: 'A' }),

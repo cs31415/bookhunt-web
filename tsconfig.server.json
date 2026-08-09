@@ -1,0 +1,33 @@
+{
+  /*
+   * The BFF (server/). Compiled rather than bundled, and run by Node directly.
+   *
+   * `nodenext` is why server imports carry `.js` extensions where src/ has
+   * none: Node's ESM resolver does not guess extensions, and TypeScript refuses
+   * to emit an import Node could not resolve. The compiler enforces it, so it
+   * cannot drift.
+   */
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "strict": true,
+
+    "outDir": "./dist-server",
+    "rootDir": "./server",
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["server"],
+  "exclude": ["server/**/*.test.ts"]
+}

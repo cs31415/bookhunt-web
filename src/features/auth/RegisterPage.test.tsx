@@ -73,7 +73,7 @@ describe('RegisterPage', () => {
     await screen.findByText('Check your email');
     // The whole point of the hard gate: a new account has no session until its
     // address is confirmed.
-    expect(localStorage.getItem('bookhunt_token')).toBeNull();
+    expect(localStorage.getItem('bookhunt_user')).toBeNull();
     expect(localStorage.getItem('bookhunt_user')).toBeNull();
   });
 

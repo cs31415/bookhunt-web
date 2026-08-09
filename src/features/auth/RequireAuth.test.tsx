@@ -3,7 +3,7 @@ import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-do
 import { afterEach, describe, expect, it } from 'vitest';
 import { AuthProvider } from './AuthContext';
 import { RequireAuth } from './RequireAuth';
-import { clearSession, setSession } from '../../api/auth/token';
+import { clearStoredUser, setStoredUser } from '../../api/auth/stored-user';
 
 function LoginProbe() {
   const location = useLocation();
@@ -34,7 +34,7 @@ function renderGuarded() {
 }
 
 describe('RequireAuth', () => {
-  afterEach(() => clearSession());
+  afterEach(() => clearStoredUser());
 
   it('redirects unauthenticated visitors to /login', () => {
     renderGuarded();
@@ -50,7 +50,7 @@ describe('RequireAuth', () => {
   });
 
   it('renders the protected content when authenticated', () => {
-    setSession('token-123', { id: 1, email: 'reader@example.com', displayName: 'Reader' });
+    setStoredUser({ id: 1, email: 'reader@example.com', displayName: 'Reader' });
     renderGuarded();
     expect(screen.getByText('Library content')).toBeInTheDocument();
     expect(screen.queryByText(/Login page/)).not.toBeInTheDocument();
