@@ -1,6 +1,7 @@
 import express, { Router } from 'express';
 import type { Express } from 'express';
 import cookieParser from 'cookie-parser';
+import { requestLogger } from './lib/request-logger.js';
 import { requireSameOrigin } from './lib/require-same-origin.js';
 import { registerForwardRoutes } from './routes/register-forward-routes.js';
 import { loginRoute } from './routes/login-route.js';
@@ -36,6 +37,11 @@ export function createApp(): Express {
   app.use(express.raw({ type: '*/*', limit: '2mb' }));
 
   const bff = Router();
+
+  // First, so it records what the guards reject as well as what they let
+  // through — those rejections never reach the API and would otherwise leave no
+  // trace anywhere.
+  bff.use(requestLogger);
 
   // Ahead of the guard on purpose: a liveness probe is not a browser and has
   // no session to abuse.
