@@ -57,7 +57,7 @@ afterEach(() => {
 
 describe('LoginPage', () => {
   it('logs in and navigates home on success', async () => {
-    mockedPostLogin.mockResolvedValue({ user, token: 'jwt-123' });
+    mockedPostLogin.mockResolvedValue({ user });
     renderLoginPage();
 
     fillAndSubmit();
@@ -69,7 +69,7 @@ describe('LoginPage', () => {
       email: 'reader@example.com',
       password: 'b00kW0rm!',
     });
-    expect(localStorage.getItem('bookhunt_token')).toBe('jwt-123');
+    expect(JSON.parse(localStorage.getItem('bookhunt_user')!)).toEqual(user);
   });
 
   it('shows an inline error and stays on the page when credentials are rejected', async () => {
@@ -80,7 +80,7 @@ describe('LoginPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect email or password.');
     expect(screen.queryByTestId('location')).not.toBeInTheDocument();
-    expect(localStorage.getItem('bookhunt_token')).toBeNull();
+    expect(localStorage.getItem('bookhunt_user')).toBeNull();
   });
 
   it('re-enables the submit button after a failed attempt', async () => {
@@ -113,7 +113,7 @@ describe('LoginPage', () => {
         'Confirm your email address before signing in.',
       );
       expect(screen.queryByTestId('location')).not.toBeInTheDocument();
-      expect(localStorage.getItem('bookhunt_token')).toBeNull();
+      expect(localStorage.getItem('bookhunt_user')).toBeNull();
     });
 
     it('resends the verification email', async () => {

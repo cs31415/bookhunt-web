@@ -1,9 +1,15 @@
 import { useLocation } from 'react-router-dom';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TopBar } from './TopBar';
 import { AuthProvider } from '../../../features/auth/AuthContext';
+
+// Logging out is a call to the BFF now — only it can clear the httpOnly session
+// cookie (LOS-119). Stubbed so this stays a unit test of the menu.
+vi.mock('../../../api/auth/logout', () => ({
+  postLogout: vi.fn().mockResolvedValue(undefined),
+}));
 
 function LocationProbe() {
   const location = useLocation();
@@ -113,8 +119,7 @@ describe('TopBar', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/login');
   });
 
-  it('shows an account menu with logout when logged in', () => {
-    localStorage.setItem('bookhunt_token', 'jwt-123');
+  it('shows an account menu with logout when logged in', async () => {
     localStorage.setItem(
       'bookhunt_user',
       JSON.stringify({ id: 7, email: 'reader@example.com', displayName: 'Ada Reader' }),
@@ -127,9 +132,10 @@ describe('TopBar', () => {
     expect(screen.getByText('Ada Reader')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Log out' }));
-    // Menu closes and the avatar reverts to the logged-out Sign in link.
-    expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
-    expect(localStorage.getItem('bookhunt_token')).toBeNull();
+    // Awaited rather than synchronous: signing out waits on the BFF dropping
+    // the cookie before the local state clears.
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toBeInTheDocument();
+    expect(localStorage.getItem('bookhunt_user')).toBeNull();
   });
 
   it('walks back through history via the Back button', () => {

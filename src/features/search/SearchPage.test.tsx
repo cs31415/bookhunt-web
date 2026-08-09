@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from './SearchPage';
 import { clearSuggestionCache } from './hooks/useSearchResults';
 import { AuthProvider } from '../auth/AuthContext';
-import { setSession } from '../../api/auth/token';
+import { setStoredUser } from '../../api/auth/stored-user';
 import { aiSearch } from '../../api/ai/search';
 import { searchLibrary } from '../../api/library/search-library';
 import { saveCannedSearch } from '../../api/canned-searches/pin-canned-search';
@@ -26,7 +26,7 @@ function LocationProbe() {
 
 /** AuthProvider hydrates from localStorage, so seeding it is enough to sign in. */
 function signIn() {
-  setSession('test-token', { id: 1, email: 'reader@example.com', displayName: 'Reader' });
+  setStoredUser({ id: 1, email: 'reader@example.com', displayName: 'Reader' });
 }
 
 function renderSearchPage(initialEntry: string) {

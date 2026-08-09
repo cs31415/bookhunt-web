@@ -55,7 +55,7 @@ afterEach(() => {
 
 describe('VerifyEmailPage', () => {
   it('verifies the token, signs the reader in and lands on Discover', async () => {
-    mockedPostVerifyEmail.mockResolvedValue({ user, token: 'jwt-123' });
+    mockedPostVerifyEmail.mockResolvedValue({ user });
 
     renderVerifyPage();
 
@@ -63,11 +63,11 @@ describe('VerifyEmailPage', () => {
       expect(screen.getByTestId('location')).toHaveTextContent('/');
     });
     expect(mockedPostVerifyEmail).toHaveBeenCalledWith({ token: 'tok-1' });
-    expect(localStorage.getItem('bookhunt_token')).toBe('jwt-123');
+    expect(JSON.parse(localStorage.getItem('bookhunt_user')!)).toEqual(user);
   });
 
   it('carries guest pins into the new account', async () => {
-    mockedPostVerifyEmail.mockResolvedValue({ user, token: 'jwt-123' });
+    mockedPostVerifyEmail.mockResolvedValue({ user });
 
     renderVerifyPage();
 
@@ -77,7 +77,7 @@ describe('VerifyEmailPage', () => {
   });
 
   it('signs the reader in even when merging guest pins fails', async () => {
-    mockedPostVerifyEmail.mockResolvedValue({ user, token: 'jwt-123' });
+    mockedPostVerifyEmail.mockResolvedValue({ user });
     mockedMergeGuestPins.mockRejectedValue(new Error('pins down'));
 
     renderVerifyPage();
@@ -85,14 +85,14 @@ describe('VerifyEmailPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('location')).toHaveTextContent('/');
     });
-    expect(localStorage.getItem('bookhunt_token')).toBe('jwt-123');
+    expect(JSON.parse(localStorage.getItem('bookhunt_user')!)).toEqual(user);
   });
 
   it('spends the token only once under StrictMode', async () => {
     // StrictMode double-invokes effects in development. Verification tokens are
     // single-use, so an unguarded effect burns the token on its first run and
     // then reports a perfectly good link as invalid.
-    mockedPostVerifyEmail.mockResolvedValue({ user, token: 'jwt-123' });
+    mockedPostVerifyEmail.mockResolvedValue({ user });
 
     renderVerifyPage('?token=tok-1', { strict: true });
 
@@ -110,7 +110,7 @@ describe('VerifyEmailPage', () => {
     renderVerifyPage();
 
     expect(await screen.findByText('This link has expired')).toBeInTheDocument();
-    expect(localStorage.getItem('bookhunt_token')).toBeNull();
+    expect(localStorage.getItem('bookhunt_user')).toBeNull();
     expect(screen.queryByTestId('location')).not.toBeInTheDocument();
   });
 

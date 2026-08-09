@@ -4,7 +4,7 @@ import { SaveSearchButton } from './SaveSearchButton';
 import { ApiError } from '../../../api/client';
 import { saveCannedSearch } from '../../../api/canned-searches/pin-canned-search';
 import type { CannedSearch } from '../../../api/canned-searches/types';
-import { setSession } from '../../../api/auth/token';
+import { setStoredUser } from '../../../api/auth/stored-user';
 import { AuthProvider } from '../../../features/auth/AuthContext';
 import { ToastHost } from '../../toast/ToastHost';
 import { clearToasts } from '../../toast/toast-store';
@@ -19,7 +19,7 @@ const SAVE_BUTTON = { name: /Keep this search as a pill/ };
 
 /** AuthProvider hydrates from localStorage, so seeding it is enough to sign in. */
 function signIn() {
-  setSession('test-token', { id: 1, email: 'reader@example.com', displayName: 'Reader' });
+  setStoredUser({ id: 1, email: 'reader@example.com', displayName: 'Reader' });
 }
 
 function renderButton(query: string, onSaved?: (search: CannedSearch) => void) {

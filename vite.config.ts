@@ -10,4 +10,17 @@ export default defineConfig({
   // in src/main.tsx.
   logLevel: 'warn',
   clearScreen: false,
+  server: {
+    proxy: {
+      // The BFF (server/) runs as a second process in dev. Proxying it here
+      // keeps the browser on one origin, exactly as production is: no CORS, and
+      // a session cookie that needs no cross-site exemption.
+      '/bff': {
+        target: 'http://localhost:3002',
+        // Sets X-Forwarded-For, so req.ip on the BFF means the same thing in
+        // dev as behind a real proxy.
+        xfwd: true,
+      },
+    },
+  },
 })
