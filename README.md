@@ -21,7 +21,7 @@ src/                The SPA
 server/             The BFF
   routes/           The forwarding manifest and the handlers that touch the cookie
   session/          httpOnly cookie <-> bookhunt JWT
-  lib/              Talking to the API, relaying its answers, the CSRF guard
+  lib/              Talking to the API, relaying its answers, the guard, request logging
   config/           Env accessors (read lazily; see below)
 ```
 
