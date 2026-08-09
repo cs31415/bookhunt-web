@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ApiError } from '../../../api/client';
-import { getLibrary } from '../../../api/library/get-library';
+import { searchLibrary } from '../../../api/library/search-library';
 import { normalizeLibraryEntry } from '../../../normalize/library';
 import type { LibraryEntry } from '../../../normalize/library';
 
@@ -26,12 +26,15 @@ export function useDiscoverData(): UseDiscoverDataResult {
       setLoading(true);
       setError(null);
       try {
-        const library = await getLibrary();
+        // Filtered by the server, not here. Asking for the library and keeping
+        // the reading rows only ever saw the first page — 24 entries, newest
+        // first — so a book started a while ago silently vanished from this
+        // section (LOS-230).
+        const reading = await searchLibrary({ status: 'reading' });
         if (cancelled) return;
 
-        const entries = library.entries.map(normalizeLibraryEntry);
         setData({
-          currentlyReading: entries.filter((entry) => entry.status === 'reading'),
+          currentlyReading: reading.entries.map(normalizeLibraryEntry),
         });
       } catch (err) {
         // No login flow exists yet (LOS-144), so every visitor is
