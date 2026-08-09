@@ -14,7 +14,6 @@ export interface RawAuthor {
   slug: string;
   name: string;
   birth_year: number | null;
-  country: string | null;
   bio: string | null;
 }
 
@@ -43,7 +42,6 @@ export interface AuthorDetail {
   slug: string;
   name: string;
   birthYear: number | null;
-  country: string | null;
   bio: string | null;
 }
 
@@ -98,7 +96,6 @@ export function normalizeAuthor(raw: RawGetAuthorResponse): AuthorResult {
     slug: raw.author.slug,
     name: raw.author.name,
     birthYear: raw.author.birth_year,
-    country: raw.author.country,
     bio: raw.author.bio,
   };
 
