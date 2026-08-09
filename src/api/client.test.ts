@@ -86,6 +86,25 @@ describe('apiFetch', () => {
     expect(localStorage.getItem('bookhunt_user')).not.toBeNull();
   });
 
+  it('falls back to the status text when the response has no body', async () => {
+    // The BFF's same-origin guard answers with a bare 403 (LOS-226), so
+    // response.json() rejects and there is no error message to surface.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        json: async () => {
+          throw new SyntaxError('Unexpected end of JSON input');
+        },
+      }),
+    );
+
+    const { apiFetch } = await import('./client');
+    await expect(apiFetch('/library')).rejects.toThrow('Forbidden');
+  });
+
   it('throws an ApiError with the response error message on failure', async () => {
     vi.stubGlobal(
       'fetch',

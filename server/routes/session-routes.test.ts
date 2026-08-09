@@ -166,6 +166,14 @@ describe('the same-origin guard', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('says nothing in the body', async () => {
+    // The SPA never sees this response, so a body would only ever be read by
+    // whoever is poking at the endpoint (LOS-226).
+    const response = await raw('/bff/books/dune', { 'Sec-Fetch-Site': 'none' });
+
+    await expect(response.text()).resolves.toBe('');
+  });
+
   it('rejects a request from another site', async () => {
     const response = await raw('/bff/books/dune', { 'Sec-Fetch-Site': 'cross-site' });
 
