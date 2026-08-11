@@ -1,0 +1,21 @@
+node_modules
+dist
+dist-server
+
+# Never bake secrets into an image. Config arrives as container environment,
+# and the VITE_* half arrives as build args.
+.env
+.env.local
+
+.git
+.gitignore
+.github
+
+docs
+README.md
+Dockerfile
+.dockerignore
+*.log
+.DS_Store
+.claude
+.vscode
