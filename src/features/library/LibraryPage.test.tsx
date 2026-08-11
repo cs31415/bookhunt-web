@@ -102,10 +102,6 @@ describe('LibraryPage', () => {
   beforeEach(() => {
     idSeq = 100;
     mockedGetLibrary.mockReset();
-    // Stubbed rather than inherited: two tests below assert the photo-import
-    // button is offered, so without this the suite passes or fails according to
-    // whichever way the developer's own .env has the flag set.
-    vi.stubEnv('VITE_ENABLE_PHOTO_IMPORT', 'true');
     mockedRemoveEntry.mockReset();
     mockedRemoveEntry.mockResolvedValue(undefined);
     mockedRemoveEntries.mockReset();
@@ -123,7 +119,6 @@ describe('LibraryPage', () => {
 
     expect(await screen.findByText('Your library')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '3 books' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add from a photo' })).toBeInTheDocument();
 
     const rail = screen.getByLabelText('Library filters');
     expect(within(rail).getByText('Category')).toBeInTheDocument();
@@ -220,7 +215,6 @@ describe('LibraryPage', () => {
 
     expect(await screen.findByText('Your shelves are empty')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Discover books' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add from a photo' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Library filters')).not.toBeInTheDocument();
   });
 

@@ -3,8 +3,6 @@ import styles from './LibraryHeader.module.css';
 
 export interface LibraryHeaderProps {
   total: number;
-  /** Omitted when photo import is disabled — the button is then not rendered. */
-  onAddFromPhoto?: () => void;
   onImportCsv: () => void;
   query: string;
   onQueryChange: (value: string) => void;
@@ -14,7 +12,6 @@ export interface LibraryHeaderProps {
 
 export function LibraryHeader({
   total,
-  onAddFromPhoto,
   onImportCsv,
   query,
   onQueryChange,
@@ -43,11 +40,6 @@ export function LibraryHeader({
         {onSelect && (
           <button type="button" className={styles.secondaryButton} onClick={onSelect}>
             Select
-          </button>
-        )}
-        {onAddFromPhoto && (
-          <button type="button" className={styles.secondaryButton} onClick={onAddFromPhoto}>
-            Add from a photo
           </button>
         )}
         <button type="button" className={styles.addButton} onClick={onImportCsv}>

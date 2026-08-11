@@ -55,7 +55,6 @@
   background: var(--rust-deep);
 }
 
-/* Photo import reads as the lesser option now that CSV is the primary path. */
 .secondaryButton {
   flex: none;
   padding: 10px 18px;

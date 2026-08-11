@@ -243,7 +243,7 @@ export function useCsvImportSession(
   }
 
   /**
-   * Stops an in-flight lookup. Unlike the photo scan — one short request, worth
+   * Stops an in-flight lookup. Unlike a single short request worth
    * finishing in the background and offering back in a toast — a CSV import is
    * many requests over minutes, and dismissing it plainly means stop.
    */

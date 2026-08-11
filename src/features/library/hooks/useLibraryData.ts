@@ -45,7 +45,7 @@ export function useLibraryData(): UseLibraryDataResult {
     let cancelled = false;
 
     async function load() {
-      // Only the first load blanks the page; a reload after a photo import keeps
+      // Only the first load blanks the page; a reload after a CSV import keeps
       // the existing grid on screen until the fresh list arrives.
       if (reloadToken === 0) setLoading(true);
       setError(null);

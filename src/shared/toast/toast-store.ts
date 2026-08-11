@@ -1,8 +1,8 @@
 /**
  * Minimal toast store, shaped after src/api/api-activity.ts: a module-level
  * listener Set plus a stable snapshot for useSyncExternalStore. Exists because
- * a scan can finish after its modal is closed (LOS-82 AC7) and needs somewhere
- * to surface.
+ * background work can finish after the modal that started it is closed, and
+ * needs somewhere to surface.
  */
 
 export interface ToastAction {
