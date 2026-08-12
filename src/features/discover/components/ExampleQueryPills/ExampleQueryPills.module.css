@@ -182,6 +182,50 @@
   }
 }
 
+/*
+ * Narrow screens: let a long suggestion wrap onto a second line.
+ *
+ * These are sentences of unbounded length, not labels, so nowrap only holds
+ * while the viewport is wider than the longest one. On a phone the longer
+ * suggestions ran off the side and were cut off mid-word.
+ *
+ * Wrapping rather than truncating with an ellipsis: the whole point of the pill
+ * is to read the suggestion and decide, and half a question is no use. The 999px
+ * radius still reads correctly over two lines -- it becomes a stadium rather
+ * than a lozenge.
+ */
+@media (max-width: 640px) {
+  .pill {
+    max-width: 100%;
+  }
+
+  .query {
+    white-space: normal;
+    /*
+     * Justified, and deliberately not centred or text-wrap: balance.
+     *
+     * A flex item whose text has to wrap ends up at the *available* width rather
+     * than the width of its longest line, and CSS gives no way to shrink it back
+     * — so a wrapped pill is always full width. Everything here is about making
+     * the text fill that box, because any gap between the text and the pill's
+     * edge reads as padding, and next to the snug single-line pills an uneven
+     * one looks like a bug.
+     *
+     * Centred left ~36px of dead space on each side against the single-line
+     * pills' 11px. Balanced was worse: two short even lines leave gaps on both
+     * sides. Left-aligned fixed the left but left ~50px on the right, because a
+     * line breaks as soon as the next word does not fit.
+     *
+     * Justified fills every line but the last edge to edge, so the padding
+     * matches its neighbours. hyphens: auto is what keeps that from stretching
+     * word spacing to fill — it needs the lang attribute on <html>, which
+     * index.html sets.
+     */
+    text-align: justify;
+    hyphens: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .spinning {
     animation: none;

@@ -55,6 +55,14 @@ export function SearchBar({
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
         aria-label="Search"
+        /*
+         * Labels the on-screen keyboard's return key "Search". Load-bearing on
+         * narrow screens, where the submit button is hidden and that key is the
+         * only way to run the search. A form with a single text input submits on
+         * Enter regardless, and the button stays in the DOM (hidden, not removed)
+         * so implicit submission is never in question.
+         */
+        enterKeyHint="search"
       />
       {big && (
         <button type="submit" className={styles.submit}>
