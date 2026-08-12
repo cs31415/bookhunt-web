@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/AuthContext';
-import { BackArrowIcon, LogoMark, UserIcon } from '../icons';
+import { BackArrowIcon, LogoMark, MenuIcon, UserIcon } from '../icons';
 import { useNavItems } from '../nav-items';
+import { useDismissOnOutside } from '../use-dismiss-on-outside';
 import styles from './TopBar.module.css';
 
 function isActivePath(pathname: string, path: string): boolean {
@@ -19,26 +20,7 @@ function AccountMenu() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-
-    function handlePointerDown(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
-    }
-
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [open]);
+  useDismissOnOutside(open, containerRef, () => setOpen(false));
 
   if (!isAuthenticated) {
     // The avatar alone only ever offered sign-in, which left a first-time
@@ -86,6 +68,59 @@ function AccountMenu() {
   );
 }
 
+/**
+ * The primary nav on narrow screens, where .nav is hidden.
+ *
+ * Replaces the fixed bottom tab bar (LOS-235). That bar spent a permanent strip
+ * of a short screen on two links, one of which is absent until the reader has
+ * searched — so most of the time it was a full-width bar holding a single entry.
+ */
+function NavMenu() {
+  const { pathname } = useLocation();
+  const navItems = useNavItems();
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useDismissOnOutside(open, containerRef, () => setOpen(false));
+
+  return (
+    <div className={styles.navMenu} ref={containerRef}>
+      <button
+        type="button"
+        className={styles.menuButton}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Menu"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <MenuIcon className={styles.menuIcon} />
+      </button>
+      {open && (
+        <nav aria-label="Primary" className={styles.menuPanel}>
+          {navItems.map((item) => {
+            const active = isActivePath(pathname, item.path);
+            const { Icon } = item;
+            return (
+              <Link
+                key={item.path}
+                to={item.to}
+                aria-current={active ? 'page' : undefined}
+                className={active ? `${styles.menuItem} ${styles.menuItemActive}` : styles.menuItem}
+                // Navigating leaves the panel mounted otherwise: the route
+                // changes under it and it stays open over the new page.
+                onClick={() => setOpen(false)}
+              >
+                <Icon className={styles.menuItemIcon} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
+    </div>
+  );
+}
+
 export function TopBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -119,6 +154,7 @@ export function TopBar() {
       </nav>
 
       <AccountMenu />
+      <NavMenu />
     </header>
   );
 }

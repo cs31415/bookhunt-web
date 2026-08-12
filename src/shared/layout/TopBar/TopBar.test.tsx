@@ -150,3 +150,59 @@ describe('TopBar', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/');
   });
 });
+
+/**
+ * The burger replaced the fixed bottom tab bar (LOS-235). It is the only primary
+ * nav below 640px — .nav is hidden there — so these cover what MobileNav's tests
+ * used to, plus the open/close behaviour a tab bar never needed.
+ *
+ * The visibility itself is a media query and so is not observable in jsdom; what
+ * is testable is that the control exists, opens, lists the right destinations,
+ * marks the current one, and closes again.
+ */
+describe('TopBar mobile menu', () => {
+  it('keeps the menu shut until asked', () => {
+    renderAt('/library');
+
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('navigation', { name: 'Primary' })).toBeInTheDocument();
+  });
+
+  it('opens on click and offers Library', () => {
+    renderAt('/');
+    fireEvent.click(screen.getByRole('button', { name: 'Menu' }));
+
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'true');
+    const menus = screen.getAllByRole('navigation', { name: 'Primary' });
+    const panel = menus[menus.length - 1];
+    expect(panel).toHaveTextContent('Library');
+  });
+
+  it('marks the current destination, like the tab bar it replaced', () => {
+    sessionStorage.setItem('bookhunt_last_search', '/search?q=dune');
+    renderAt('/library');
+    fireEvent.click(screen.getByRole('button', { name: 'Menu' }));
+
+    const links = screen.getAllByRole('link', { name: 'Library' });
+    expect(links.some((link) => link.getAttribute('aria-current') === 'page')).toBe(true);
+  });
+
+  it('closes on Escape', () => {
+    renderAt('/library');
+    fireEvent.click(screen.getByRole('button', { name: 'Menu' }));
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes when a destination is chosen, so it does not hang over the new page', () => {
+    renderAt('/');
+    fireEvent.click(screen.getByRole('button', { name: 'Menu' }));
+
+    const links = screen.getAllByRole('link', { name: 'Library' });
+    fireEvent.click(links[links.length - 1]);
+
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+  });
+});
