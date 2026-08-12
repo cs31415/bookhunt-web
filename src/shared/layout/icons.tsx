@@ -159,6 +159,26 @@ export function PinIcon({ className, filled }: IconProps & { filled?: boolean })
   );
 }
 
+/**
+ * Hamburger, for the primary nav on narrow screens. Same stroke weight as the
+ * nav icons it stands in for, so the bar reads as one set.
+ */
+export function MenuIcon({ className }: IconProps) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
 export function BackArrowIcon({ className }: IconProps) {
   return (
     <svg

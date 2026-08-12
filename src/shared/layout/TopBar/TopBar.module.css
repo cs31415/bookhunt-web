@@ -185,9 +185,82 @@
   height: 18px;
 }
 
+/*
+ * The mobile primary nav. Hidden by default: above 640px the inline .nav does
+ * this job, and two navs visible at once would be two answers to the same
+ * question.
+ */
+.navMenu {
+  display: none;
+  position: relative;
+  flex: none;
+}
+
+.menuButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 99px;
+  background: none;
+  /* On the rust bar, like the back arrow rather than the white avatar disc. */
+  color: #fff;
+  cursor: pointer;
+}
+
+.menuIcon {
+  width: 22px;
+  height: 22px;
+}
+
+/* Deliberately the same shape as .accountMenu, its neighbour in this bar. */
+.menuPanel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 172px;
+  padding: 6px;
+  background: var(--card);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-2);
+  z-index: 40;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--r-sm);
+  color: var(--ink-2);
+  font-size: 15px;
+  text-decoration: none;
+  /* Taller than .accountItem: this is the primary nav and it is only ever
+     reached by thumb, so it wants a tap target rather than a menu row. */
+  padding: 11px 10px;
+}
+
+.menuItemActive {
+  color: var(--rust);
+  font-weight: 600;
+}
+
+.menuItemIcon {
+  width: 19px;
+  height: 19px;
+  flex: none;
+}
+
 @media (max-width: 640px) {
   .nav {
     display: none;
+  }
+
+  .navMenu {
+    display: block;
   }
 }
 

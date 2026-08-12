@@ -61,3 +61,40 @@
 .submit:hover {
   background: var(--rust-deep);
 }
+
+/*
+ * Narrow screens: no submit button.
+ *
+ * Typing here raises the on-screen keyboard, whose return key is labelled
+ * Search (see enterKeyHint on the input). Reaching back into the page to press a
+ * second button is the longer path, and the button was taking the room the input
+ * needed — on a 390px screen it left barely enough to see what you had typed.
+ *
+ * Hidden rather than removed from the markup: it keeps implicit form submission
+ * unambiguous, and it means the component has one behaviour rather than two.
+ *
+ * 640px rather than an orientation query: a phone in portrait is 390-430px and a
+ * phone in landscape is 844px or more, so this catches exactly the case where
+ * the inline layout runs out of room. It is also the breakpoint already used in
+ * seven places here.
+ */
+@media (max-width: 640px) {
+  .big .submit {
+    display: none;
+  }
+
+  /* The lopsided padding existed to seat the button against the right edge; with
+     no button the field wants even sides. 16 rather than the desktop 22, because
+     evening it up at 22 spends width the placeholder needs -- at 375px it was
+     clipping the ellipsis off "…author, mood…". */
+  .big {
+    padding: 6px 16px;
+  }
+
+  /* Also for the placeholder's sake. 16px is the floor: below it iOS zooms the
+     page when the field takes focus, which is a worse problem than a slightly
+     smaller placeholder. */
+  .big .input {
+    font-size: 16px;
+  }
+}

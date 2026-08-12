@@ -9,6 +9,10 @@
   .main {
     padding-left: 18px;
     padding-right: 18px;
+    /* Was 100px to clear the fixed bottom tab bar, which is gone (LOS-235).
+       Kept generous enough that the footer does not sit against the browser's
+       own bottom chrome. */
+    padding-bottom: 56px;
   }
 }
 
