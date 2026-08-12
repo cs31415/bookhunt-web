@@ -20,7 +20,7 @@ export interface ImportRowProps {
   onToggle: () => void;
   /** Shown under the author — e.g. why nothing matched. */
   note?: string;
-  /** Alternatives the reader can pick between. Omitted for photo scan. */
+  /** Alternatives the reader can pick between. */
   candidates?: ImportCandidate[];
   selectedCandidateId?: string;
   onSelectCandidate?: (id: string) => void;
@@ -29,7 +29,7 @@ export interface ImportRowProps {
 }
 
 /**
- * One reviewable row of an import, shared by photo scan and CSV import.
+ * One reviewable row of a CSV import.
  *
  * The candidate picker is a native `<select>` deliberately. An absolutely
  * positioned menu (ActionMenu's approach) would be clipped by the modal body's

@@ -10,7 +10,7 @@ import type { LibraryStatus } from '../../../shared/types/library-status';
 export const IMPORT_STATUS_CYCLE: LibraryStatus[] = ['queued', 'reading', 'finished'];
 
 /**
- * Library writes in flight at once. A photo yields ~20 books, but a CSV can
+ * Library writes in flight at once. A CSV can
  * yield hundreds — unbounded, that opens hundreds of simultaneous connections
  * and stalls the browser's request queue.
  */
@@ -66,7 +66,7 @@ export interface UseImportReviewResult<TRow> {
 }
 
 /**
- * The review-and-commit half of an import, shared by photo scan and CSV import.
+ * The review-and-commit half of a CSV import.
  * Knows nothing about where the rows came from — the caller supplies identity
  * and how to turn a row into a library write.
  */

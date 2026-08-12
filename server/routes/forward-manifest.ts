@@ -63,8 +63,4 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   { method: 'delete', path: '/canned-searches/:id/pin', auth: 'required' },
 
   { method: 'post', path: '/import/resolve', auth: 'required' },
-  // Only the presign call goes through here — the upload itself is a direct
-  // browser-to-S3 POST against the returned policy and never touches the BFF.
-  { method: 'post', path: '/upload/presign', auth: 'required' },
-  { method: 'post', path: '/upload/scan', auth: 'required' },
 ];

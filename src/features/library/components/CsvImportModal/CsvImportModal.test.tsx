@@ -145,7 +145,6 @@ describe('CsvImportModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearToasts();
-    vi.stubEnv('VITE_ENABLE_PHOTO_IMPORT', 'false');
     mockedGetLibrary.mockResolvedValue({
       entries: [makeEntry({ book_id: 1, title: 'Existing' })],
       total: 1,
@@ -188,14 +187,6 @@ describe('CsvImportModal', () => {
     await screen.findByText('Your shelves are empty');
     fireEvent.click(screen.getByRole('button', { name: 'Import from CSV' }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-  });
-
-  it('is available even when photo import is disabled', async () => {
-    renderLibrary();
-    await screen.findByText('Your library');
-
-    expect(screen.getByRole('button', { name: 'Import from CSV' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Add from a photo' })).not.toBeInTheDocument();
   });
 
   it('rejects a file that is not a .csv without calling the API', async () => {
@@ -728,7 +719,7 @@ describe('CsvImportModal', () => {
   });
 
   // A CSV import is many requests over minutes, so dismissing it means stop --
-  // unlike the photo scan, which is one short request worth finishing in the
+  // unlike a single short request worth finishing in the
   // background and offering back in a toast.
   describe('cancelling', () => {
     function pendingResolve() {

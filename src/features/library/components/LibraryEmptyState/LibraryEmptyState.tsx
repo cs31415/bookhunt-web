@@ -3,16 +3,10 @@ import styles from './LibraryEmptyState.module.css';
 
 export interface LibraryEmptyStateProps {
   onDiscover: () => void;
-  /** Omitted when photo import is disabled — the button is then not rendered. */
-  onAddFromPhoto?: () => void;
   onImportCsv: () => void;
 }
 
-export function LibraryEmptyState({
-  onDiscover,
-  onAddFromPhoto,
-  onImportCsv,
-}: LibraryEmptyStateProps) {
+export function LibraryEmptyState({ onDiscover, onImportCsv }: LibraryEmptyStateProps) {
   return (
     <div className={styles.empty}>
       <LibraryIcon className={styles.icon} />
@@ -27,11 +21,6 @@ export function LibraryEmptyState({
         <button type="button" className={styles.secondary} onClick={onImportCsv}>
           Import from CSV
         </button>
-        {onAddFromPhoto && (
-          <button type="button" className={styles.secondary} onClick={onAddFromPhoto}>
-            Add from a photo
-          </button>
-        )}
       </div>
     </div>
   );
