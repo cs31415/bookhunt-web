@@ -209,7 +209,6 @@ export function LibraryPage() {
         onImportCsv={importCsv}
         query={q}
         onQueryChange={setQ}
-        onSelect={selection.selecting ? undefined : selection.enter}
       />
 
       <div className={styles.layout}>
@@ -227,6 +226,18 @@ export function LibraryPage() {
         />
 
         <div className={styles.results}>
+          {/* Above the grid, not in the header: it selects from whatever the
+              filters are showing, and stacked on a phone the header sits a whole
+              filter rail away from those books (LOS-244). Hidden once selecting
+              — the toolbar below owns leaving that mode. */}
+          {!selection.selecting && (
+            <div className={styles.resultsActions}>
+              <button type="button" className={styles.editButton} onClick={selection.enter}>
+                Edit
+              </button>
+            </div>
+          )}
+
           {selection.selecting && (
             <SelectionToolbar
               selectedCount={selection.selectedIds.size}
