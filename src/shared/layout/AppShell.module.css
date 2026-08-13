@@ -17,8 +17,11 @@
 }
 
 @media (max-width: 430px) {
+  /* 20 rather than 14: at 14 the content read as hard against the screen edge.
+     The room this costs is paid for by the tighter grid gap in LibraryPage,
+     which fits three covers a row here regardless. */
   .main {
-    padding-left: 14px;
-    padding-right: 14px;
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
