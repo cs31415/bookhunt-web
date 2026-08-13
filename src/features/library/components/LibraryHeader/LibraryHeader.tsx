@@ -6,7 +6,14 @@ export interface LibraryHeaderProps {
   onImportCsv: () => void;
   query: string;
   onQueryChange: (value: string) => void;
-  /** Enters multi-select. Hidden while it is already on; the toolbar owns leaving it. */
+  /**
+   * Enters multi-select. Hidden while it is already on; the toolbar owns leaving it.
+   *
+   * Labelled "Edit" on screen, not "Select": what follows is picking books and
+   * acting on them, and "Edit" says that better to someone looking at a shelf.
+   * The machinery underneath is still selection — useLibrarySelection, selectedIds,
+   * "Select all" in the toolbar — so grep for "select", not "edit".
+   */
   onSelect?: () => void;
 }
 
@@ -39,7 +46,7 @@ export function LibraryHeader({
       <div className={styles.actions}>
         {onSelect && (
           <button type="button" className={styles.secondaryButton} onClick={onSelect}>
-            Select
+            Edit
           </button>
         )}
         <button type="button" className={styles.addButton} onClick={onImportCsv}>
