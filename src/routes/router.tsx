@@ -8,6 +8,8 @@ import { AuthorPage } from '../features/author/AuthorPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
 import { VerifyEmailPage } from '../features/auth/VerifyEmailPage';
+import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { LibraryPage } from '../features/library/LibraryPage';
 
@@ -36,6 +38,8 @@ export const router = createBrowserRouter([
       // Target of the link in the sign-up email. Unauthenticated by definition:
       // verifying is what produces the session (LOS-219).
       { path: 'verify-email', element: <VerifyEmailPage /> },
+      { path: 'forgot-password', element: <ForgotPasswordPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
       // Dev-only visual check for the LOS-76 design system, stripped from production builds.
       ...(import.meta.env.DEV ? [{ path: '__gallery', element: <ComponentGallery /> }] : []),
       // Unknown routes fall back to Discover rather than a 404 (LOS-75 AC6).

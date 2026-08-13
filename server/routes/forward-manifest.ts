@@ -16,10 +16,9 @@ export interface ForwardRoute {
  * Every bookhunt endpoint the browser is allowed to reach, and nothing else.
  *
  * This list, not the API's own router, is what the browser can see now. It is
- * deliberately narrower: `/auth/forgot-password`, `/auth/reset-password`,
- * `/ai/summary/*`, `/search/facets` and `/search/metadata` all exist on the API
- * but no page calls them, so they stay unreachable from a browser. Add an entry
- * when a page genuinely needs one.
+ * deliberately narrower: `/ai/summary/*`, `/search/facets` and `/search/metadata`
+ * all exist on the API but no page calls them, so they stay unreachable from a
+ * browser. Add an entry when a page genuinely needs one.
  *
  * The three routes that mint or drop a session (`/auth/login`,
  * `/auth/verify-email`, `/auth/logout`) are not here — they have to touch the
@@ -31,6 +30,11 @@ export interface ForwardRoute {
 export const FORWARD_ROUTES: ForwardRoute[] = [
   { method: 'post', path: '/auth/register', auth: 'public' },
   { method: 'post', path: '/auth/resend-verification', auth: 'public' },
+  // Public: a reader who has forgotten their password has no session to send,
+  // and the API ignores a token on both of these anyway. Reachable as of
+  // LOS-240, which built the pages that call them.
+  { method: 'post', path: '/auth/forgot-password', auth: 'public' },
+  { method: 'post', path: '/auth/reset-password', auth: 'public' },
 
   { method: 'get', path: '/books', auth: 'optional' },
   { method: 'get', path: '/books/:slug', auth: 'optional' },
