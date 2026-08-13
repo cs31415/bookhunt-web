@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '../../api/client';
+import { storeCredential } from './store-credential';
 import { useAuth } from './AuthContext';
 import { useResendVerification } from './use-resend-verification';
 import styles from './LoginPage.module.css';
@@ -32,6 +33,11 @@ export function LoginPage() {
     setPending(true);
     try {
       await login(email, password);
+      // Same reason as sign-up (LOS-241): this form calls preventDefault and
+      // then navigates client-side, so a password manager sees no submit it
+      // recognises. This is also where a password changed via reset gets
+      // offered, since the reset page never learns the address.
+      await storeCredential(email, password);
       navigate(returnTo, { replace: true });
     } catch (err) {
       // On login a 403 has only one meaning — the password was accepted but the
@@ -119,6 +125,10 @@ export function LoginPage() {
         <button className={styles.submit} type="submit" disabled={pending}>
           {pending ? 'Signing in…' : 'Sign in'}
         </button>
+
+        <p className={styles.altAction}>
+          <Link to="/forgot-password">Forgot your password?</Link>
+        </p>
 
         <p className={styles.altAction}>
           New to BookHunt? <Link to="/register">Create an account</Link>

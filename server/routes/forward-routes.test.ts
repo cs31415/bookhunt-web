@@ -107,9 +107,13 @@ describe('the forwarding manifest', () => {
   });
 
   it('404s a real API route that no page needs', async () => {
-    // /auth/forgot-password exists on the API and is deliberately absent from
-    // the manifest. Narrowing the surface is the point of the list.
-    const response = await request('/bff/auth/forgot-password', { method: 'POST' });
+    // GET /search/facets exists on the API and is deliberately absent from the
+    // manifest. Narrowing the surface is the point of the list.
+    //
+    // Was /auth/forgot-password until LOS-240 built the pages that call it —
+    // which is the manifest working as intended, an entry appearing only once
+    // something genuinely needs it.
+    const response = await request('/bff/search/facets');
 
     expect(response.status).toBe(404);
     expect(fetchMock).not.toHaveBeenCalled();

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ApiError } from '../../api/client';
 import { postRegister } from '../../api/auth/register';
 import { CheckYourEmail } from './CheckYourEmail';
+import { storeCredential } from './store-credential';
 import styles from './RegisterPage.module.css';
 
 // Mirrors validatePassword on the API (LOS-218). Kept in step by hand: the
@@ -25,6 +26,12 @@ export function RegisterPage() {
     setPending(true);
     try {
       await postRegister({ email, password, displayName });
+      // Offered to the password manager before the form goes away (LOS-241).
+      // Sign-up gives a manager neither signal it watches for — preventDefault
+      // means no navigation, and the swap below unmounts the form in the same
+      // tick — so without asking outright nothing is ever saved. Awaited so the
+      // prompt is raised while the form is still on screen.
+      await storeCredential(email, password);
       // Swapped in place rather than navigated to, so the address the reader
       // just typed stays on screen next to the instruction to go and check it.
       setRegisteredEmail(email);
