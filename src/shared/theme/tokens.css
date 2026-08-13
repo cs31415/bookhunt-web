@@ -41,6 +41,33 @@
   --shadow-1: 0 1px 2px rgba(42, 38, 32, 0.06), 0 1px 3px rgba(42, 38, 32, 0.05);
   --shadow-2: 0 4px 14px rgba(42, 38, 32, 0.1), 0 2px 6px rgba(42, 38, 32, 0.06);
   --shadow-3: 0 18px 48px rgba(42, 38, 32, 0.2), 0 6px 18px rgba(42, 38, 32, 0.12);
+
+  /*
+   * The shelf grid, shared by every place books are laid out in a grid: the
+   * library, search results, an author's works, and related reads. They were
+   * four identical copies of the same two values, so a responsive change had to
+   * be made four times or it made the app inconsistent with itself.
+   *
+   * auto-fill fits as many tracks of the minimum as it can and then stretches
+   * them to 1fr, so these two numbers are what decide the cover size.
+   */
+  --book-grid-min: 108px;
+  --book-grid-gap: 26px;
+}
+
+/*
+ * Phone portrait: three covers a row rather than two.
+ *
+ * At ~400px the desktop values left room for exactly two tracks, which stretched
+ * each cover to ~174px — half a screen tall, and a 300-book library that takes
+ * an age to scroll. A narrower gap fits a third, and each card lands near the
+ * minimum the desktop value was always asking for.
+ */
+@media (max-width: 640px) {
+  :root {
+    --book-grid-min: 96px;
+    --book-grid-gap: 18px 12px;
+  }
 }
 
 @media (prefers-color-scheme: dark) {

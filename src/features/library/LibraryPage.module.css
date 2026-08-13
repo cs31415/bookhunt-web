@@ -17,8 +17,8 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
-  gap: 26px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--book-grid-min), 1fr));
+  gap: var(--book-grid-gap);
 }
 
 .error {
@@ -38,6 +38,7 @@
     grid-template-columns: 1fr;
   }
 }
+
 
 /* Sits in the card's action slot while selecting, level with the rating row. */
 .selectBox {
