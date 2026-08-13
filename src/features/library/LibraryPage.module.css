@@ -1,13 +1,21 @@
 .page {
   padding-top: 12px;
+
+  /*
+   * The rail's width and the gap beside it, as custom properties so the header
+   * can line its search field up with the results column without either file
+   * hardcoding the other's number. Inherited: LibraryHeader renders inside .page.
+   */
+  --rail-width: 232px;
+  --layout-gap: 38px;
 }
 
 /* Same rail-and-results grid as SearchPage.module.css, so filtering your own
    shelf and filtering search results look like one page. */
 .layout {
   display: grid;
-  grid-template-columns: 232px 1fr;
-  gap: 38px;
+  grid-template-columns: var(--rail-width) 1fr;
+  gap: var(--layout-gap);
   align-items: start;
 }
 
@@ -16,15 +24,17 @@
 }
 
 /*
- * The Edit control, directly above the grid rather than up in the header.
+ * Import and Edit, directly above the grid rather than up in the header.
  *
- * It enters selection over whatever the filters are currently showing, so it
+ * Edit enters selection over whatever the filters are currently showing, so it
  * belongs next to those books — stacked on a phone the header is a whole filter
- * rail away from them (LOS-244).
+ * rail away from them (LOS-244). Import keeps it company so the two things you
+ * can do to a shelf sit together, Import first.
  */
 .resultsActions {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
   margin-bottom: 14px;
 }
 
@@ -46,6 +56,25 @@
 .editButton:hover {
   border-color: var(--rust);
   color: var(--rust);
+}
+
+/* The filled counterpart, unchanged from when it was .addButton in
+   LibraryHeader.module.css — moving the button did not restyle it. */
+.importButton {
+  flex: none;
+  padding: 10px 18px;
+  border: 1px solid var(--rust);
+  border-radius: var(--r-md);
+  background: var(--rust);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.importButton:hover {
+  background: var(--rust-deep);
 }
 
 .grid {
