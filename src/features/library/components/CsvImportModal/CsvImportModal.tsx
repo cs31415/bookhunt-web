@@ -177,6 +177,20 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
             </p>
           </div>
 
+          {/*
+            Said before the file is chosen, not once the reader is already
+            waiting. Each row is looked up against Google Books and Open Library,
+            and Open Library is throttled to one request a second, so a few
+            hundred books is genuinely minutes — production logs show 11-20s per
+            batch of 20. Dismissing the modal cancels the lookup (see
+            useCsvImportSession), so staying put is a real instruction, not
+            reassurance.
+          */}
+          <p className={styles.formatHint}>
+            Large files take a while — each book is looked up individually, so a few
+            hundred can take several minutes. Keep this tab open until it finishes.
+          </p>
+
           {pickError && <p className={styles.error}>{pickError}</p>}
         </div>
       )}

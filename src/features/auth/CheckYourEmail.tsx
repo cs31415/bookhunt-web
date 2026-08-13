@@ -22,7 +22,16 @@ export function CheckYourEmail({ email }: { email: string }) {
           Follow it to finish setting up your account.
         </p>
 
-        <p className={styles.note}>The link is good for 24 hours.</p>
+        {/*
+          The spam folder is named before the reader has to go looking. bookhunt.net
+          has almost no sending reputation yet, so confirmation mail lands in junk
+          often enough that leaving this to the resend flow costs sign-ups from
+          people who assume nothing was sent.
+        */}
+        <p className={styles.note}>
+          The link is good for 24 hours. If it has not arrived in a minute or two, check
+          your spam folder.
+        </p>
 
         {status === 'sent' ? (
           <p className={styles.note} role="status">
