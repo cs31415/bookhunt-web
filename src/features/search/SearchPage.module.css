@@ -66,9 +66,25 @@
   padding: 40px 0;
 }
 
+/*
+ * Referenced by SearchPage all along but never defined here, so the results
+ * column carried no class at all — and in particular not the min-width: 0 that
+ * stops a grid item refusing to shrink below its content and overflowing the
+ * track. LibraryPage has always had it.
+ */
+.results {
+  min-width: 0;
+}
+
 @media (max-width: 860px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+
+  /* Results before filters, as on the library page: stacked, the rail otherwise
+     sits between the reader and the thing they searched for. */
+  .results {
+    order: -1;
   }
 }
 

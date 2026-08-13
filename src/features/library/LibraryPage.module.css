@@ -37,6 +37,18 @@
   .layout {
     grid-template-columns: 1fr;
   }
+
+  /*
+   * Books before filters once the rail stops being a rail.
+   *
+   * Stacked, the rail lands between the header and the shelf — so reaching a
+   * single book meant scrolling past four filter groups and forty-odd pills, and
+   * the Select button sat a screen away from the books it selects. Filters are
+   * the secondary tool here; the shelf is the page.
+   */
+  .results {
+    order: -1;
+  }
 }
 
 
