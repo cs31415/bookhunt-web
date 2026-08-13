@@ -481,7 +481,7 @@ describe('LibraryPage', () => {
       renderLibrary();
       await screen.findByRole('heading', { name: '3 books' });
 
-      fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
       fireEvent.click(screen.getByRole('checkbox', { name: 'Select Dune' }));
       fireEvent.click(screen.getByRole('checkbox', { name: 'Select Sapiens' }));
 
@@ -504,7 +504,7 @@ describe('LibraryPage', () => {
       await screen.findByRole('heading', { name: '3 books' });
 
       fireEvent.click(await screen.findByRole('button', { name: /^Finished/ }));
-      fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
       fireEvent.click(screen.getByRole('button', { name: 'Select all 1' }));
 
       expect(screen.getByText('1 selected')).toBeInTheDocument();
@@ -520,7 +520,7 @@ describe('LibraryPage', () => {
       renderLibrary();
       await screen.findByRole('heading', { name: '1 book' });
 
-      fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
       expect(screen.getByRole('checkbox', { name: 'Select Dune' })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Book actions' })).not.toBeInTheDocument();
 

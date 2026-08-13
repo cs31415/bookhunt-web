@@ -80,12 +80,6 @@
   .layout {
     grid-template-columns: 1fr;
   }
-
-  /* Results before filters, as on the library page: stacked, the rail otherwise
-     sits between the reader and the thing they searched for. */
-  .results {
-    order: -1;
-  }
 }
 
 /* The library hits arrive in milliseconds while the AI results are still
