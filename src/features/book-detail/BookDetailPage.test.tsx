@@ -121,6 +121,26 @@ describe('BookDetailPage', () => {
     expect(screen.getAllByText('Lucille Fletcher').length).toBeGreaterThan(0);
   });
 
+  /**
+   * A catalog book can have no blurb — an import resolved against Open Library
+   * often brings back none — and the page used to crash outright on one, because
+   * Hero handed null straight to RichText, which calls .replace on it.
+   *
+   * The types said that could not happen: both the raw and normalized shapes
+   * declared `blurb: string` while the API had always been able to return null,
+   * so the compiler never questioned the call. Every other nullable field on
+   * those interfaces was correctly marked. This test is the runtime half of
+   * that fix (LOS-238).
+   */
+  it('renders a book whose blurb is null instead of crashing', async () => {
+    mockedGetBook.mockResolvedValue({ book: { ...rawBook, blurb: null }, inLibrary: false });
+
+    renderBookDetailPage('night-watch');
+
+    expect(await screen.findByRole('heading', { name: 'Night Watch' })).toBeInTheDocument();
+    expect(screen.getAllByText('Lucille Fletcher').length).toBeGreaterThan(0);
+  });
+
   it('shows "Book not found." for an unknown slug', async () => {
     mockedGetBook.mockRejectedValue(new ApiError(404, 'Book not found'));
 

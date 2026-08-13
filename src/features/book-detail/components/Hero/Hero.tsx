@@ -143,7 +143,12 @@ export function Hero({
         </div>
 
         {meta && <div className={styles.meta}>{meta}</div>}
-        <RichText className={styles.blurb} text={book.blurb} />
+        {/*
+          Guarded like the other two RichText call sites. A catalog book can have
+          no blurb at all -- an import that resolved against Open Library often
+          brings back none -- and RichText calls .replace on what it is given.
+        */}
+        {book.blurb && <RichText className={styles.blurb} text={book.blurb} />}
 
         <div className={styles.themesBlock}>
           <span className={styles.eyebrow}>Themes</span>
