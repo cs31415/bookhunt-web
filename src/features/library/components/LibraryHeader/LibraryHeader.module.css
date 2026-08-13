@@ -31,32 +31,13 @@
 .search {
   /* Full row of its own; the wrap above is what puts it below rather than beside. */
   flex-basis: 100%;
-  max-width: 420px;
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  flex: none;
-}
-
-.addButton {
-  flex: none;
-  padding: 10px 18px;
-  border: 1px solid var(--rust);
-  border-radius: var(--r-md);
-  background: var(--rust);
-  color: #fff;
-  font-family: var(--sans);
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.addButton:hover {
-  background: var(--rust-deep);
+  /*
+   * Indented past the filter rail so the field starts where the covers start and
+   * ends where they end — the same width as the grid it filters. The two values
+   * come from .page in LibraryPage.module.css, so neither file hardcodes the
+   * other's number and moving the rail moves this with it.
+   */
+  margin-left: calc(var(--rail-width) + var(--layout-gap));
 }
 
 @media (max-width: 560px) {
@@ -76,14 +57,26 @@
     width: 100%;
   }
 
-  /* Full-width row of its own rather than squeezed beside nothing. */
-  .actions {
+  /*
+   * width, not flex-basis. Column direction again: basis is the height here, and
+   * align-items: flex-start sizes the width to the content — which left the
+   * field about two-thirds of the row instead of matching the grid below it.
+   */
+  .search {
+    flex-basis: auto;
     width: 100%;
   }
 
-  /* Source order is identity, actions, search — so stacked, the field lands
-     under Import rather than under the title. */
+
+}
+
+/*
+ * 860px, not the 560px below: this has to change exactly where .layout stops
+ * being two columns, or the field is indented past a rail that is no longer
+ * beside it. Full width here is again exactly the grid's width.
+ */
+@media (max-width: 860px) {
   .search {
-    max-width: none;
+    margin-left: 0;
   }
 }

@@ -206,7 +206,6 @@ export function LibraryPage() {
     <div className={styles.page}>
       <LibraryHeader
         total={total}
-        onImportCsv={importCsv}
         query={q}
         onQueryChange={setQ}
       />
@@ -232,6 +231,9 @@ export function LibraryPage() {
               — the toolbar below owns leaving that mode. */}
           {!selection.selecting && (
             <div className={styles.resultsActions}>
+              <button type="button" className={styles.importButton} onClick={importCsv}>
+                Import from CSV
+              </button>
               <button type="button" className={styles.editButton} onClick={selection.enter}>
                 Edit
               </button>
