@@ -18,7 +18,7 @@ export interface RawBookDetail {
   genres: string[];
   themes: string[];
   hue: string;
-  blurb: string;
+  blurb: string | null;
   cover_url: string | null;
   google_books_id: string | null;
   isbn13: string | null;
@@ -50,7 +50,7 @@ export interface BookDetail extends BookSummary {
   moods: string[];
   genres: string[];
   themes: string[];
-  blurb: string;
+  blurb: string | null;
   googleBooksId: string | null;
   isbn13: string | null;
   language: string | null;
