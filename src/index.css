@@ -26,23 +26,34 @@ html {
 }
 
 /*
- * Tablet: +50%, in two parts.
+ * Tablet portrait: +50%.
  *
- * Up to 1024px is plain width. It also catches a phone held in landscape and a
- * small desktop window, which is accepted: with only type scaling, being
- * slightly large somewhere costs far less than being too small on the device
- * this was asked about.
- *
- * Past that is iPad landscape — 1180px on an Air, 1366px on the 12.9-inch —
- * which overlaps ordinary laptop widths, so width alone would enlarge type for
- * most desktop users. pointer: coarse separates them: a tablet's primary input
- * is touch, a laptop's is a mouse or trackpad. Same test the pills already use
- * to decide whether a hover-only control can exist at all.
+ * Plain width, which also catches a phone held in landscape and a small desktop
+ * window. Accepted: with only type scaling, being slightly large somewhere costs
+ * far less than being too small on the device this was asked about.
  */
-@media (min-width: 641px) and (max-width: 1024px),
-  (min-width: 1025px) and (max-width: 1366px) and (pointer: coarse) {
+@media (min-width: 641px) and (max-width: 1024px) {
   html {
     font-size: 24px;
+  }
+}
+
+/*
+ * Tablet landscape: a further 25% on top of that, so 30px.
+ *
+ * Its own rule rather than sharing the one above, because a landscape iPad is
+ * further from the reader's eyes than the same device held upright, and 1366px
+ * of width can carry the larger type without the layout suffering for it.
+ *
+ * pointer: coarse is doing the real work here. These widths — 1180px on an Air,
+ * 1366px on the 12.9-inch — overlap ordinary laptops, so width alone would set
+ * 30px type for most desktop users. A tablet's primary input is touch, a
+ * laptop's is a mouse or trackpad; same test the pills use to decide whether a
+ * hover-only control can exist at all.
+ */
+@media (min-width: 1025px) and (max-width: 1366px) and (pointer: coarse) {
+  html {
+    font-size: 30px;
   }
 }
 
