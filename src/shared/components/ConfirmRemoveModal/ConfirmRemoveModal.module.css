@@ -1,6 +1,6 @@
 .body {
   margin: 0;
-  font-size: 14.5px;
+  font-size: 0.9062rem;
   line-height: 1.55;
   color: var(--ink);
 }

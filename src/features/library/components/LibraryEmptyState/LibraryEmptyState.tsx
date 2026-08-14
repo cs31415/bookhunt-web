@@ -19,7 +19,7 @@ export function LibraryEmptyState({ onDiscover, onImportCsv }: LibraryEmptyState
           Discover books
         </button>
         <button type="button" className={styles.secondary} onClick={onImportCsv}>
-          Import from CSV
+          Import
         </button>
       </div>
     </div>

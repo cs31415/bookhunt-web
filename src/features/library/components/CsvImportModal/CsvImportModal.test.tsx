@@ -130,7 +130,7 @@ function renderLibrary() {
 }
 
 async function openModal() {
-  fireEvent.click(await screen.findByRole('button', { name: 'Import from CSV' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Import' }));
   return await screen.findByRole('dialog');
 }
 
@@ -185,7 +185,7 @@ describe('CsvImportModal', () => {
     renderLibrary();
 
     await screen.findByText('Your shelves are empty');
-    fireEvent.click(screen.getByRole('button', { name: 'Import from CSV' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 

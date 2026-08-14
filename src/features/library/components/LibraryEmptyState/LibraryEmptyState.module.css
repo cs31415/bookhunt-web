@@ -13,13 +13,13 @@
 }
 
 .heading {
-  font-size: 27px;
+  font-size: 1.6875rem;
   margin-bottom: 10px;
 }
 
 .hint {
   color: var(--ink-2);
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.5;
   margin-bottom: 26px;
 }
@@ -36,7 +36,7 @@
   padding: 10px 20px;
   border-radius: var(--r-md);
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: 0.875rem;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }

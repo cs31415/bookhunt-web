@@ -19,7 +19,7 @@
   background: var(--card);
   color: var(--ink-2);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
@@ -37,7 +37,7 @@
 }
 
 .arrow {
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1;
 }
 

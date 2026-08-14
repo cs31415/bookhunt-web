@@ -53,7 +53,7 @@
 
 .wordmark {
   font-family: var(--serif);
-  font-size: 19px;
+  font-size: 1.1875rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -66,7 +66,7 @@
 .navLink {
   text-decoration: none;
   color: rgba(255, 255, 255, 0.72);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   padding: 6px 2px;
   position: relative;
@@ -121,14 +121,14 @@
 }
 
 .greeting {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #fff;
   white-space: nowrap;
 }
 
 .signUp {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #fff;
   white-space: nowrap;
@@ -155,7 +155,7 @@
 .accountName {
   margin: 0;
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--ink);
   border-bottom: 1px solid var(--line);
@@ -170,7 +170,7 @@
   border-radius: var(--r-sm);
   color: var(--ink-2);
   font: inherit;
-  font-size: 14px;
+  font-size: 0.875rem;
   padding: 8px 10px;
   cursor: pointer;
 }
@@ -236,7 +236,7 @@
   gap: 10px;
   border-radius: var(--r-sm);
   color: var(--ink-2);
-  font-size: 15px;
+  font-size: 0.9375rem;
   text-decoration: none;
   /* Taller than .accountItem: this is the primary nav and it is only ever
      reached by thumb, so it wants a tap target rather than a menu row. */

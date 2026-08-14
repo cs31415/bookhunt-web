@@ -21,7 +21,7 @@
 }
 
 .count {
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   font-weight: 500;
   color: var(--ink);
 }
@@ -39,7 +39,7 @@
   background: none;
   color: var(--ink-2);
   font: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 
@@ -60,7 +60,7 @@
   background: var(--rust);
   color: #fff;
   font: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 

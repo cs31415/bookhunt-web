@@ -25,17 +25,17 @@
 
 .wordmark {
   font-family: var(--serif);
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 .tagline {
-  font-size: 12.5px;
+  font-size: 0.7812rem;
   color: var(--muted);
   margin-left: 6px;
 }
 
 .meta {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--faint);
   font-family: var(--mono);
 }

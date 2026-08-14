@@ -27,17 +27,17 @@
 }
 
 .title {
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 .author {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--muted);
   margin: 3px 0 10px;
 }
 
 .notes {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--ink-2);
   font-style: italic;
   line-height: 1.5;
