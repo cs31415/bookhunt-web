@@ -124,8 +124,9 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
 
   return (
     <Modal
-      eyebrow="Import from a file"
-      title="Add books from a CSV"
+      // No eyebrow: it and the title were saying the same thing twice. The title
+      // spells CSV out instead, since it is the one place the format is named.
+      title="Import books from CSV (comma separated values) file"
       onClose={handleClose}
       footer={footer}
     >
