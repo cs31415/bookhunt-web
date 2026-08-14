@@ -51,21 +51,24 @@
    * auto-fill fits as many tracks of the minimum as it can and then stretches
    * them to 1fr, so these two numbers are what decide the cover size.
    */
-  --book-grid-min: 108px;
+  /*
+   * In rem, deliberately: the track has to scale with the type or the two fight.
+   * 6.75rem is the 108px this always was at the desktop root, so desktop is
+   * unchanged — but where type is larger (LOS-247) the tracks widen with it and
+   * the column count falls out on its own. Keeping this in px is what left a
+   * phone fitting three ~110px columns of 20px text, about five characters to a
+   * line, with long words breaking mid-syllable.
+   */
+  --book-grid-min: 6.75rem;
   --book-grid-gap: 26px;
 }
 
 /*
- * Phone portrait: three covers a row rather than two.
- *
- * At ~400px the desktop values left room for exactly two tracks, which stretched
- * each cover to ~174px — half a screen tall, and a 300-book library that takes
- * an age to scroll. A narrower gap fits a third, and each card lands near the
- * minimum the desktop value was always asking for.
+ * Only the gap tightens on a phone. The track no longer needs an override of its
+ * own: --book-grid-min is in rem, so it has already grown with the phone's type.
  */
 @media (max-width: 640px) {
   :root {
-    --book-grid-min: 96px;
     --book-grid-gap: 18px 12px;
   }
 }

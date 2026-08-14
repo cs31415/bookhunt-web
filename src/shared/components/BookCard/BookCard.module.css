@@ -53,11 +53,30 @@
   font-weight: 600;
   font-size: 1.0312rem;
   margin-bottom: 3px;
+  /*
+   * A grid track is narrower than some single words — "Enlightenment" at a
+   * phone's column width — and without this the word runs on over the
+   * neighbouring card.
+   *
+   * Both properties, and in this order of preference: hyphens: auto breaks at a
+   * syllable and leaves a hyphen behind, which reads as typesetting rather than
+   * damage. overflow-wrap is the fallback for where the browser has no
+   * hyphenation dictionary, or for a "word" it cannot hyphenate at all, like an
+   * ISBN or a URL — there it breaks bluntly, but breaking bluntly still beats
+   * spilling into the next card.
+   *
+   * hyphens: auto needs a lang on <html>, which index.html sets.
+   */
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .meta {
   font-size: 0.8125rem;
   color: var(--muted);
+  /* Author names run long too, and a surname is as unbreakable as a title word. */
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .rating {
