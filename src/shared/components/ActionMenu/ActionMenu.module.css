@@ -16,7 +16,7 @@
   background: var(--paper-2);
   color: var(--ink-2);
   font-family: var(--ui-sans);
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 500;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -73,7 +73,7 @@
   gap: 8px;
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
 }
 
 /*
@@ -88,7 +88,7 @@
 
 /* Same 1.34x correction the fold makes — see CoverFold.module.css. */
 .glyphAbandoned {
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 
 .item:hover {

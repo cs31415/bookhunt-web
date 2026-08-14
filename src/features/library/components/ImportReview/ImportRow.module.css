@@ -21,19 +21,19 @@
 .rowTitle {
   font-family: var(--serif);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 0.9375rem;
   color: var(--ink);
 }
 
 .rowAuthor {
-  font-size: 12.5px;
+  font-size: 0.7812rem;
   color: var(--muted);
 }
 
 .rowNote {
   margin-top: 2px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--faint);
 }
 
@@ -46,7 +46,7 @@
   background: var(--paper);
   color: var(--ink-2);
   font: inherit;
-  font-size: 12px;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
@@ -60,7 +60,7 @@
   border-radius: 999px;
   background: transparent;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 0.7812rem;
   cursor: pointer;
 }
 

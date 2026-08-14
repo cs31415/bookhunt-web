@@ -30,14 +30,14 @@
   border: none;
   outline: none;
   background: none;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-family: var(--serif);
   color: var(--ink);
   padding: 6px 0;
 }
 
 .big .input {
-  font-size: 18px;
+  font-size: 1.125rem;
   padding: 8px 0;
 }
 
@@ -52,7 +52,7 @@
   background: var(--rust);
   color: #fff;
   font: inherit;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   font-weight: 500;
   padding: 11px 22px;
   cursor: pointer;
@@ -91,10 +91,15 @@
     padding: 6px 16px;
   }
 
-  /* Also for the placeholder's sake. 16px is the floor: below it iOS zooms the
-     page when the field takes focus, which is a worse problem than a slightly
-     smaller placeholder. */
+  /*
+   * Also for the placeholder's sake — smaller than the desktop 1.125rem so the
+   * whole placeholder fits at 375px.
+   *
+   * 1rem is 20px here, since the root scales on phones (LOS-247). That matters:
+   * iOS zooms the page when a field under 16px takes focus, so this must not be
+   * reduced to a fraction that computes below it.
+   */
   .big .input {
-    font-size: 16px;
+    font-size: 1rem;
   }
 }

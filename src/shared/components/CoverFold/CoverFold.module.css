@@ -37,7 +37,7 @@
   position: absolute;
   top: 2px;
   right: 5px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1;
   font-weight: 600;
   color: var(--slate);
@@ -50,7 +50,7 @@
  * why it also loses the 2px top offset.
  */
 .glyphAbandoned {
-  font-size: 17.5px;
+  font-size: 1.0938rem;
   top: 0;
 }
 

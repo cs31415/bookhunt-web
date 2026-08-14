@@ -7,7 +7,7 @@
   padding: 80px 20px;
   color: var(--muted);
   font-family: var(--serif);
-  font-size: 20px;
+  font-size: 1.25rem;
 }
 
 .error {
@@ -17,7 +17,7 @@
 }
 
 .sectionHeading {
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--ink);
   border-bottom: 1px solid var(--line);

@@ -29,7 +29,7 @@
   border: none;
   outline: none;
   background: transparent;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-family: var(--serif);
   color: var(--ink);
 }
@@ -41,7 +41,7 @@
   background: var(--card);
   color: var(--ink);
   font: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 
@@ -54,7 +54,7 @@
 }
 
 .empty {
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   color: var(--muted);
   padding: 14px 6px;
 }
@@ -84,18 +84,18 @@
 .title {
   font-family: var(--serif);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.2;
 }
 
 .meta {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 
 .plus {
   font-family: var(--mono);
-  font-size: 18px;
+  font-size: 1.125rem;
   color: var(--rust);
   line-height: 1;
   padding: 0 4px;

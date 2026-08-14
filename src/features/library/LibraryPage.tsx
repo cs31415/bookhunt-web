@@ -232,7 +232,7 @@ export function LibraryPage() {
           {!selection.selecting && (
             <div className={styles.resultsActions}>
               <button type="button" className={styles.importButton} onClick={importCsv}>
-                Import from CSV
+                Import
               </button>
               <button type="button" className={styles.editButton} onClick={selection.enter}>
                 Edit

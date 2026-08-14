@@ -25,7 +25,7 @@
   margin-top: 10px;
   color: var(--rust-deep);
   font-family: var(--ui-sans);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 /* Between the search bar and the pills, where the offer to keep a search reads

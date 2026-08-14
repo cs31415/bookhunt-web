@@ -5,12 +5,53 @@
   box-sizing: border-box;
 }
 
+/*
+ * The type scale's anchor. Every font-size in the app is in rem, so this one
+ * number sizes all of them — which is the whole reason they were converted from
+ * px (LOS-247).
+ *
+ * Deliberately only font sizes: padding, gaps and the book grid stay in px, so
+ * larger text does not also inflate the covers or reflow the shelf into fewer
+ * columns.
+ */
+html {
+  font-size: 16px;
+}
+
+/* Phone: +25%. */
+@media (max-width: 640px) {
+  html {
+    font-size: 20px;
+  }
+}
+
+/*
+ * Tablet: +50%, in two parts.
+ *
+ * Up to 1024px is plain width. It also catches a phone held in landscape and a
+ * small desktop window, which is accepted: with only type scaling, being
+ * slightly large somewhere costs far less than being too small on the device
+ * this was asked about.
+ *
+ * Past that is iPad landscape — 1180px on an Air, 1366px on the 12.9-inch —
+ * which overlaps ordinary laptop widths, so width alone would enlarge type for
+ * most desktop users. pointer: coarse separates them: a tablet's primary input
+ * is touch, a laptop's is a mouse or trackpad. Same test the pills already use
+ * to decide whether a hover-only control can exist at all.
+ */
+@media (min-width: 641px) and (max-width: 1024px),
+  (min-width: 1025px) and (max-width: 1366px) and (pointer: coarse) {
+  html {
+    font-size: 24px;
+  }
+}
+
 body {
   margin: 0;
   font-family: var(--sans);
   background: var(--paper);
   color: var(--ink);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.55;
 }
 

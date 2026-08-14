@@ -31,7 +31,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: opacity 0.15s;
 }
@@ -50,6 +50,6 @@
 
 .legendValue {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--muted);
 }

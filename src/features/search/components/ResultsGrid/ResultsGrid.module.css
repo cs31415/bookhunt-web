@@ -45,11 +45,11 @@
 
 .emptyTitle {
   font-family: var(--serif);
-  font-size: 20px;
+  font-size: 1.25rem;
   color: var(--ink-2);
   margin-bottom: 8px;
 }
 
 .emptyHint {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
