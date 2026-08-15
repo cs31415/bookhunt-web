@@ -117,6 +117,17 @@ describe('the forwarding manifest', () => {
     expect(apiCall(fetchMock).headers.has('Authorization')).toBe(false);
   });
 
+  it('requires a session to change a profile', async () => {
+    const response = await request('/bff/users/me', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ displayName: 'Ada' }),
+    });
+
+    expect(response.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('404s a real API route that no page needs', async () => {
     // GET /search/facets exists on the API and is deliberately absent from the
     // manifest. Narrowing the surface is the point of the list.

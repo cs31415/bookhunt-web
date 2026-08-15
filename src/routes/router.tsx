@@ -12,6 +12,7 @@ import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { LibraryPage } from '../features/library/LibraryPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
 
 // Plain inline placeholders until Phases 2-6 add the remaining real features/* pages.
 const discoverElement = <DiscoverPage />;
@@ -30,6 +31,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <LibraryPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'settings',
+        element: (
+          <RequireAuth>
+            <SettingsPage />
           </RequireAuth>
         ),
       },

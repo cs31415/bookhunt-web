@@ -22,6 +22,13 @@ export interface AuthUser {
    * hides the affordance rather than building a broken URL.
    */
   handle?: string;
+  /**
+   * Whether the public page at bookhunt.net/<handle> is on. Optional for the
+   * same reason as handle: a cache written before LOS-251 has neither. Settings
+   * reads it to show the switch in the right position, and there is no
+   * who-am-I endpoint to ask instead.
+   */
+  isDiscoverable?: boolean;
 }
 
 const USER_STORAGE_KEY = 'bookhunt_user';
