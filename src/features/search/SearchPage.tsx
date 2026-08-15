@@ -114,7 +114,8 @@ export function SearchPage() {
   return (
     <div className={styles.page}>
       <div className={styles.searchBarWrap}>
-        <SearchBar value={queryInput} onChange={setQueryInput} onSubmit={handleSubmit} big placeholder="Refine your search…" />
+        <SearchBar
+          people value={queryInput} onChange={setQueryInput} onSubmit={handleSubmit} big placeholder="Refine your search…" />
 
         {/* The query from the URL, not queryInput, even sitting directly under
             the box: the pill should be the search these results came from, not

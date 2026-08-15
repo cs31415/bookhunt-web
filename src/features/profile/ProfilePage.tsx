@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
@@ -10,6 +11,10 @@ import { useVisitorProfile } from './useProfile';
 import type { ProfileTab } from './useProfile';
 import type { LibraryEntry } from '../../normalize/library';
 import { AuthorsTab } from './AuthorsTab';
+import { PeopleTab } from './PeopleTab';
+import { FavoriteButton } from '../../shared/components/FavoriteButton/FavoriteButton';
+import { setUserFavorite } from '../../api/users/set-user-favorite';
+import { toast } from '../../shared/toast/toast-store';
 import styles from './ProfilePage.module.css';
 
 const PAGE_SIZE = 24;
@@ -103,8 +108,9 @@ function VisitorProfileView({ handle, tab, onSelectTab, page, onPage, navigate }
         displayName={profile.displayName}
         joinedAt={profile.joinedAt}
         bookCount={profile.counts.total}
+        favorite={<FavoriteReader handle={profile.handle} initial={profile.isFavorite ?? false} />}
       />
-      <Tabs active={tab} onSelect={onSelectTab} />
+      <Tabs active={tab} onSelect={onSelectTab} owner={false} />
       {tab === 'authors' ? (
         <AuthorsTab handle={handle} owner={false} />
       ) : (
@@ -152,8 +158,10 @@ function OwnerProfile({ handle, tab, onSelectTab, page, onPage, navigate }: View
         <CopyLink handle={handle} enabled={isPublic} />
       </div>
 
-      <Tabs active={tab} onSelect={onSelectTab} />
-      {tab === 'authors' ? (
+      <Tabs active={tab} onSelect={onSelectTab} owner />
+      {tab === 'people' ? (
+        <PeopleTab />
+      ) : tab === 'authors' ? (
         <AuthorsTab handle={handle} owner />
       ) : (
         <>
@@ -174,15 +182,20 @@ function Header({
   displayName,
   joinedAt,
   bookCount,
+  favorite,
 }: {
   handle: string;
   displayName: string;
   joinedAt?: string;
   bookCount: number;
+  favorite?: ReactNode;
 }) {
   return (
     <header className={styles.header}>
-      <h1 className={styles.name}>{displayName}</h1>
+      <div className={styles.nameRow}>
+        <h1 className={styles.name}>{displayName}</h1>
+        {favorite}
+      </div>
       <p className={styles.meta}>
         <span className={styles.handle}>@{handle}</span>
         {' · '}
@@ -193,10 +206,51 @@ function Header({
   );
 }
 
-function Tabs({ active, onSelect }: { active: ProfileTab; onSelect: (tab: ProfileTab) => void }) {
+/**
+ * The heart on someone else's profile. An override rather than a mirrored
+ * copy, the same shape the author page uses: null means whatever the server
+ * said, so a failed request needs no remembered value to restore.
+ *
+ * Absent when signed out — there is nowhere to store the answer.
+ */
+function FavoriteReader({ handle, initial }: { handle: string; initial: boolean }) {
+  const { isAuthenticated } = useAuth();
+  const [override, setOverride] = useState<boolean | null>(null);
+
+  if (!isAuthenticated) return null;
+
+  const favorite = override ?? initial;
+
+  async function toggle(next: boolean) {
+    setOverride(next);
+    try {
+      await setUserFavorite(handle, next);
+    } catch {
+      setOverride(null);
+      toast({
+        text: next ? `Could not favourite @${handle}` : `Could not unfavourite @${handle}`,
+      });
+    }
+  }
+
+  return <FavoriteButton isFavorite={favorite} onToggle={toggle} />;
+}
+
+function Tabs({
+  active,
+  onSelect,
+  owner,
+}: {
+  active: ProfileTab;
+  onSelect: (tab: ProfileTab) => void;
+  owner: boolean;
+}) {
+  // People is owner-only. A visitor never sees who someone follows.
+  const tabs = owner ? [...TABS, { id: 'people' as ProfileTab, label: 'People' }] : TABS;
+
   return (
     <div className={styles.tabs} role="tablist" aria-label="Profile sections">
-      {TABS.map(({ id, label }) => (
+      {tabs.map(({ id, label }) => (
         <button
           key={id}
           type="button"

@@ -1,4 +1,6 @@
 .wrap {
+  /* Positioning context for the @ reader dropdown (LOS-260). */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;

@@ -151,3 +151,11 @@
   color: var(--muted);
   white-space: nowrap;
 }
+
+/* Keeps the heart on the name's baseline, as on the author page. */
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

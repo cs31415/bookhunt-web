@@ -34,7 +34,8 @@ function DiscoverHero({ onSearch }: { onSearch: (query: string) => void }) {
   return (
     <div className={styles.hero}>
       <div className={styles.heroSearch}>
-        <SearchBar value={query} onChange={setQuery} onSubmit={onSearch} big autoFocus />
+        <SearchBar
+            people value={query} onChange={setQuery} onSubmit={onSearch} big autoFocus />
       </div>
 
       {/* The saved pill is pinned server-side, so it joins the row without a

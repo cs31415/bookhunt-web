@@ -40,6 +40,8 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   // API ignores a token on it anyway.
   { method: 'get', path: '/users/handle-available', auth: 'public' },
   // Literal, and above any future '/users/:handle', mirroring routes/users.ts.
+  { method: 'get', path: '/users/search', auth: 'optional' },
+  { method: 'get', path: '/users/favorites', auth: 'required' },
   { method: 'put', path: '/users/me', auth: 'required' },
   // Last of the /users block, mirroring routes/users.ts: ':handle' would
   // otherwise swallow the two literals above it. Optional rather than public --
@@ -47,6 +49,8 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   { method: 'get', path: '/users/:handle', auth: 'optional' },
   { method: 'get', path: '/users/:handle/library', auth: 'optional' },
   { method: 'get', path: '/users/:handle/favorite-authors', auth: 'optional' },
+  { method: 'post', path: '/users/:handle/favorite', auth: 'required' },
+  { method: 'delete', path: '/users/:handle/favorite', auth: 'required' },
 
   { method: 'get', path: '/books', auth: 'optional' },
   { method: 'get', path: '/books/:slug', auth: 'optional' },
