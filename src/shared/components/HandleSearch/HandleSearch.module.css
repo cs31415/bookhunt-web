@@ -1,0 +1,65 @@
+.wrap {
+  position: relative;
+}
+
+/* Anchored under the search box rather than pushing the page down, which is
+   what makes this a dropdown and not the RelatedPicker panel. */
+.panel {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-2);
+}
+
+.option {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--ui-sans);
+}
+
+/* Hover and keyboard share one style, so the two ways of moving through the
+   list look the same. */
+.active {
+  background: var(--paper-2);
+}
+
+.handle {
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+
+.name {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.empty {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}

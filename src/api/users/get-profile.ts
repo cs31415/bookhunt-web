@@ -7,6 +7,9 @@ export interface RawPublicProfile {
   displayName: string;
   joinedAt: string;
   counts: { total: number; reading: number; finished: number; favorites: number };
+  /** Only present for a signed-in viewer; absent reads as not favourited. */
+  isFavorite?: boolean;
+  isMutual?: boolean;
 }
 
 export function getProfile(handle: string, signal?: AbortSignal): Promise<{ profile: RawPublicProfile }> {
