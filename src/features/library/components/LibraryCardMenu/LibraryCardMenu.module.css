@@ -51,6 +51,22 @@
   z-index: 10;
 }
 
+/* The ordinary item: same shape as .remove, without the colour that marks
+   removal as the one item that destroys something. */
+.item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.8438rem;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.item:hover,
+.item:focus-visible {
+  background: var(--paper-2);
+  outline: none;
+}
+
 /* --rust rather than a red: the palette has no destructive colour and should
    not gain one for a single menu item. */
 .remove {

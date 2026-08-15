@@ -18,6 +18,9 @@ export interface LibraryFilter {
    *  client-side — the whole library is already in memory, so a round trip
    *  would only be slower. */
   q?: string | null;
+  /** Narrows to favourites. A filter like any other, so it composes with the
+   *  rest rather than being a separate view (LOS-252). */
+  favorite?: boolean;
 }
 
 export function statusCounts(entries: LibraryEntry[]): Record<LibraryStatus, number> {
@@ -72,6 +75,7 @@ function queryTerms(q: string | null | undefined): string[] {
 export function filterEntries(entries: LibraryEntry[], filter: LibraryFilter): LibraryEntry[] {
   const terms = queryTerms(filter.q);
   return entries.filter((entry) => {
+    if (filter.favorite && !entry.isFavorite) return false;
     if (filter.status && entry.status !== filter.status) return false;
     if (filter.category && !entry.subjects.includes(filter.category)) return false;
     if (filter.mood && !entry.moods.includes(filter.mood)) return false;

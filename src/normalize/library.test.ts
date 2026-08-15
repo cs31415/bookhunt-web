@@ -26,6 +26,10 @@ describe('normalizeLibraryEntry', () => {
       moods: [],
       themes: [],
       addedAt: null,
+      // A raw row carrying no flags came from a source that has none, so absent
+      // reads as false rather than unknown.
+      isFavorite: false,
+      isHidden: false,
       book: {
         id: 1,
         slug: 'dune',
@@ -65,6 +69,11 @@ describe('normalizeLibraryEntry', () => {
     const entry = normalizeLibraryEntry(rawEntry);
     expect(entry.subjects).toEqual([]);
     expect(entry.addedAt).toBeNull();
+  });
+
+  it('carries the library flags through when the row has them', () => {
+    const raw = { ...rawEntry, is_favorite: true, is_hidden: true };
+    expect(normalizeLibraryEntry(raw)).toMatchObject({ isFavorite: true, isHidden: true });
   });
 });
 

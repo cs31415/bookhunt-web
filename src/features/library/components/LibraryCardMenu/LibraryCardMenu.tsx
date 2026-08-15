@@ -3,18 +3,23 @@ import styles from './LibraryCardMenu.module.css';
 
 export interface LibraryCardMenuProps {
   onRemove: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: (next: boolean) => void;
 }
 
 /**
- * The per-card menu on the library grid. One item today; the shape is what
- * grows when there is a second.
+ * The per-card menu on the library grid.
  *
  * The dismiss handling mirrors shared/components/ActionMenu — pointer-down
  * outside and Escape both close. Not shared with it: that one is a status
  * picker with a status-shaped API, and the only thing common to the two is
  * twenty lines of event wiring.
  */
-export function LibraryCardMenu({ onRemove }: LibraryCardMenuProps) {
+export function LibraryCardMenu({
+  onRemove,
+  isFavorite,
+  onToggleFavorite,
+}: LibraryCardMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -53,6 +58,27 @@ export function LibraryCardMenu({ onRemove }: LibraryCardMenuProps) {
       </button>
       {open && (
         <ul className={styles.menu} role="menu">
+          {/* Duplicates the heart on the cover on purpose: the heart is quick
+              but small, and the menu is where someone goes looking for what a
+              card can do. */}
+          <li
+            role="menuitemcheckbox"
+            aria-checked={isFavorite}
+            tabIndex={0}
+            className={styles.item}
+            onClick={() => {
+              setOpen(false);
+              onToggleFavorite(!isFavorite);
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              setOpen(false);
+              onToggleFavorite(!isFavorite);
+            }}
+          >
+            {isFavorite ? 'Remove from favourites' : 'Add to favourites'}
+          </li>
           <li
             role="menuitem"
             tabIndex={0}
