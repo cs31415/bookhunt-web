@@ -29,6 +29,12 @@ export interface AuthUser {
    * who-am-I endpoint to ask instead.
    */
   isDiscoverable?: boolean;
+  /**
+   * Reader settings that have to survive a reload. Optional for the same reason
+   * as the two above: a cache written before they existed has none. `theme` is
+   * the only key today (LOS-258).
+   */
+  preferences?: { theme?: string } & Record<string, unknown>;
 }
 
 const USER_STORAGE_KEY = 'bookhunt_user';

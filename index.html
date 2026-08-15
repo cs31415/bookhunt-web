@@ -5,6 +5,28 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BookHunt</title>
+    <!--
+      Runs before the bundle, and before the first paint. Without it a reader in
+      dark mode gets a white page that flips a moment later, which is worse than
+      not offering the choice at all. Duplicates the key and the rules in
+      src/shared/theme/theme.ts on purpose: nothing that has to run this early
+      can import a module.
+    -->
+    <script>
+      (function () {
+        try {
+          var choice = localStorage.getItem('bookhunt_theme') || 'system';
+          var dark =
+            choice === 'dark' ||
+            (choice === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          // localStorage can be refused outright in private browsing. The
+          // prefers-color-scheme block in tokens.css still applies.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

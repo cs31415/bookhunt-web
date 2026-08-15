@@ -3,7 +3,15 @@ import type { FormEvent } from 'react';
 import { ApiError } from '../../api/client';
 import { updateMe } from '../../api/users/update-me';
 import { useAuth } from '../auth/AuthContext';
+import { useThemeChoice } from '../../shared/theme/ThemeContext';
+import type { ThemeChoice } from '../../shared/theme/theme';
 import styles from './SettingsPage.module.css';
+
+const THEME_CHOICES: { value: ThemeChoice; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+];
 
 /**
  * Configuration only. Favourites and the library live on the profile page --
@@ -11,6 +19,7 @@ import styles from './SettingsPage.module.css';
  */
 export function SettingsPage() {
   const { user, updateUser } = useAuth();
+  const { choice: themeChoice, setChoice: setThemeChoice } = useThemeChoice();
 
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [handle, setHandle] = useState(user?.handle ?? '');
@@ -125,6 +134,30 @@ export function SettingsPage() {
           {pending ? 'Saving…' : 'Save'}
         </button>
       </form>
+
+      {/* A radio group, not a two-state switch: "System" is a real choice --
+          keep following the machine -- and a toggle can only say light or dark,
+          which quietly freezes a reader to whichever the OS is today. */}
+      <fieldset className={styles.card}>
+        <legend className={styles.sectionHeading}>Appearance</legend>
+        <div className={styles.choices}>
+          {THEME_CHOICES.map(({ value, label }) => (
+            <label key={value} className={styles.choice}>
+              <input
+                type="radio"
+                name="theme"
+                value={value}
+                checked={themeChoice === value}
+                onChange={() => setThemeChoice(value)}
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+        <p className={styles.hint}>
+          Applies straight away, and follows you to another browser once you are signed in.
+        </p>
+      </fieldset>
 
       <section className={styles.card} aria-labelledby="public-heading">
         <h2 id="public-heading" className={styles.sectionHeading}>
