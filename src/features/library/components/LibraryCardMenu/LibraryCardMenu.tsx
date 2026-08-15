@@ -5,6 +5,8 @@ export interface LibraryCardMenuProps {
   onRemove: () => void;
   isFavorite: boolean;
   onToggleFavorite: (next: boolean) => void;
+  isHidden: boolean;
+  onToggleHidden: (next: boolean) => void;
 }
 
 /**
@@ -19,6 +21,8 @@ export function LibraryCardMenu({
   onRemove,
   isFavorite,
   onToggleFavorite,
+  isHidden,
+  onToggleHidden,
 }: LibraryCardMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -78,6 +82,24 @@ export function LibraryCardMenu({
             }}
           >
             {isFavorite ? 'Remove from favourites' : 'Add to favourites'}
+          </li>
+          <li
+            role="menuitemcheckbox"
+            aria-checked={isHidden}
+            tabIndex={0}
+            className={styles.item}
+            onClick={() => {
+              setOpen(false);
+              onToggleHidden(!isHidden);
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              setOpen(false);
+              onToggleHidden(!isHidden);
+            }}
+          >
+            {isHidden ? 'Show on my public page' : 'Hide from my public page'}
           </li>
           <li
             role="menuitem"

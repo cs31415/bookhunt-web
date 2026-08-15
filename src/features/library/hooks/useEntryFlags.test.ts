@@ -1,14 +1,17 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useFavorites } from './useFavorites';
+import { useEntryFlags } from './useEntryFlags';
 import { setFavorite } from '../../../api/library/set-favorite';
+import { setHidden } from '../../../api/library/set-hidden';
 import { ApiError } from '../../../api/client';
 import { clearToasts, getToasts } from '../../../shared/toast/toast-store';
 import type { LibraryEntry } from '../../../normalize/library';
 
 vi.mock('../../../api/library/set-favorite');
+vi.mock('../../../api/library/set-hidden');
 
 const mockedSetFavorite = vi.mocked(setFavorite);
+const mockedSetHidden = vi.mocked(setHidden);
 
 const entry = {
   status: 'queued',
@@ -38,15 +41,19 @@ beforeEach(() => {
   mockedSetFavorite.mockResolvedValue({
     entry: { user_id: 1, book_id: 12, is_favorite: true, is_hidden: false },
   });
+  mockedSetHidden.mockReset();
+  mockedSetHidden.mockResolvedValue({
+    entry: { user_id: 1, book_id: 12, is_favorite: false, is_hidden: true },
+  });
   clearToasts();
 });
 
-describe('useFavorites', () => {
+describe('useEntryFlags', () => {
   it('shows the new value before the request settles', async () => {
-    const { result } = renderHook(() => useFavorites());
+    const { result } = renderHook(() => useEntryFlags());
 
     await act(async () => {
-      await result.current.toggle(entry, true);
+      await result.current.toggleFavorite(entry, true);
     });
 
     expect(result.current.apply([entry])[0].isFavorite).toBe(true);
@@ -55,10 +62,10 @@ describe('useFavorites', () => {
 
   it('leaves untouched entries alone', async () => {
     const other = { ...entry, book: { ...entry.book, id: 99 } } as LibraryEntry;
-    const { result } = renderHook(() => useFavorites());
+    const { result } = renderHook(() => useEntryFlags());
 
     await act(async () => {
-      await result.current.toggle(entry, true);
+      await result.current.toggleFavorite(entry, true);
     });
 
     const [first, second] = result.current.apply([entry, other]);
@@ -68,10 +75,10 @@ describe('useFavorites', () => {
 
   it('rolls back and says so when the request fails', async () => {
     mockedSetFavorite.mockRejectedValue(new ApiError(500, 'Internal server error'));
-    const { result } = renderHook(() => useFavorites());
+    const { result } = renderHook(() => useEntryFlags());
 
     await act(async () => {
-      await result.current.toggle(entry, true);
+      await result.current.toggleFavorite(entry, true);
     });
 
     // Falls back to what the server last said rather than to a remembered
@@ -80,8 +87,48 @@ describe('useFavorites', () => {
     expect(getToasts()[0].text).toContain('Could not favourite');
   });
 
+  it('keeps the two flags independent on the same book', async () => {
+    const { result } = renderHook(() => useEntryFlags());
+
+    await act(async () => {
+      await result.current.toggleFavorite(entry, true);
+      await result.current.toggleHidden(entry, true);
+    });
+
+    const [merged] = result.current.apply([entry]);
+    expect(merged.isFavorite).toBe(true);
+    expect(merged.isHidden).toBe(true);
+  });
+
+  it('rolls back only the flag that failed', async () => {
+    mockedSetHidden.mockRejectedValue(new ApiError(500, 'Internal server error'));
+    const { result } = renderHook(() => useEntryFlags());
+
+    await act(async () => {
+      await result.current.toggleFavorite(entry, true);
+      await result.current.toggleHidden(entry, true);
+    });
+
+    const [merged] = result.current.apply([entry]);
+    expect(merged.isFavorite).toBe(true);
+    expect(merged.isHidden).toBe(false);
+  });
+
+  it('hides several at once and reports failures once, not per book', async () => {
+    const second = { ...entry, book: { ...entry.book, id: 99 } } as typeof entry;
+    mockedSetHidden.mockRejectedValue(new ApiError(500, 'Internal server error'));
+    const { result } = renderHook(() => useEntryFlags());
+
+    await act(async () => {
+      await result.current.hideMany([entry, second], true);
+    });
+
+    expect(getToasts()).toHaveLength(1);
+    expect(getToasts()[0].text).toContain('2 of 2');
+  });
+
   it('returns the entries untouched when nothing has been toggled', () => {
-    const { result } = renderHook(() => useFavorites());
+    const { result } = renderHook(() => useEntryFlags());
     const entries = [entry];
     expect(result.current.apply(entries)).toBe(entries);
   });

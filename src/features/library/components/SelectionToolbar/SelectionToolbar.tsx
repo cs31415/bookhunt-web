@@ -7,6 +7,8 @@ export interface SelectionToolbarProps {
   onSelectAll: () => void;
   onClear: () => void;
   onRemove: () => void;
+  /** Hides the selection from the public page, or shows it again. */
+  onHide: () => void;
   onDone: () => void;
 }
 
@@ -23,6 +25,7 @@ export function SelectionToolbar({
   onSelectAll,
   onClear,
   onRemove,
+  onHide,
   onDone,
 }: SelectionToolbarProps) {
   const allSelected = selectedCount > 0 && selectedCount === visibleCount;
@@ -31,7 +34,7 @@ export function SelectionToolbar({
     <div className={styles.bar} role="region" aria-label="Selected books">
       <span className={styles.count} aria-live="polite">
         {selectedCount === 0
-          ? 'Select books to remove'
+          ? 'Select books to hide or remove'
           : `${selectedCount} selected`}
       </span>
 
@@ -43,6 +46,14 @@ export function SelectionToolbar({
           disabled={visibleCount === 0}
         >
           {allSelected ? 'Clear' : `Select all ${visibleCount}`}
+        </button>
+        <button
+          type="button"
+          className={styles.link}
+          onClick={onHide}
+          disabled={selectedCount === 0}
+        >
+          Hide{selectedCount > 0 ? ` ${selectedCount}` : ''}
         </button>
         <button type="button" className={styles.link} onClick={onDone}>
           Done

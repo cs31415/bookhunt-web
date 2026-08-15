@@ -20,7 +20,7 @@ import { removeEntry } from '../../api/library/remove-entry';
 import { removeEntries, MAX_REMOVE_PER_REQUEST } from '../../api/library/remove-entries';
 import { toast } from '../../shared/toast/toast-store';
 import { filterEntries, sortByShelf } from './lib/breakdowns';
-import { useFavorites } from './hooks/useFavorites';
+import { useEntryFlags } from './hooks/useEntryFlags';
 import { FavoriteButton } from '../../shared/components/FavoriteButton/FavoriteButton';
 import styles from './LibraryPage.module.css';
 
@@ -58,7 +58,7 @@ export function LibraryPage() {
   const mood = searchParams.get('mood');
   const theme = searchParams.get('theme');
   const favorite = searchParams.get('favorite') === 'true';
-  const favorites = useFavorites();
+  const flags = useEntryFlags();
   const urlQuery = searchParams.get('q') ?? '';
 
   // The input is driven by local state, not by the URL. setSearchParams lands a
@@ -144,7 +144,7 @@ export function LibraryPage() {
 
   // Overrides merged before filtering, so un-favouriting while the favourites
   // filter is on removes the card immediately rather than at the next reload.
-  const shownEntries = useMemo(() => favorites.apply(entries), [favorites, entries]);
+  const shownEntries = useMemo(() => flags.apply(entries), [flags, entries]);
 
   const sorted = useMemo(
     () => sortByShelf(filterEntries(shownEntries, { status, category, mood, theme, q, favorite })),
@@ -262,6 +262,15 @@ export function LibraryPage() {
               onSelectAll={() => selection.selectAll(sorted.map((entry) => entry.book.id))}
               onClear={selection.clear}
               onRemove={() => setPendingRemoval({ kind: 'selected' })}
+              onHide={() => {
+                const chosen = sorted.filter((e) => selection.selectedIds.has(e.book.id));
+                // Whichever way the majority currently sits, do the opposite:
+                // a mixed selection has no obvious "toggle", and hiding what is
+                // already hidden would be a no-op the reader could not explain.
+                const hiddenCount = chosen.filter((e) => e.isHidden).length;
+                flags.hideMany(chosen, hiddenCount * 2 <= chosen.length);
+                selection.clear();
+              }}
               onDone={selection.exit}
             />
           )}
@@ -277,6 +286,10 @@ export function LibraryPage() {
                   key={entry.book.id}
                   book={entry.book}
                   status={entry.status}
+                  // BookCard's eyebrow, which the library grid never uses
+                  // otherwise: already a recessive line above the title, which
+                  // is exactly what this badge wants to be.
+                  reason={entry.isHidden ? 'Hidden from your public page' : undefined}
                   // While selecting, the card picks rather than navigates —
                   // leaving the page mid-selection would discard it.
                   onClick={
@@ -291,7 +304,7 @@ export function LibraryPage() {
                     selection.selecting ? undefined : (
                       <FavoriteButton
                         isFavorite={entry.isFavorite}
-                        onToggle={(next) => favorites.toggle(entry, next)}
+                        onToggle={(next) => flags.toggleFavorite(entry, next)}
                       />
                     )
                   }
@@ -306,8 +319,10 @@ export function LibraryPage() {
                       />
                     ) : (
                       <LibraryCardMenu
+                        isHidden={entry.isHidden}
+                        onToggleHidden={(next) => flags.toggleHidden(entry, next)}
                         isFavorite={entry.isFavorite}
-                        onToggleFavorite={(next) => favorites.toggle(entry, next)}
+                        onToggleFavorite={(next) => flags.toggleFavorite(entry, next)}
                         onRemove={() =>
                           setPendingRemoval({
                             kind: 'one',
