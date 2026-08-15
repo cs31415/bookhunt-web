@@ -15,6 +15,8 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
     moods: overrides.moods ?? [],
     themes: overrides.themes ?? [],
     addedAt: null,
+    isFavorite: overrides.isFavorite ?? false,
+    isHidden: false,
     book: {
       id,
       slug: `book-${id}`,
@@ -40,6 +42,8 @@ function renderRail(entries: LibraryEntry[], props: Partial<Parameters<typeof Li
       category={null}
       mood={null}
       theme={null}
+      favorite={false}
+      onToggleFavorite={vi.fn()}
       onSelectStatus={onSelectStatus}
       onSelectCategory={onSelectCategory}
       onSelectMood={vi.fn()}

@@ -21,6 +21,8 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
     moods: overrides.moods ?? [],
     themes: overrides.themes ?? [],
     addedAt: overrides.addedAt ?? null,
+    isFavorite: overrides.isFavorite ?? false,
+    isHidden: false,
     book: {
       id,
       slug: `book-${id}`,
@@ -52,6 +54,32 @@ describe('statusCounts', () => {
 
 
 describe('filterEntries', () => {
+  it('narrows to favourites', () => {
+    const entries = [
+      makeEntry({ isFavorite: true }),
+      makeEntry(),
+      makeEntry({ isFavorite: true }),
+    ];
+    expect(filterEntries(entries, { status: null, category: null, favorite: true })).toHaveLength(2);
+  });
+
+  it('composes with the other filters rather than replacing them', () => {
+    // The reason favourites is a filter and not a separate view.
+    const entries = [
+      makeEntry({ isFavorite: true, status: 'reading' }),
+      makeEntry({ isFavorite: true, status: 'finished' }),
+      makeEntry({ status: 'reading' }),
+    ];
+    const result = filterEntries(entries, {
+      status: 'reading',
+      category: null,
+      favorite: true,
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].isFavorite).toBe(true);
+    expect(result[0].status).toBe('reading');
+  });
+
   const entries = [
     makeEntry({ status: 'reading', subjects: ['Evolution'], book: { authorName: 'Darwin' } as LibraryEntry['book'] }),
     makeEntry({ status: 'finished', subjects: ['Physics'], book: { authorName: 'Feynman' } as LibraryEntry['book'] }),

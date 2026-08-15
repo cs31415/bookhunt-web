@@ -20,6 +20,8 @@ import { removeEntry } from '../../api/library/remove-entry';
 import { removeEntries, MAX_REMOVE_PER_REQUEST } from '../../api/library/remove-entries';
 import { toast } from '../../shared/toast/toast-store';
 import { filterEntries, sortByShelf } from './lib/breakdowns';
+import { useFavorites } from './hooks/useFavorites';
+import { FavoriteButton } from '../../shared/components/FavoriteButton/FavoriteButton';
 import styles from './LibraryPage.module.css';
 
 const PAGE_SIZE = 60;
@@ -55,6 +57,8 @@ export function LibraryPage() {
   const category = searchParams.get('subject');
   const mood = searchParams.get('mood');
   const theme = searchParams.get('theme');
+  const favorite = searchParams.get('favorite') === 'true';
+  const favorites = useFavorites();
   const urlQuery = searchParams.get('q') ?? '';
 
   // The input is driven by local state, not by the URL. setSearchParams lands a
@@ -85,7 +89,7 @@ export function LibraryPage() {
   }, [q]);
 
   // Reset to the first page whenever the active filter changes.
-  const filterKey = `${status ?? ''}|${category ?? ''}|${mood ?? ''}|${theme ?? ''}|${q}`;
+  const filterKey = `${status ?? ''}|${category ?? ''}|${mood ?? ''}|${theme ?? ''}|${q}|${favorite}`;
   const [syncedKey, setSyncedKey] = useState(filterKey);
   if (filterKey !== syncedKey) {
     setSyncedKey(filterKey);
@@ -119,7 +123,12 @@ export function LibraryPage() {
     updateParams({ ...NO_ATTRIBUTES, mood: next === mood ? null : next });
   }
   function clearFilters() {
-    updateParams({ ...NO_ATTRIBUTES, status: null });
+    updateParams({ ...NO_ATTRIBUTES, status: null, favorite: null });
+  }
+  // Its own axis, unlike category/mood/theme: narrowing to favourites is a
+  // question you ask alongside a shelf, not instead of one.
+  function toggleFavoriteFilter() {
+    updateParams({ favorite: favorite ? null : 'true' });
   }
 
   // A finished or failed session is stale by the time the button is clicked again;
@@ -133,9 +142,13 @@ export function LibraryPage() {
     <>{csvOpen && <CsvImportModal session={csvSession} onClose={() => setCsvOpen(false)} />}</>
   );
 
+  // Overrides merged before filtering, so un-favouriting while the favourites
+  // filter is on removes the card immediately rather than at the next reload.
+  const shownEntries = useMemo(() => favorites.apply(entries), [favorites, entries]);
+
   const sorted = useMemo(
-    () => sortByShelf(filterEntries(entries, { status, category, mood, theme, q })),
-    [entries, status, category, mood, theme, q],
+    () => sortByShelf(filterEntries(shownEntries, { status, category, mood, theme, q, favorite })),
+    [shownEntries, status, category, mood, theme, q, favorite],
   );
   const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
   // Clamped rather than clipped: removing the last few books on the final page
@@ -217,6 +230,8 @@ export function LibraryPage() {
           category={category}
           mood={mood}
           theme={theme}
+          favorite={favorite}
+          onToggleFavorite={toggleFavoriteFilter}
           onSelectStatus={selectStatus}
           onSelectCategory={selectCategory}
           onSelectMood={selectMood}
@@ -269,6 +284,17 @@ export function LibraryPage() {
                       ? () => selection.toggle(entry.book.id)
                       : () => navigate(buildBookHref(entry.book))
                   }
+                  // Hidden while selecting: the card is a checkbox then, and a
+                  // heart that still acts would be the one control on it that
+                  // does something other than pick.
+                  overlay={
+                    selection.selecting ? undefined : (
+                      <FavoriteButton
+                        isFavorite={entry.isFavorite}
+                        onToggle={(next) => favorites.toggle(entry, next)}
+                      />
+                    )
+                  }
                   action={
                     selection.selecting ? (
                       <input
@@ -280,6 +306,8 @@ export function LibraryPage() {
                       />
                     ) : (
                       <LibraryCardMenu
+                        isFavorite={entry.isFavorite}
+                        onToggleFavorite={(next) => favorites.toggle(entry, next)}
                         onRemove={() =>
                           setPendingRemoval({
                             kind: 'one',

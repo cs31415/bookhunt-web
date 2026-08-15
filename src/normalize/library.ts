@@ -23,6 +23,11 @@ export interface RawLibraryEntry {
   // library's own mood/theme filters.
   moods?: string[] | null;
   themes?: string[] | null;
+  // Optional for the same reason as subjects: Discover's fixtures and the AI
+  // suggestion rows carry no library flags, only /library and /library/search
+  // do (LOS-249).
+  is_favorite?: boolean | null;
+  is_hidden?: boolean | null;
 }
 
 export interface RawLibraryStats {
@@ -38,6 +43,9 @@ export interface LibraryEntry {
   moods: string[];
   themes: string[];
   addedAt: string | null;
+  isFavorite: boolean;
+  /** Excluded from the public profile. No effect on this, the owner's own view. */
+  isHidden: boolean;
 }
 
 export function normalizeLibraryEntry(raw: RawLibraryEntry): LibraryEntry {
@@ -50,6 +58,10 @@ export function normalizeLibraryEntry(raw: RawLibraryEntry): LibraryEntry {
     moods: raw.moods ?? [],
     themes: raw.themes ?? [],
     addedAt: raw.date_added ?? null,
+    // Absent means false rather than unknown: a row that carries no flags came
+    // from a source that has none, and neither flag is optional in the table.
+    isFavorite: raw.is_favorite ?? false,
+    isHidden: raw.is_hidden ?? false,
     book: {
       id: raw.book_id,
       slug: raw.book_slug,

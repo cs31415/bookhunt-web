@@ -53,6 +53,10 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   { method: 'get', path: '/library/search', auth: 'required' },
   { method: 'post', path: '/library/bulk', auth: 'required' },
   { method: 'post', path: '/library/:slug', auth: 'required' },
+  // Before the bare /:bookId, mirroring routes/library.ts: otherwise "favorite"
+  // and "hidden" are read as part of a book id.
+  { method: 'put', path: '/library/:bookId/favorite', auth: 'required' },
+  { method: 'delete', path: '/library/:bookId/favorite', auth: 'required' },
   { method: 'put', path: '/library/:bookId', auth: 'required' },
   { method: 'delete', path: '/library/bulk', auth: 'required' },
   { method: 'delete', path: '/library/:bookId', auth: 'required' },

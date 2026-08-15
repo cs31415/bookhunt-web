@@ -11,6 +11,8 @@ export interface LibraryFiltersProps {
   category: string | null;
   mood: string | null;
   theme: string | null;
+  favorite: boolean;
+  onToggleFavorite: () => void;
   onSelectStatus: (status: LibraryStatus) => void;
   onSelectCategory: (category: string) => void;
   onSelectMood: (mood: string) => void;
@@ -42,6 +44,8 @@ export function LibraryFilters({
   category,
   mood,
   theme,
+  favorite,
+  onToggleFavorite,
   onSelectStatus,
   onSelectCategory,
   onSelectMood,
@@ -49,10 +53,23 @@ export function LibraryFilters({
   onClearFilters,
 }: LibraryFiltersProps) {
   const counts = statusCounts(entries);
-  const hasActiveFilters = Boolean(status || category || mood || theme);
+  const favoriteCount = entries.filter((entry) => entry.isFavorite).length;
+  const hasActiveFilters = Boolean(status || category || mood || theme || favorite);
 
   return (
     <aside className={styles.rail} aria-label="Library filters">
+      {/* First, and its own single-pill group: it narrows alongside a shelf
+          rather than competing with one, and a reader looking for favourites
+          should not have to scroll past four facets to find them. Hidden
+          entirely when nothing is favourited, like the facet groups below. */}
+      {favoriteCount > 0 && (
+        <FilterGroup
+          title="Favourites"
+          items={[{ value: 'favorite', label: `Favourites (${favoriteCount})` }]}
+          activeValue={favorite ? 'favorite' : null}
+          onSelect={onToggleFavorite}
+        />
+      )}
       <FilterGroup
         title="Category"
         items={toItems(topCategories(entries))}

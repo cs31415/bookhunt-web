@@ -19,6 +19,15 @@
   bottom: 0;
 }
 
+/* Top of the cover, opposite corner from the status fold, which sits top-left.
+   Anchored to the cover rather than the card so it does not drift down when a
+   title wraps to two lines. */
+.overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
 .card {
   display: flex;
   flex-direction: column;
