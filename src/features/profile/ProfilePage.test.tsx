@@ -7,14 +7,21 @@ import { ApiError } from '../../api/client';
 import { getProfile } from '../../api/users/get-profile';
 import { getPublicLibrary } from '../../api/users/get-public-library';
 import { getLibrary } from '../../api/library/get-library';
+import {
+  getMyFavoriteAuthors,
+  getPublicFavoriteAuthors,
+} from '../../api/users/get-favorite-authors';
 
 vi.mock('../../api/users/get-profile');
 vi.mock('../../api/users/get-public-library');
 vi.mock('../../api/library/get-library');
+vi.mock('../../api/users/get-favorite-authors');
 
 const mockedProfile = vi.mocked(getProfile);
 const mockedPublicLibrary = vi.mocked(getPublicLibrary);
 const mockedLibrary = vi.mocked(getLibrary);
+const mockedMyAuthors = vi.mocked(getMyFavoriteAuthors);
+const mockedPublicAuthors = vi.mocked(getPublicFavoriteAuthors);
 
 const profile = {
   handle: 'ada',
@@ -55,6 +62,8 @@ beforeEach(() => {
   mockedProfile.mockReset();
   mockedPublicLibrary.mockReset();
   mockedLibrary.mockReset();
+  mockedMyAuthors.mockReset();
+  mockedPublicAuthors.mockReset();
   mockedProfile.mockResolvedValue({ profile });
   mockedPublicLibrary.mockResolvedValue({
     entries: [rawEntry(1, 'Cosmos')] as never,
@@ -168,5 +177,53 @@ describe('ProfilePage as the owner', () => {
     // The address is still shown: the reader should know what it would be.
     expect(screen.getByText('bookhunt.net/ada')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy' })).toBeDisabled();
+  });
+});
+
+describe('the Authors tab', () => {
+  beforeEach(() => {
+    mockedMyAuthors.mockResolvedValue({ authors: [] });
+    mockedPublicAuthors.mockResolvedValue({
+      authors: [{ name: 'Carl Sagan', slug: 'carl-sagan', bookCount: 2 }],
+    });
+  });
+
+  it('reads the public list for a visitor', async () => {
+    renderProfile('/ada?tab=authors');
+
+    expect(await screen.findByRole('link', { name: 'Carl Sagan' })).toHaveAttribute(
+      'href',
+      '/authors/carl-sagan',
+    );
+    expect(mockedPublicAuthors).toHaveBeenCalledWith('ada', expect.any(AbortSignal));
+    expect(mockedMyAuthors).not.toHaveBeenCalled();
+  });
+
+  it('reads the owner’s own list instead, so a private page still shows it', async () => {
+    localStorage.setItem(
+      'bookhunt_user',
+      JSON.stringify({
+        id: 7,
+        email: 'a@b.com',
+        displayName: 'Ada Reader',
+        handle: 'ada',
+        isDiscoverable: false,
+      }),
+    );
+    mockedLibrary.mockResolvedValue({
+      entries: [] as never,
+      total: 0,
+      page: 1,
+      pageSize: 60,
+    } as never);
+    mockedMyAuthors.mockResolvedValue({
+      authors: [{ name: 'Ursula Le Guin', slug: 'ursula-le-guin', bookCount: 4 }],
+    });
+
+    renderProfile('/ada?tab=authors');
+
+    expect(await screen.findByRole('link', { name: 'Ursula Le Guin' })).toBeInTheDocument();
+    expect(mockedMyAuthors).toHaveBeenCalled();
+    expect(mockedPublicAuthors).not.toHaveBeenCalled();
   });
 });

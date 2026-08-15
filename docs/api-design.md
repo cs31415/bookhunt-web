@@ -41,9 +41,25 @@ there before it ships.
 | Method | Path | Auth | Params/Body | Response |
 |--------|------|------|-------------|----------|
 | PUT | /me | Bearer | `{ displayName?, handle?, isDiscoverable?, preferences? }` | `{ user: { id, email, displayName, handle, isDiscoverable } }`. An absent field is left alone; `isDiscoverable` is the master switch for the public profile and is off by default. 400 names the offending `field`; 409 `{ code: 'HANDLE_TAKEN' }` matches registration |
+| GET | /search | None | `?q=` | `{ users: [{ handle, displayName, bookCount }] }`, up to 10, exact handle prefixes first. Only readers with a public page are findable |
+| GET | /favorites | Bearer | — | `{ users: [{ handle, displayName, isMutual }] }`. Owner-only, no public equivalent |
+| POST/DELETE | /:handle/favorite | Bearer | — | `{ ok: true }`; 404 for an unknown handle or your own. Idempotent. A mutual pair is what permits messaging, so removing one is how you block someone |
 | GET | /:handle | None | — | `{ profile: { handle, displayName, joinedAt, counts } }`. 404 for an unknown handle **and** for one whose page is private — deliberately indistinguishable |
 | GET | /:handle/library | None | `?status=&favorites=&page=&limit=` | `{ entries, total, page, pageSize }`. Hidden books never appear, and rows carry no notes or reviews: those are absent from the stored function's row type rather than filtered out |
 | GET | /handle-available | None | `?handle=` | `{ handle, available, reason }` where `handle` is the normalized form and `reason` is null when it can be claimed. Advisory only -- `/auth/register` is the authority and answers 409. Rate limited to 30/min |
+
+### Messages (`/messages`)
+Every route requires Bearer auth. Both readers must have favourited each other; un-favouriting either way stops delivery, which is how blocking works.
+
+| Method | Path | Request | Response |
+|--------|------|---------|----------|
+| GET | / | — | `{ conversations: [{ handle, displayName, lastMessage, unreadCount }] }`, newest first |
+| GET | /unread-count | — | `{ count }`. Polled by the header badge, so it stays cheap |
+| GET | /:handle | `?page=` | `{ messages, total, page, pageSize }`, oldest first |
+| POST | /:handle | `{ body }` | 201 `{ message }`; 400 empty or over 2000 chars; 403 `{ code: 'NOT_MUTUAL_FAVORITE' }`; 422 `{ code: 'MESSAGE_REJECTED' }` |
+| POST | /:handle/read | — | `{ marked }` — clears only what they sent |
+
+The two failure codes are deliberately distinct: one is fixed by favouriting someone back, the other by editing the words.
 
 ### Books (`/books`)
 | Method | Path | Auth | Params/Body | Response |
@@ -54,6 +70,14 @@ there before it ships.
 | Method | Path | Auth | Params | Response |
 |--------|------|------|--------|----------|
 | GET | /:slug | None | — | `{ author, books: Book[] }` |
+
+Author favourites are public, like book favourites: an author list reads as taste rather than as a social graph. `GET /users/:handle/favorite-authors` serves the visitor view, gated on `is_discoverable` like everything else public.
+
+| Method | Path | Auth | Response |
+|--------|------|------|----------|
+| GET | /authors/favorites | Bearer | `{ authors: [{ name, slug, bookCount }] }` |
+| POST/DELETE | /authors/:slug/favorite | Bearer | `{ ok: true }`; 404 for an unknown slug. Idempotent |
+| GET | /users/:handle/favorite-authors | None | The same shape, empty for an unknown or private handle |
 
 ### Search (`/search`)
 | Method | Path | Auth | Params | Response |

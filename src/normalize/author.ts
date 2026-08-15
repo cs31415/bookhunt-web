@@ -35,6 +35,8 @@ export interface RawAuthorWork {
 export interface RawGetAuthorResponse {
   author: RawAuthor;
   books: RawAuthorWork[];
+  /** Absent from the provider-page response, and false for a guest (LOS-255). */
+  isFavorite?: boolean;
 }
 
 export interface AuthorDetail {
@@ -53,6 +55,7 @@ export interface AuthorWork {
 export interface AuthorResult {
   author: AuthorDetail;
   works: AuthorWork[];
+  isFavorite: boolean;
 }
 
 // GET /authors/:slug doesn't return a `hue` per catalog work; fall back to the
@@ -101,5 +104,5 @@ export function normalizeAuthor(raw: RawGetAuthorResponse): AuthorResult {
 
   const works: AuthorWork[] = raw.books.map((work) => normalizeWork(work, author));
 
-  return { author, works };
+  return { author, works, isFavorite: raw.isFavorite ?? false };
 }
