@@ -1,0 +1,174 @@
+.page {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.heading {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  margin: 0 0 20px;
+  color: var(--ink);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.sectionHeading {
+  font-family: var(--ui-sans);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0 0 16px;
+  color: var(--ink);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+/* Wraps a field plus its hint so the pair keeps the spacing a bare field has. */
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.fieldGroup .field {
+  margin-bottom: 0;
+}
+
+.label {
+  font-family: var(--ui-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.input {
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--rust);
+}
+
+/* Puts the @ inside the field's own border so the two read as one control. */
+.prefixed {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--paper);
+}
+
+.prefixed:focus-within {
+  border-color: var(--rust);
+}
+
+.prefix {
+  padding: 10px 0 10px 12px;
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+  line-height: 1;
+}
+
+.prefixedInput {
+  border: none;
+  background: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+  padding-left: 2px;
+}
+
+.hint,
+.explain {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.explain {
+  font-size: 0.8125rem;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.error {
+  font-size: 0.8125rem;
+  color: var(--rust-deep);
+  margin: 0 0 16px;
+}
+
+.saved {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  margin: 0 0 16px;
+}
+
+.submit {
+  align-self: flex-start;
+  font-family: var(--ui-sans);
+  font-size: 0.875rem;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--rust);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9375rem;
+  color: var(--ink);
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.switch {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--rust);
+  cursor: pointer;
+}
+
+.address {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.code {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  word-break: break-all;
+}

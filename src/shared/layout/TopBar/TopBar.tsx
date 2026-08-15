@@ -59,6 +59,14 @@ function AccountMenu() {
       {open && (
         <div className={styles.accountMenu} role="menu">
           {user && <p className={styles.accountName}>{user.displayName}</p>}
+          <Link
+            to="/settings"
+            role="menuitem"
+            className={styles.accountItem}
+            onClick={() => setOpen(false)}
+          >
+            Settings
+          </Link>
           <button type="button" role="menuitem" className={styles.accountItem} onClick={handleLogout}>
             Log out
           </button>
