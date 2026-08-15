@@ -110,7 +110,6 @@ function VisitorProfileView({ handle, tab, onSelectTab, page, onPage, navigate }
         bookCount={profile.counts.total}
         favorite={<FavoriteReader handle={profile.handle} initial={profile.isFavorite ?? false} />}
       />
-      <MessageAffordance handle={profile.handle} isMutual={profile.isMutual ?? false} />
       <Tabs active={tab} onSelect={onSelectTab} owner={false} />
       {tab === 'authors' ? (
         <AuthorsTab handle={handle} owner={false} />
@@ -204,35 +203,6 @@ function Header({
         {joinedAt && ` · joined ${new Date(joinedAt).getFullYear()}`}
       </p>
     </header>
-  );
-}
-
-/**
- * The way into a conversation, or an explanation of why there is not one.
- *
- * Shown only when the favourite is mutual, because that is exactly when a
- * message would be delivered -- offering a button that answers 403 would be
- * worse than saying so up front. Signed out there is no relationship to
- * describe, so neither appears.
- */
-function MessageAffordance({ handle, isMutual }: { handle: string; isMutual: boolean }) {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return null;
-
-  if (!isMutual) {
-    return (
-      <p className={styles.mutualNote}>
-        You can message @{handle} once you have both favourited each other.
-      </p>
-    );
-  }
-
-  return (
-    <p className={styles.mutualNote}>
-      <Link to={`/messages/${handle}`} className={styles.messageLink}>
-        Message @{handle}
-      </Link>
-    </p>
   );
 }
 

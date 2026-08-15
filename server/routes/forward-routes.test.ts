@@ -128,10 +128,14 @@ describe('the forwarding manifest', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('keeps the messages literals ahead of the handle that would swallow them', async () => {
-    await request('/bff/messages/unread-count', { cookie: 'bh_session=jwt-123' });
+  it('does not forward a shelved feature, even though the API serves it', async () => {
+    // Messaging is built end to end and deliberately absent from the manifest
+    // (LOS-261). This is the list doing its job: the API route exists and is
+    // still unreachable from a browser.
+    const response = await request('/bff/messages', { cookie: 'bh_session=jwt-123' });
 
-    expect(apiCall(fetchMock).url).toBe(`${API}/messages/unread-count`);
+    expect(response.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('404s a real API route that no page needs', async () => {

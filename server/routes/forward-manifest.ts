@@ -92,12 +92,18 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   { method: 'post', path: '/canned-searches/:id/pin', auth: 'required' },
   { method: 'delete', path: '/canned-searches/:id/pin', auth: 'required' },
 
+  // Messaging is built but shelved (LOS-261). Its API routes exist and its
+  // pages are still in the tree; they are simply unreachable, because this
+  // list -- not the API's own router -- is what the browser can see. Restoring
+  // it means putting these five lines back:
+  //
+  //   get  /messages            required
+  //   get  /messages/unread-count  required
+  //   get  /messages/:handle    required
+  //   post /messages/:handle    required
+  //   post /messages/:handle/read  required
+  //
   // Literals before ':handle', mirroring routes/messages.ts.
-  { method: 'get', path: '/messages', auth: 'required' },
-  { method: 'get', path: '/messages/unread-count', auth: 'required' },
-  { method: 'get', path: '/messages/:handle', auth: 'required' },
-  { method: 'post', path: '/messages/:handle', auth: 'required' },
-  { method: 'post', path: '/messages/:handle/read', auth: 'required' },
 
   { method: 'post', path: '/import/resolve', auth: 'required' },
 ];
