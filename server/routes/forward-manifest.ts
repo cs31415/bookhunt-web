@@ -41,6 +41,11 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   { method: 'get', path: '/users/handle-available', auth: 'public' },
   // Literal, and above any future '/users/:handle', mirroring routes/users.ts.
   { method: 'put', path: '/users/me', auth: 'required' },
+  // Last of the /users block, mirroring routes/users.ts: ':handle' would
+  // otherwise swallow the two literals above it. Optional rather than public --
+  // a later revision may want to know who is looking.
+  { method: 'get', path: '/users/:handle', auth: 'optional' },
+  { method: 'get', path: '/users/:handle/library', auth: 'optional' },
 
   { method: 'get', path: '/books', auth: 'optional' },
   { method: 'get', path: '/books/:slug', auth: 'optional' },

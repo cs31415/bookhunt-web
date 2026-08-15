@@ -1,0 +1,123 @@
+.page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.header {
+  margin-bottom: 16px;
+}
+
+.name {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  margin: 0 0 4px;
+  color: var(--ink);
+}
+
+.meta {
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.handle {
+  font-family: var(--mono);
+  color: var(--ink-2);
+}
+
+/* Owner-only strip: the state of the page, and the link to it. */
+.ownerBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.ownerState {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.settingsLink {
+  color: var(--rust);
+}
+
+.copyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.url {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  word-break: break-all;
+}
+
+.copyButton {
+  font-family: var(--ui-sans);
+  font-size: 0.75rem;
+  padding: 5px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.copyButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+.tab {
+  font-family: var(--ui-sans);
+  font-size: 0.875rem;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  /* Reserves the underline's space in both states, so selecting a tab does not
+     nudge the grid down by two pixels. */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tab:hover {
+  color: var(--ink-2);
+}
+
+.tabActive {
+  color: var(--ink);
+  border-bottom-color: var(--rust);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--book-grid-min), 1fr));
+  gap: var(--book-grid-gap);
+}
+
+.message {
+  font-size: 0.9375rem;
+  color: var(--muted);
+  margin: 24px 0;
+}
