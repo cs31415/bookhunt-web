@@ -73,6 +73,9 @@
   }
 }
 
+/* Applies only until the inline script in index.html stamps data-theme, and
+   for a reader whose browser refused localStorage. The explicit blocks below
+   are what a chosen theme uses. */
 @media (prefers-color-scheme: dark) {
   :root {
     --paper: #1c1a17;
@@ -85,31 +88,76 @@
     --faint: #64605a;
     --line: #3a3733;
     --line-2: #4a4842;
+
+    /*
+     * Accents need their own dark steps; the surfaces alone are not enough.
+     * --rust-deep is the error colour, and at its light-mode value it scores
+     * 2.31:1 on --paper here -- unreadable. The relationship also inverts: on a
+     * dark ground "deeper" means lighter, because emphasis is distance from the
+     * background, not darkness.
+     *
+     * Checked against both dark surfaces (--paper #1c1a17 and --card #2a2620);
+     * every one of these clears 4.5:1 as text on both, and --rust also clears it
+     * as a button fill carrying --paper-coloured text.
+     */
+    --rust: #d79a70;
+    --rust-deep: #eab08a;
+    --gold: #d4ab63;
+    --sage: #9fae7c;
+    --slate: #8fa6b0;
+    --plum: #c08fa4;
   }
 }
 
 :root[data-theme='dark'] {
-  --paper: #1c1a17;
-  --paper-2: #272320;
-  --surface: #211e1a;
-  --card: #2a2620;
-  --ink: #efe9dc;
-  --ink-2: #b8b3a9;
-  --muted: #86827a;
-  --faint: #64605a;
-  --line: #3a3733;
-  --line-2: #4a4842;
+    --paper: #1c1a17;
+    --paper-2: #272320;
+    --surface: #211e1a;
+    --card: #2a2620;
+    --ink: #efe9dc;
+    --ink-2: #b8b3a9;
+    --muted: #86827a;
+    --faint: #64605a;
+    --line: #3a3733;
+    --line-2: #4a4842;
+
+    /*
+     * Accents need their own dark steps; the surfaces alone are not enough.
+     * --rust-deep is the error colour, and at its light-mode value it scores
+     * 2.31:1 on --paper here -- unreadable. The relationship also inverts: on a
+     * dark ground "deeper" means lighter, because emphasis is distance from the
+     * background, not darkness.
+     *
+     * Checked against both dark surfaces (--paper #1c1a17 and --card #2a2620);
+     * every one of these clears 4.5:1 as text on both, and --rust also clears it
+     * as a button fill carrying --paper-coloured text.
+     */
+    --rust: #d79a70;
+    --rust-deep: #eab08a;
+    --gold: #d4ab63;
+    --sage: #9fae7c;
+    --slate: #8fa6b0;
+    --plum: #c08fa4;
+
+    /*
+     * --c1..--c8 are deliberately NOT overridden here. The validator reports the
+     * categorical palette failing chroma, CVD separation and the normal-vision
+     * floor -- and failing them identically in light mode, so this is a
+     * pre-existing problem of the palette's hue choices rather than anything dark
+     * mode introduces. Re-stepping it changes chart identity in both modes and
+     * belongs to its own ticket.
+     */
 }
 
 :root[data-theme='light'] {
-  --paper: #ffffff;
-  --paper-2: #f3f3f3;
-  --surface: #fafafa;
-  --card: #ffffff;
-  --ink: #222222;
-  --ink-2: #5b5b5b;
-  --muted: #909090;
-  --faint: #b4b4b4;
-  --line: #e0e0e0;
-  --line-2: #cecece;
+    --paper: #ffffff;
+    --paper-2: #f3f3f3;
+    --surface: #fafafa;
+    --card: #ffffff;
+    --ink: #222222;
+    --ink-2: #5b5b5b;
+    --muted: #909090;
+    --faint: #b4b4b4;
+    --line: #e0e0e0;
+    --line-2: #cecece;
 }
