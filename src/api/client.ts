@@ -15,9 +15,17 @@ export function isAbortError(error: unknown): boolean {
 export class ApiError extends Error {
   status: number;
 
-  constructor(status: number, message: string) {
+  /**
+   * The API's machine-readable reason, where it sends one (LOS-250). A status
+   * alone is not always enough: registration answers 409 for both a taken
+   * address and a taken handle, and the form has to mark the right field.
+   */
+  code?: string;
+
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -60,7 +68,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     if (response.status === 401) forgetExpiredSession(path);
     const body = await response.json().catch(() => ({ error: response.statusText }));
     logResponse(method, path, response.status, body);
-    throw new ApiError(response.status, body.error ?? response.statusText);
+    throw new ApiError(response.status, body.error ?? response.statusText, body.code);
   }
 
   if (response.status === 204) {

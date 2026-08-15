@@ -6,14 +6,22 @@ import { AuthProvider } from './AuthContext';
 import { ApiError } from '../../api/client';
 import { postRegister } from '../../api/auth/register';
 import { postResendVerification } from '../../api/auth/resend-verification';
+import { getHandleAvailability } from '../../api/users/check-handle';
 
 vi.mock('../../api/auth/register');
 vi.mock('../../api/auth/resend-verification');
+vi.mock('../../api/users/check-handle');
 
 const mockedPostRegister = vi.mocked(postRegister);
 const mockedPostResend = vi.mocked(postResendVerification);
+const mockedHandleCheck = vi.mocked(getHandleAvailability);
 
-const user = { id: 7, email: 'reader@example.com', displayName: 'Ada Reader' };
+const user = {
+  id: 7,
+  email: 'reader@example.com',
+  displayName: 'Ada Reader',
+  handle: 'ada',
+};
 
 function renderRegisterPage() {
   const router = createMemoryRouter(
@@ -33,6 +41,7 @@ function renderRegisterPage() {
 function fillAndSubmit() {
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Ada Reader' } });
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'reader@example.com' } });
+  fireEvent.change(screen.getByLabelText('Handle'), { target: { value: 'ada' } });
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'b00kW0rm!' } });
   fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 }
@@ -41,6 +50,8 @@ beforeEach(() => {
   localStorage.clear();
   mockedPostRegister.mockReset();
   mockedPostResend.mockReset();
+  mockedHandleCheck.mockReset();
+  mockedHandleCheck.mockResolvedValue({ handle: 'ada', available: true, reason: null });
 });
 
 afterEach(() => {
@@ -59,6 +70,7 @@ describe('RegisterPage', () => {
       email: 'reader@example.com',
       password: 'b00kW0rm!',
       displayName: 'Ada Reader',
+      handle: 'ada',
     });
     // The address is named back so a typo in it is visible.
     expect(screen.getByText('reader@example.com')).toBeInTheDocument();
@@ -148,5 +160,93 @@ describe('RegisterPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not resend just now.');
     expect(screen.getByText('Check your email')).toBeInTheDocument();
+  });
+
+  describe('the handle field', () => {
+    it('reports a free handle once the check answers', async () => {
+      renderRegisterPage();
+      fireEvent.change(screen.getByLabelText('Handle'), { target: { value: 'ada' } });
+
+      expect(await screen.findByText('@ada is free.')).toBeInTheDocument();
+      expect(mockedHandleCheck).toHaveBeenCalledWith('ada', expect.any(AbortSignal));
+    });
+
+    it('shows the API reason when the handle cannot be used', async () => {
+      // Malformed, reserved and taken all arrive the same way, which is why
+      // the form carries no copy of those rules.
+      mockedHandleCheck.mockResolvedValue({
+        handle: 'settings',
+        available: false,
+        reason: 'That handle is reserved.',
+      });
+
+      renderRegisterPage();
+      fireEvent.change(screen.getByLabelText('Handle'), { target: { value: 'settings' } });
+
+      expect(await screen.findByText('That handle is reserved.')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Handle')).toHaveAttribute('aria-invalid', 'true');
+      });
+    });
+
+    it('asks nothing for a handle too short to be valid', async () => {
+      renderRegisterPage();
+      fireEvent.change(screen.getByLabelText('Handle'), { target: { value: 'ab' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/bookhunt.net\/your-handle/)).toBeInTheDocument();
+      });
+      expect(mockedHandleCheck).not.toHaveBeenCalled();
+    });
+
+    it('debounces rather than asking once per keystroke', async () => {
+      renderRegisterPage();
+      const field = screen.getByLabelText('Handle');
+      fireEvent.change(field, { target: { value: 'ada' } });
+      fireEvent.change(field, { target: { value: 'adar' } });
+      fireEvent.change(field, { target: { value: 'adare' } });
+
+      await screen.findByText('@adare is free.');
+      // Three keystrokes, one request: the last value wins.
+      expect(mockedHandleCheck).toHaveBeenCalledTimes(1);
+      expect(mockedHandleCheck).toHaveBeenCalledWith('adare', expect.any(AbortSignal));
+    });
+
+    it('does not call a handle unavailable because the check failed', async () => {
+      // A network hiccup is not a verdict, and the server re-checks on submit.
+      mockedHandleCheck.mockRejectedValue(new ApiError(500, 'Internal server error'));
+
+      renderRegisterPage();
+      fireEvent.change(screen.getByLabelText('Handle'), { target: { value: 'ada' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/bookhunt.net\/your-handle/)).toBeInTheDocument();
+      });
+      expect(screen.getByLabelText('Handle')).toHaveAttribute('aria-invalid', 'false');
+    });
+
+    it('names the handle when it is taken between the check and the submit', async () => {
+      // The race the live check cannot close, and the reason the 409 carries a
+      // code: without it the reader is told to change their email address.
+      mockedPostRegister.mockRejectedValue(
+        new ApiError(409, 'That handle is taken.', 'HANDLE_TAKEN'),
+      );
+
+      renderRegisterPage();
+      fillAndSubmit();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('That handle is taken.');
+    });
+
+    it('still reports a taken email as an email problem', async () => {
+      mockedPostRegister.mockRejectedValue(new ApiError(409, 'Email already registered'));
+
+      renderRegisterPage();
+      fillAndSubmit();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'That email is already registered.',
+      );
+    });
   });
 });

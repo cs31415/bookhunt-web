@@ -3,18 +3,22 @@
 ## Tables
 
 ### `users`
-Registered app users. Stores credentials, profile info, and password-reset state.
+Registered app users. Stores credentials, profile info, email-verification and password-reset state.
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | SERIAL PK | Auto-incrementing unique identifier |
-| email | VARCHAR(255) UNIQUE NOT NULL | Login email; used for auth and password reset |
+| email | VARCHAR(255) UNIQUE NOT NULL | Login email; stored lowercase. `idx_users_email_lower` makes uniqueness case-insensitive |
 | password_hash | VARCHAR(255) NOT NULL | bcrypt-hashed password |
 | display_name | VARCHAR(255) NOT NULL | Public name shown in the UI |
+| handle | VARCHAR(30) NOT NULL | Public identity and the whole of the URL at `bookhunt.net/<handle>`; stored lowercase, `idx_users_handle_lower` makes uniqueness case-insensitive. Reserved words are refused so a handle cannot shadow a top-level route |
 | preferences | JSONB DEFAULT '{}' | User settings (e.g. accent color, dark mode, fonts) |
 | is_discoverable | BOOLEAN DEFAULT FALSE | Whether this user's library is visible to others |
 | reset_token | VARCHAR(255) UNIQUE | nullable; one-time token for password reset flow |
 | reset_token_expires_at | TIMESTAMPTZ | nullable; expiry time for the reset token |
+| email_verified_at | TIMESTAMPTZ | nullable; NULL means sign-in is refused with 403 |
+| verification_token | VARCHAR(255) UNIQUE | nullable; one-time token from the sign-up email |
+| verification_token_expires_at | TIMESTAMPTZ | nullable; 24 hours after the token is issued |
 | created_at | TIMESTAMPTZ DEFAULT NOW() | Account creation timestamp |
 
 ### `authors`
@@ -74,6 +78,8 @@ Per-user bookshelf. Each row represents a book in a user's personal library, wit
 | user_rating | INT | nullable; user's personal rating (1–5 stars) |
 | review | TEXT | nullable; user's written review of the book |
 | notes | TEXT | nullable; private freeform notes (auto-saving in the UI) |
+| is_favorite | BOOLEAN NOT NULL DEFAULT FALSE | Marked a favourite by the reader. Set through `fn_set_library_favorite`, never `fn_update_library_entry`, whose COALESCE design cannot express false |
+| is_hidden | BOOLEAN NOT NULL DEFAULT FALSE | Excluded from the public profile at `bookhunt.net/<handle>`. No effect on the owner's own library |
 | user_related | INT[] DEFAULT '{}' | Book IDs the user has manually linked as related reads |
 | PRIMARY KEY (user_id, book_id) | | Composite key; a user can have each book only once |
 
@@ -99,10 +105,13 @@ CREATE TYPE reading_status AS ENUM ('queued', 'reading', 'finished', 'abandoned'
 ## Functions
 
 ### Auth
-- `fn_register_user(p_email, p_password_hash, p_display_name)` → `users` row
+- `fn_register_user(p_email, p_password_hash, p_display_name, p_handle, p_verification_token, p_verification_expires_at)` → `users` row (created unverified)
 - `fn_find_user_by_email(p_email)` → `users` row or NULL
 - `fn_set_reset_token(p_email, p_token, p_expires_at)` → BOOLEAN
 - `fn_reset_password(p_token, p_new_hash)` → BOOLEAN (validates token not expired, clears it)
+- `fn_verify_email(p_token)` → `users` row, or no rows if the token is unknown, expired or spent
+- `fn_is_handle_available(p_handle)` → BOOLEAN; advisory, matched on LOWER to agree with the index
+- `fn_set_verification_token(p_email, p_token, p_expires_at)` → BOOLEAN (only for accounts still unverified)
 
 ### Books & Authors
 - `fn_upsert_book_from_google(p_google_books_id, p_slug, p_title, p_author_name, p_year, p_publisher, p_pages, p_rating, p_subjects, p_blurb, p_cover_url, p_isbn13, p_language, p_hue)` → creates book + author if not exists, returns book row. Author is upserted by name (slug derived from name).
@@ -118,6 +127,8 @@ CREATE TYPE reading_status AS ENUM ('queued', 'reading', 'finished', 'abandoned'
 ### Library
 - `fn_get_user_library(p_user_id)` → all library entries with book + author data
 - `fn_add_to_library(p_user_id, p_book_id, p_status)` → upsert library entry (book must exist in books table first — call `fn_upsert_book_from_google` before this for Google Books results)
+- `fn_set_library_favorite(p_user_id, p_book_id, p_is_favorite)` → flags row, or no rows when the book is not owned
+- `fn_set_library_visibility(p_user_id, p_book_id, p_is_hidden)` → flags row, or no rows when the book is not owned
 - `fn_update_library_entry(p_user_id, p_book_id, p_status, p_user_rating, p_notes, p_review)` → updated row
 - `fn_remove_from_library(p_user_id, p_book_id)` → BOOLEAN
 - `fn_library_stats(p_user_id)` → counts by status, top subjects, top authors

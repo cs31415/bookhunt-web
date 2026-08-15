@@ -106,6 +106,17 @@ describe('the forwarding manifest', () => {
     expect(apiCall(fetchMock).headers.has('Authorization')).toBe(false);
   });
 
+  it('lets a signed-out reader check a handle, without a token', async () => {
+    // The sign-up form asks this before anyone has a session, and the API
+    // ignores a token on it, so sending one would spend it for nothing.
+    const response = await request('/bff/users/handle-available?handle=ada', {
+      cookie: 'bh_session=jwt-123',
+    });
+
+    expect(response.status).toBe(200);
+    expect(apiCall(fetchMock).headers.has('Authorization')).toBe(false);
+  });
+
   it('404s a real API route that no page needs', async () => {
     // GET /search/facets exists on the API and is deliberately absent from the
     // manifest. Narrowing the surface is the point of the list.

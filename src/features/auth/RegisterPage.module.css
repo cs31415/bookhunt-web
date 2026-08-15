@@ -83,6 +83,53 @@
   color: var(--muted);
 }
 
+/* Colour is a second signal, not the only one: the hint always says in words
+   whether the handle is free, so it still reads without it. */
+.hintOk {
+  color: var(--ink-2);
+}
+
+.hintBad {
+  color: var(--rust-deep);
+}
+
+/* Puts the @ inside the field's own border so the two read as one control,
+   rather than as a stray character sitting beside a box. */
+.prefixed {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--paper);
+}
+
+.prefixed:focus-within {
+  border-color: var(--rust);
+}
+
+.prefix {
+  padding: 10px 0 10px 12px;
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+  line-height: 1;
+}
+
+/* The wrapper carries the border now, so the input drops its own and keeps
+   only the padding that lines it up with the prefix. */
+.prefixedInput {
+  border: none;
+  background: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+  padding-left: 2px;
+}
+
+.prefixedInput:focus {
+  border-color: transparent;
+}
+
 .error {
   font-size: 0.8125rem;
   color: var(--rust-deep);

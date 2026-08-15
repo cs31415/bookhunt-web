@@ -14,6 +14,14 @@ export interface AuthUser {
   id: number;
   email: string;
   displayName: string;
+  /**
+   * Optional only because of what is already in localStorage: a reader signed
+   * in before LOS-250 has a cached user with no handle, and clearing it would
+   * sign them out of a session whose cookie is still perfectly valid. Every
+   * fresh login and verification writes one. Anything that links to a profile
+   * hides the affordance rather than building a broken URL.
+   */
+  handle?: string;
 }
 
 const USER_STORAGE_KEY = 'bookhunt_user';
