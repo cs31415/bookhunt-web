@@ -92,5 +92,12 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   { method: 'post', path: '/canned-searches/:id/pin', auth: 'required' },
   { method: 'delete', path: '/canned-searches/:id/pin', auth: 'required' },
 
+  // Literals before ':handle', mirroring routes/messages.ts.
+  { method: 'get', path: '/messages', auth: 'required' },
+  { method: 'get', path: '/messages/unread-count', auth: 'required' },
+  { method: 'get', path: '/messages/:handle', auth: 'required' },
+  { method: 'post', path: '/messages/:handle', auth: 'required' },
+  { method: 'post', path: '/messages/:handle/read', auth: 'required' },
+
   { method: 'post', path: '/import/resolve', auth: 'required' },
 ];

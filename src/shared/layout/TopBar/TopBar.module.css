@@ -269,3 +269,24 @@
     display: none;
   }
 }
+
+/* Sits on the avatar, which survives the nav collapsing to a hamburger. */
+.unreadDot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--rust);
+  color: var(--paper);
+  font-family: var(--ui-sans);
+  font-size: 0.625rem;
+  line-height: 16px;
+  text-align: center;
+}
+
+.avatarButton {
+  position: relative;
+}

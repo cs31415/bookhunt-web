@@ -14,6 +14,7 @@ import { RequireAuth } from '../features/auth/RequireAuth';
 import { LibraryPage } from '../features/library/LibraryPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { ProfilePage } from '../features/profile/ProfilePage';
+import { MessagesPage } from '../features/messages/MessagesPage';
 
 // Plain inline placeholders until Phases 2-6 add the remaining real features/* pages.
 const discoverElement = <DiscoverPage />;
@@ -40,6 +41,23 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <SettingsPage />
+          </RequireAuth>
+        ),
+      },
+      // Both reserved in LOS-248, so neither collides with the handle route.
+      {
+        path: 'messages',
+        element: (
+          <RequireAuth>
+            <MessagesPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'messages/:handle',
+        element: (
+          <RequireAuth>
+            <MessagesPage />
           </RequireAuth>
         ),
       },
