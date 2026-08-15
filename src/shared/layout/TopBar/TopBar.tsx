@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/AuthContext';
 import { BackArrowIcon, LogoMark, MenuIcon, UserIcon } from '../icons';
 import { useNavItems } from '../nav-items';
+import { useUnreadCount } from '../../../features/messages/useUnreadCount';
 import { useDismissOnOutside } from '../use-dismiss-on-outside';
 import styles from './TopBar.module.css';
 
@@ -16,6 +17,7 @@ function firstNameOf(displayName: string): string {
 
 function AccountMenu() {
   const { isAuthenticated, user, logout } = useAuth();
+  const unread = useUnreadCount();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +57,14 @@ function AccountMenu() {
         onClick={() => setOpen((value) => !value)}
       >
         <UserIcon className={styles.avatarIcon} />
+        {/* On the avatar rather than in the nav: the nav collapses to a
+            hamburger on a phone, and an unread count that disappears with it
+            would be worse than none. */}
+        {unread > 0 && (
+          <span className={styles.unreadDot} aria-label={`${unread} unread messages`}>
+            {unread > 9 ? '9+' : unread}
+          </span>
+        )}
       </button>
       {open && (
         <div className={styles.accountMenu} role="menu">
@@ -69,6 +79,14 @@ function AccountMenu() {
               My profile
             </Link>
           )}
+          <Link
+            to="/messages"
+            role="menuitem"
+            className={styles.accountItem}
+            onClick={() => setOpen(false)}
+          >
+            Messages{unread > 0 ? ` (${unread})` : ''}
+          </Link>
           <Link
             to="/settings"
             role="menuitem"

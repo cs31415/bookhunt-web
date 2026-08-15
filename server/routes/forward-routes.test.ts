@@ -128,6 +128,12 @@ describe('the forwarding manifest', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('keeps the messages literals ahead of the handle that would swallow them', async () => {
+    await request('/bff/messages/unread-count', { cookie: 'bh_session=jwt-123' });
+
+    expect(apiCall(fetchMock).url).toBe(`${API}/messages/unread-count`);
+  });
+
   it('404s a real API route that no page needs', async () => {
     // GET /search/facets exists on the API and is deliberately absent from the
     // manifest. Narrowing the surface is the point of the list.

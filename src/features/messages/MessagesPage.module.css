@@ -1,0 +1,165 @@
+.page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.heading {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  margin: 0 0 20px;
+  color: var(--ink);
+}
+
+.back {
+  font-size: 0.8125rem;
+  margin: 0 0 16px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.rowName {
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+}
+
+.rowHandle {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-left: 8px;
+}
+
+.preview {
+  grid-column: 1;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.you {
+  color: var(--muted);
+}
+
+.badge {
+  grid-row: 1 / span 2;
+  align-self: center;
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 11px;
+  background: var(--rust);
+  color: var(--paper);
+  font-family: var(--ui-sans);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.thread {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bubble {
+  max-width: 32rem;
+  padding: 10px 14px;
+  border-radius: var(--r-lg);
+  background: var(--paper-2);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  /* A message is arbitrary text: it must wrap, and a pasted URL must not push
+     the page sideways. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* Right-aligned rather than differently coloured alone, so the two sides are
+   distinguishable without relying on colour. */
+.mine {
+  align-self: flex-end;
+  background: var(--rust);
+  color: var(--paper);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.textarea {
+  width: 100%;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+  padding: 10px 12px;
+  resize: vertical;
+  outline: none;
+}
+
+.textarea:focus {
+  border-color: var(--rust);
+}
+
+.send {
+  align-self: flex-start;
+  font-family: var(--ui-sans);
+  font-size: 0.875rem;
+  padding: 9px 18px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--rust);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.send:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.error {
+  font-size: 0.8125rem;
+  color: var(--rust-deep);
+  margin: 0;
+}
+
+.message {
+  font-size: 0.9375rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.mono {
+  font-family: var(--mono);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
