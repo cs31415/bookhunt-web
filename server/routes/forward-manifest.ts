@@ -57,6 +57,8 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   // and "hidden" are read as part of a book id.
   { method: 'put', path: '/library/:bookId/favorite', auth: 'required' },
   { method: 'delete', path: '/library/:bookId/favorite', auth: 'required' },
+  { method: 'put', path: '/library/:bookId/hidden', auth: 'required' },
+  { method: 'delete', path: '/library/:bookId/hidden', auth: 'required' },
   { method: 'put', path: '/library/:bookId', auth: 'required' },
   { method: 'delete', path: '/library/bulk', auth: 'required' },
   { method: 'delete', path: '/library/:bookId', auth: 'required' },
