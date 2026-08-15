@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsPage } from './SettingsPage';
 import { AuthProvider } from '../auth/AuthContext';
+import { ThemeProvider } from '../../shared/theme/ThemeContext';
 import { ApiError } from '../../api/client';
 import { updateMe } from '../../api/users/update-me';
 
@@ -16,6 +17,7 @@ const storedUser = {
   displayName: 'Ada Reader',
   handle: 'ada',
   isDiscoverable: false,
+  preferences: {},
 };
 
 function renderSettings() {
@@ -24,7 +26,9 @@ function renderSettings() {
   });
   render(
     <AuthProvider>
-      <RouterProvider router={router} />
+      <ThemeProvider>
+        <RouterProvider router={router} />
+      </ThemeProvider>
     </AuthProvider>,
   );
 }
@@ -118,6 +122,60 @@ describe('SettingsPage', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     // Never claims a state the server denied.
     expect(screen.getByRole('checkbox')).not.toBeChecked();
+  });
+
+  describe('the appearance control', () => {
+    it('offers System as a real choice, not just light and dark', () => {
+      // A two-state toggle can only say light or dark, which quietly freezes a
+      // reader to whichever the machine happens to be today.
+      renderSettings();
+
+      expect(screen.getByLabelText('Light')).toBeInTheDocument();
+      expect(screen.getByLabelText('Dark')).toBeInTheDocument();
+      expect(screen.getByLabelText('System')).toBeChecked();
+    });
+
+    it('applies the choice to the document and saves it', async () => {
+      mockedUpdateMe.mockResolvedValue({
+        user: { ...storedUser, preferences: { theme: 'dark' } },
+      });
+
+      renderSettings();
+      fireEvent.click(screen.getByLabelText('Dark'));
+
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+      expect(localStorage.getItem('bookhunt_theme')).toBe('dark');
+      await waitFor(() => {
+        expect(mockedUpdateMe).toHaveBeenCalledWith({ preferences: { theme: 'dark' } });
+      });
+    });
+
+    it('keeps the choice applied even when the save fails', async () => {
+      // It costs the reader the choice on another browser, nothing more. An
+      // error about a setting they can plainly see applied would be noise.
+      mockedUpdateMe.mockRejectedValue(new ApiError(500, 'Internal server error'));
+
+      renderSettings();
+      fireEvent.click(screen.getByLabelText('Dark'));
+
+      await waitFor(() => expect(mockedUpdateMe).toHaveBeenCalled());
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+      expect(screen.getByLabelText('Dark')).toBeChecked();
+    });
+
+    it('adopts the theme stored against the signed-in reader', async () => {
+      localStorage.setItem(
+        'bookhunt_user',
+        JSON.stringify({ ...storedUser, preferences: { theme: 'dark' } }),
+      );
+      renderSettings();
+
+      // What carries a choice to a second browser.
+      await waitFor(() => {
+        expect(screen.getByLabelText('Dark')).toBeChecked();
+      });
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    });
   });
 
   it('shows the address the public page would have', () => {

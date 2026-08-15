@@ -8,6 +8,8 @@ export interface UpdateMeRequest {
   displayName?: string;
   handle?: string;
   isDiscoverable?: boolean;
+  /** Merged into the stored document server-side, never assigned over it. */
+  preferences?: Record<string, unknown>;
 }
 
 export interface UserProfile {
@@ -16,6 +18,7 @@ export interface UserProfile {
   displayName: string;
   handle: string;
   isDiscoverable: boolean;
+  preferences: { theme?: string } & Record<string, unknown>;
 }
 
 export function updateMe(body: UpdateMeRequest): Promise<{ user: UserProfile }> {
