@@ -39,6 +39,8 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   // Public: the sign-up form asks this before anyone has a session, and the
   // API ignores a token on it anyway.
   { method: 'get', path: '/users/handle-available', auth: 'public' },
+  // Literal, and above any future '/users/:handle', mirroring routes/users.ts.
+  { method: 'put', path: '/users/me', auth: 'required' },
 
   { method: 'get', path: '/books', auth: 'optional' },
   { method: 'get', path: '/books/:slug', auth: 'optional' },

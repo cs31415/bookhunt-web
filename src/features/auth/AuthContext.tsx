@@ -12,6 +12,9 @@ export interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  /** Adopts a profile the reader just changed, so the header and the cached
+   *  user agree with the form without a reload (LOS-251). */
+  updateUser: (changes: Partial<AuthUser>) => void;
   // Registering is not here on purpose: under the LOS-218 gate it creates no
   // session, so it changes nothing this provider owns and RegisterPage calls
   // postRegister directly. Verifying does create one.
@@ -90,9 +93,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Merged rather than replaced: the caller sends what it changed, and the
+  // stored user carries fields no settings form knows about.
+  const updateUser = useCallback((changes: Partial<AuthUser>) => {
+    setUser((current) => {
+      if (!current) return current;
+      const next = { ...current, ...changes };
+      setStoredUser(next);
+      return next;
+    });
+  }, []);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: user !== null, login, verifyEmail, logout }),
-    [user, login, verifyEmail, logout],
+    () => ({ user, isAuthenticated: user !== null, login, verifyEmail, logout, updateUser }),
+    [user, login, verifyEmail, logout, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
