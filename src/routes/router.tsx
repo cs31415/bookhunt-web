@@ -13,6 +13,7 @@ import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { LibraryPage } from '../features/library/LibraryPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
+import { ProfilePage } from '../features/profile/ProfilePage';
 
 // Plain inline placeholders until Phases 2-6 add the remaining real features/* pages.
 const discoverElement = <DiscoverPage />;
@@ -51,7 +52,14 @@ export const router = createBrowserRouter([
       { path: 'reset-password', element: <ResetPasswordPage /> },
       // Dev-only visual check for the LOS-76 design system, stripped from production builds.
       ...(import.meta.env.DEV ? [{ path: '__gallery', element: <ComponentGallery /> }] : []),
+      // The bare root path is the public profile: bookhunt.net/<handle>.
+      // React Router ranks static segments above dynamic ones, so every route
+      // above still wins — but the reserved-handle list in the API is what
+      // stops a reader claiming a name a future top-level route will need.
+      { path: ':handle', element: <ProfilePage /> },
       // Unknown routes fall back to Discover rather than a 404 (LOS-75 AC6).
+      // Only multi-segment paths reach this now; a single unknown segment is a
+      // profile that does not exist, and says so.
       { path: '*', element: discoverElement },
     ],
   },

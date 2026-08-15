@@ -59,6 +59,16 @@ function AccountMenu() {
       {open && (
         <div className={styles.accountMenu} role="menu">
           {user && <p className={styles.accountName}>{user.displayName}</p>}
+          {user?.handle && (
+            <Link
+              to={`/${user.handle}`}
+              role="menuitem"
+              className={styles.accountItem}
+              onClick={() => setOpen(false)}
+            >
+              My profile
+            </Link>
+          )}
           <Link
             to="/settings"
             role="menuitem"

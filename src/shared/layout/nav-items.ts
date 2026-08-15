@@ -1,7 +1,8 @@
 import type { ComponentType } from 'react';
-import { LibraryIcon, SearchIcon } from './icons';
+import { HeartIcon, LibraryIcon, SearchIcon } from './icons';
 import type { IconProps } from './icons';
 import { useLastSearch } from './use-last-search';
+import { useAuth } from '../../features/auth/AuthContext';
 
 export interface NavItem {
   label: string;
@@ -30,7 +31,23 @@ const LIBRARY_ITEM: NavItem = {
  */
 export function useNavItems(): NavItem[] {
   const lastSearch = useLastSearch();
+  const { user } = useAuth();
 
-  if (!lastSearch) return [LIBRARY_ITEM];
-  return [{ label: 'Search', path: '/search', to: lastSearch, Icon: SearchIcon }, LIBRARY_ITEM];
+  const items: NavItem[] = [];
+  if (lastSearch) items.push({ label: 'Search', path: '/search', to: lastSearch, Icon: SearchIcon });
+  items.push(LIBRARY_ITEM);
+
+  // Points at the reader's own profile, where favourites live (LOS-259).
+  // Hidden entirely when signed out, unlike Library, which shows and bounces:
+  // there is no handle to build a URL from, so the link would go nowhere.
+  if (user?.handle) {
+    items.push({
+      label: 'Favourites',
+      path: `/${user.handle}`,
+      to: `/${user.handle}?tab=favorites`,
+      Icon: HeartIcon,
+    });
+  }
+
+  return items;
 }

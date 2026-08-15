@@ -5,8 +5,10 @@ import { toNumber } from '../shared/lib/to-number';
 export interface RawLibraryEntry {
   book_id: number;
   status: LibraryStatus;
-  notes: string | null;
-  review: string | null;
+  // Absent on a public profile row (LOS-256): notes and review are not columns
+  // of fn_get_public_library at all, so they cannot arrive by any route.
+  notes?: string | null;
+  review?: string | null;
   title: string;
   book_slug: string;
   author_name: string;
