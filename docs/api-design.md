@@ -19,12 +19,28 @@ All routers are mounted under `/api` (e.g. `app.use('/api', router)`). Paths bel
 ### Auth (`/auth`)
 | Method | Path | Auth | Request | Response |
 |--------|------|------|---------|----------|
-| POST | /register | None | `{ email, password, displayName }` | 201 `{ user: { id, email, displayName }, verificationRequired: true }` — no session token; 409 if the address is taken (case-insensitively), 400 on a malformed field |
-| POST | /login | None | `{ email, password }` | `{ user: { id, email, displayName }, token }` — 401 on bad credentials, 403 `{ code: 'EMAIL_NOT_VERIFIED' }` until the address is confirmed |
-| POST | /verify-email | None | `{ token }` | `{ user: { id, email, displayName }, token }` — signs the reader in; 400 if unknown, expired or already used |
+| POST | /register | None | `{ email, password, displayName, handle }` | 201 `{ user: { id, email, displayName, handle }, verificationRequired: true }` — no session token; 409 if the address is taken (case-insensitively) or 409 `{ code: 'HANDLE_TAKEN', field: 'handle' }` if the handle is, 400 on a malformed field |
+| POST | /login | None | `{ email, password }` | `{ user: { id, email, displayName, handle }, token }` — 401 on bad credentials, 403 `{ code: 'EMAIL_NOT_VERIFIED' }` until the address is confirmed |
+| POST | /verify-email | None | `{ token }` | `{ user: { id, email, displayName, handle }, token }` — signs the reader in; 400 if unknown, expired or already used |
 | POST | /resend-verification | None | `{ email }` | `{ ok: true }` (always 200) |
 | POST | /forgot-password | None | `{ email }` | `{ ok: true }` (always 200) |
 | POST | /reset-password | None | `{ token, password }` | `{ ok: true }` |
+
+Registration is gated on email verification: an account is created unverified,
+emailed a link good for 24 hours, and refused at sign-in until it is used.
+Passwords are a minimum of 8 characters. Every `/auth` route is rate limited.
+
+A handle is 3-30 characters, starts with a letter, then letters, numbers and
+underscores, and is folded to lowercase on the way in. It becomes the public
+profile URL at the bare root path, so reserved words -- every current and
+foreseeable top-level route -- are refused. The list lives in
+`src/lib/validate/reserved-handles.ts` and a new top-level route has to be added
+there before it ships.
+
+### Users (`/users`)
+| Method | Path | Auth | Params/Body | Response |
+|--------|------|------|-------------|----------|
+| GET | /handle-available | None | `?handle=` | `{ handle, available, reason }` where `handle` is the normalized form and `reason` is null when it can be claimed. Advisory only -- `/auth/register` is the authority and answers 409. Rate limited to 30/min |
 
 ### Books (`/books`)
 | Method | Path | Auth | Params/Body | Response |
@@ -46,8 +62,10 @@ External (Google Books/OpenLibrary) search is a separate concern — see `POST /
 ### Library (`/library`)
 | Method | Path | Auth | Body | Response |
 |--------|------|------|------|----------|
-| GET | / | Required | — | `{ entries: LibraryEntryWithBook[], stats }` |
+| GET | / | Required | `?page&limit` | `{ entries: LibraryEntryWithBook[], stats, total, page, pageSize }` |
 | POST | / | Required | `{ googleBooksId, status? }` | `{ entry }` — upserts book from Google Books data first, then adds to library |
+| PUT/DELETE | /:bookId/favorite | Bearer | — | `{ entry: { user_id, book_id, is_favorite, is_hidden } }` — PUT marks, DELETE unmarks; 404 if the book is not owned |
+| PUT/DELETE | /:bookId/hidden | Bearer | — | Same shape. PUT hides the book from the public profile, DELETE shows it again. The owner's own library is unaffected either way |
 | PUT | /:bookId | Required | `{ status?, userRating?, notes?, review? }` | `{ entry }` |
 | DELETE | /:bookId | Required | — | `{ ok: true }` |
 | POST | /:bookId/related | Required | `{ relatedBookId }` | `{ userRelated: int[] }` |
@@ -66,8 +84,3 @@ External (Google Books/OpenLibrary) search is a separate concern — see `POST /
 |--------|------|------|--------|----------|
 | GET | / | Required | `?limit&excludeId` | `{ recommendations: { book, reason }[] }` |
 
-### Upload (`/upload`)
-| Method | Path | Auth | Body | Response |
-|--------|------|------|------|----------|
-| POST | /presign | Required | `{ contentType }` | `{ url, key }` |
-| POST | /scan | Required | `{ imageKey }` | `{ detectedBooks: { title, author, matchedBookId? }[] }` |
