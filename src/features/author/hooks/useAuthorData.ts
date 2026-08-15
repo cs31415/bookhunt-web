@@ -7,6 +7,8 @@ import type { AuthorDetail, AuthorWork } from '../../../normalize/author';
 export interface UseAuthorDataResult {
   author: AuthorDetail | null;
   works: AuthorWork[];
+  /** Whether the signed-in reader has favourited this author; false for a guest. */
+  isFavorite: boolean;
   loading: boolean;
   notFound: boolean;
   error: string | null;
@@ -16,6 +18,7 @@ export interface UseAuthorDataResult {
 export function useAuthorData(slug: string): UseAuthorDataResult {
   const [author, setAuthor] = useState<AuthorDetail | null>(null);
   const [works, setWorks] = useState<AuthorWork[]>([]);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +39,7 @@ export function useAuthorData(slug: string): UseAuthorDataResult {
         const result = normalizeAuthor(raw);
         setAuthor(result.author);
         setWorks(result.works);
+        setIsFavorite(result.isFavorite);
       } catch (err) {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 404) {
@@ -57,6 +61,7 @@ export function useAuthorData(slug: string): UseAuthorDataResult {
   return {
     author,
     works,
+    isFavorite,
     loading,
     notFound,
     error,

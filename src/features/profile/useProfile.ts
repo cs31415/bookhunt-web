@@ -6,13 +6,16 @@ import { ApiError, isAbortError } from '../../api/client';
 import { normalizeLibraryEntry } from '../../normalize/library';
 import type { LibraryEntry } from '../../normalize/library';
 
-export type ProfileTab = 'library' | 'reading' | 'favorites';
+export type ProfileTab = 'library' | 'reading' | 'favorites' | 'authors';
 
 /** The API filters each tab answers with. */
 const TAB_QUERY: Record<ProfileTab, { status?: string; favorites?: boolean }> = {
   library: {},
   reading: { status: 'reading' },
   favorites: { favorites: true },
+  // Authors do not come from the library endpoint at all; AuthorsTab fetches
+  // its own. The entry exists so the map stays exhaustive.
+  authors: {},
 };
 
 interface Answer {

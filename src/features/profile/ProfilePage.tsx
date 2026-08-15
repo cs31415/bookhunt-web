@@ -9,6 +9,7 @@ import { useLibraryData } from '../library/hooks/useLibraryData';
 import { useVisitorProfile } from './useProfile';
 import type { ProfileTab } from './useProfile';
 import type { LibraryEntry } from '../../normalize/library';
+import { AuthorsTab } from './AuthorsTab';
 import styles from './ProfilePage.module.css';
 
 const PAGE_SIZE = 24;
@@ -17,6 +18,9 @@ const TABS: { id: ProfileTab; label: string }[] = [
   { id: 'library', label: 'Library' },
   { id: 'reading', label: 'Currently reading' },
   { id: 'favorites', label: 'Favourites' },
+  // Public, like favourite books: an author list reads as taste, not as a
+  // social graph (LOS-255).
+  { id: 'authors', label: 'Authors' },
 ];
 
 function asTab(value: string | null): ProfileTab {
@@ -101,12 +105,14 @@ function VisitorProfileView({ handle, tab, onSelectTab, page, onPage, navigate }
         bookCount={profile.counts.total}
       />
       <Tabs active={tab} onSelect={onSelectTab} />
-      <Grid entries={entries} navigate={navigate} />
-      <Pagination
-        page={page}
-        pageCount={Math.ceil(total / PAGE_SIZE)}
-        onChange={onPage}
-      />
+      {tab === 'authors' ? (
+        <AuthorsTab handle={handle} owner={false} />
+      ) : (
+        <>
+          <Grid entries={entries} navigate={navigate} />
+          <Pagination page={page} pageCount={Math.ceil(total / PAGE_SIZE)} onChange={onPage} />
+        </>
+      )}
     </div>
   );
 }
@@ -147,12 +153,18 @@ function OwnerProfile({ handle, tab, onSelectTab, page, onPage, navigate }: View
       </div>
 
       <Tabs active={tab} onSelect={onSelectTab} />
-      <Grid entries={pageItems} navigate={navigate} />
-      <Pagination
-        page={page}
-        pageCount={Math.ceil(shown.length / PAGE_SIZE)}
-        onChange={onPage}
-      />
+      {tab === 'authors' ? (
+        <AuthorsTab handle={handle} owner />
+      ) : (
+        <>
+          <Grid entries={pageItems} navigate={navigate} />
+          <Pagination
+            page={page}
+            pageCount={Math.ceil(shown.length / PAGE_SIZE)}
+            onChange={onPage}
+          />
+        </>
+      )}
     </div>
   );
 }

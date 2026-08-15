@@ -121,3 +121,33 @@
   color: var(--muted);
   margin: 24px 0;
 }
+
+/* A list rather than the book grid: an author is a name and a number, and a
+   card-sized tile of empty space would say nothing the row does not. */
+.authorList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 40rem;
+}
+
+.authorRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.authorName {
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  color: var(--ink);
+}
+
+.authorCount {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  white-space: nowrap;
+}

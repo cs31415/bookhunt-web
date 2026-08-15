@@ -83,3 +83,12 @@
     gap: 20px;
   }
 }
+
+/* Keeps the heart on the name's baseline rather than floating above a bio that
+   may wrap to several lines. */
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

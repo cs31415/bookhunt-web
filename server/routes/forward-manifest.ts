@@ -46,10 +46,15 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   // a later revision may want to know who is looking.
   { method: 'get', path: '/users/:handle', auth: 'optional' },
   { method: 'get', path: '/users/:handle/library', auth: 'optional' },
+  { method: 'get', path: '/users/:handle/favorite-authors', auth: 'optional' },
 
   { method: 'get', path: '/books', auth: 'optional' },
   { method: 'get', path: '/books/:slug', auth: 'optional' },
+  // The literal above ':slug', mirroring routes/authors.ts.
+  { method: 'get', path: '/authors/favorites', auth: 'required' },
   { method: 'get', path: '/authors/:slug', auth: 'optional' },
+  { method: 'post', path: '/authors/:slug/favorite', auth: 'required' },
+  { method: 'delete', path: '/authors/:slug/favorite', auth: 'required' },
   { method: 'get', path: '/search', auth: 'optional' },
   { method: 'get', path: '/recommendations', auth: 'required' },
 

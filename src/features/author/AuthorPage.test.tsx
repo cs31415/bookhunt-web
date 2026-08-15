@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthorPage } from './AuthorPage';
+import { AuthProvider } from '../auth/AuthContext';
 import { getAuthor } from '../../api/authors/get-author';
 import { ApiError } from '../../api/client';
 import type { RawAuthorWork, RawGetAuthorResponse } from '../../normalize/author';
@@ -59,7 +60,11 @@ function renderAuthorPage(initialEntry = '/authors/lucille-fletcher') {
     ],
     { initialEntries: [initialEntry] },
   );
-  render(<RouterProvider router={router} />);
+  render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  );
   return router;
 }
 
