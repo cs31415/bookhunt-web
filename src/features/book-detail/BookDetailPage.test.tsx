@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-do
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BookDetailPage } from './BookDetailPage';
 import { getBook } from '../../api/books/get-book';
+import { setFavorite } from '../../api/library/set-favorite';
 import { getAuthor } from '../../api/authors/get-author';
 import { getBooksByIds } from '../../api/books/get-books-by-ids';
 import { generateThemes, generateThemesExternal } from '../../api/ai/generate-themes';
@@ -13,6 +14,7 @@ import { removeEntry } from '../../api/library/remove-entry';
 import { ApiError } from '../../api/client';
 
 vi.mock('../../api/books/get-book');
+vi.mock('../../api/library/set-favorite');
 vi.mock('../../api/authors/get-author');
 vi.mock('../../api/books/get-books-by-ids');
 vi.mock('../../api/ai/generate-themes');
@@ -389,6 +391,90 @@ describe('BookDetailPage', () => {
 
       expect(await screen.findByRole('button', { name: /Add to library/ })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Remove from library' })).not.toBeInTheDocument();
+    });
+  });
+
+  /**
+   * The heart was specified in LOS-252 and only landed on the library grid; it
+   * belongs anywhere a book is shown.
+   */
+  describe('favouriting from the book page', () => {
+    const mockedSetFavorite = vi.mocked(setFavorite);
+
+    function inLibrary(isFavorite = false) {
+      mockedSetFavorite.mockReset();
+      mockedSetFavorite.mockResolvedValue({
+        entry: { user_id: 1, book_id: 1, is_favorite: !isFavorite, is_hidden: false },
+      });
+      mockedGetBook.mockResolvedValue({
+        book: rawBook,
+        inLibrary: true,
+        libraryEntry: {
+          status: 'reading',
+          user_rating: 0,
+          notes: '',
+          user_related: [],
+          is_favorite: isFavorite,
+        },
+      } as never);
+    }
+
+    it('offers the heart once the book is owned', async () => {
+      inLibrary();
+      renderBookDetailPage('night-watch');
+
+      const heart = await screen.findByRole('button', { name: 'Favourite' });
+      expect(heart).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('shows the flag the server already sent', async () => {
+      inLibrary(true);
+      renderBookDetailPage('night-watch');
+
+      expect(await screen.findByRole('button', { name: 'Favourite' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+    });
+
+    it('answers the click before the request settles', async () => {
+      inLibrary();
+      renderBookDetailPage('night-watch');
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Favourite' }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Favourite' })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        );
+      });
+      expect(mockedSetFavorite).toHaveBeenCalledWith(rawBook.id, true);
+    });
+
+    it('rolls back when the request fails', async () => {
+      inLibrary();
+      mockedSetFavorite.mockRejectedValue(new Error('network down'));
+      renderBookDetailPage('night-watch');
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Favourite' }));
+
+      // Falls through to what the server last said, rather than to a
+      // remembered value -- right even if two toggles raced.
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Favourite' })).toHaveAttribute(
+          'aria-pressed',
+          'false',
+        );
+      });
+    });
+
+    it('offers no heart for a book that is not owned', async () => {
+      mockedGetBook.mockResolvedValue({ book: rawBook, inLibrary: false } as never);
+      renderBookDetailPage('night-watch');
+
+      await screen.findByRole('button', { name: /add to library/i });
+      expect(screen.queryByRole('button', { name: 'Favourite' })).not.toBeInTheDocument();
     });
   });
 });

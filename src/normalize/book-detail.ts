@@ -32,6 +32,9 @@ export interface RawBookDetail {
 export interface RawBookLibraryEntry {
   status: LibraryStatus;
   user_rating: number | null;
+  // GET /books/:slug returns the whole library_entries row, so this has been
+  // arriving since LOS-249; nothing was reading it until LOS-252.
+  is_favorite?: boolean | null;
   notes: string | null;
   review: string | null;
   user_related: number[];
@@ -61,6 +64,7 @@ export interface BookDetail extends BookSummary {
 export interface LibraryEntrySummary {
   status: LibraryStatus;
   userRating: number | null;
+  isFavorite: boolean;
   notes: string | null;
   userRelatedIds: number[];
 }
@@ -103,6 +107,7 @@ export function normalizeBookDetail(raw: RawGetBookResponse): BookDetailResult {
       libraryEntry: {
         status: raw.libraryEntry.status,
         userRating: raw.libraryEntry.user_rating,
+        isFavorite: raw.libraryEntry.is_favorite ?? false,
         notes: raw.libraryEntry.notes,
         userRelatedIds: raw.libraryEntry.user_related,
       },

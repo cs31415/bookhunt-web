@@ -1,6 +1,7 @@
 import { Cover } from '../../../../shared/components/Cover/Cover';
 import { ActionMenu } from '../../../../shared/components/ActionMenu/ActionMenu';
 import { CoverFold } from '../../../../shared/components/CoverFold/CoverFold';
+import { FavoriteButton } from '../../../../shared/components/FavoriteButton/FavoriteButton';
 import { Stars } from '../../../../shared/components/Stars/Stars';
 import type { BookDetail, LibraryEntrySummary } from '../../../../normalize/book-detail';
 import type { LibraryStatus } from '../../../../shared/types/library-status';
@@ -20,6 +21,7 @@ export interface HeroProps {
   onRemoveFromLibrary?: () => void;
   onStatusChange: (status: LibraryStatus) => void;
   onRate: (rating: number) => void;
+  onToggleFavorite: (next: boolean) => void;
   onOpenAuthor: () => void;
   onThemeClick: (theme: string) => void;
   onMoodClick: (mood: string) => void;
@@ -36,6 +38,7 @@ export function Hero({
   onRemoveFromLibrary,
   onStatusChange,
   onRate,
+  onToggleFavorite,
   onOpenAuthor,
   onThemeClick,
   onMoodClick,
@@ -66,6 +69,20 @@ export function Hero({
               className={styles.statusFold}
               align="right"
             />
+          )}
+          {/*
+           * Top-right, opposite the status fold, which is the same arrangement
+           * the library grid uses -- a book carries its marks in the same
+           * corners wherever it appears. Only once it is owned: there is no
+           * entry to favourite otherwise, and Add is the control that matters.
+           */}
+          {libraryEntry && (
+            <div className={styles.favorite}>
+              <FavoriteButton
+                isFavorite={libraryEntry.isFavorite}
+                onToggle={onToggleFavorite}
+              />
+            </div>
           )}
         </div>
 
