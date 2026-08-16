@@ -21,6 +21,24 @@ export interface LibraryFilter {
   /** Narrows to favourites. A filter like any other, so it composes with the
    *  rest rather than being a separate view (LOS-252). */
   favorite?: boolean;
+  /** Narrows to one format. Its own axis, like favourite (LOS-271). */
+  format?: LibraryFormat | null;
+}
+
+/** The two values ?format= accepts. Anything else is read as no filter. */
+export type LibraryFormat = 'ebook' | 'physical';
+
+export function asFormat(value: string | null): LibraryFormat | null {
+  return value === 'ebook' || value === 'physical' ? value : null;
+}
+
+/**
+ * Both halves of the split, so the rail can label each pill and decide whether
+ * the group is worth showing at all.
+ */
+export function formatCounts(entries: LibraryEntry[]): Record<LibraryFormat, number> {
+  const ebook = entries.filter((entry) => entry.isEbook).length;
+  return { ebook, physical: entries.length - ebook };
 }
 
 export function statusCounts(entries: LibraryEntry[]): Record<LibraryStatus, number> {
@@ -76,6 +94,7 @@ export function filterEntries(entries: LibraryEntry[], filter: LibraryFilter): L
   const terms = queryTerms(filter.q);
   return entries.filter((entry) => {
     if (filter.favorite && !entry.isFavorite) return false;
+    if (filter.format && entry.isEbook !== (filter.format === 'ebook')) return false;
     if (filter.status && entry.status !== filter.status) return false;
     if (filter.category && !entry.subjects.includes(filter.category)) return false;
     if (filter.mood && !entry.moods.includes(filter.mood)) return false;

@@ -2,7 +2,8 @@ import { FilterGroup } from '../../../../shared/components/FilterGroup/FilterGro
 import { ALL_LIBRARY_STATUSES, LIBRARY_STATUS_LABELS } from '../../../../shared/types/library-status';
 import type { LibraryStatus } from '../../../../shared/types/library-status';
 import type { LibraryEntry } from '../../../../normalize/library';
-import { topCategories, topMoods, topThemes, statusCounts } from '../../lib/breakdowns';
+import { topCategories, topMoods, topThemes, statusCounts, formatCounts } from '../../lib/breakdowns';
+import type { LibraryFormat } from '../../lib/breakdowns';
 import styles from './LibraryFilters.module.css';
 
 export interface LibraryFiltersProps {
@@ -12,7 +13,9 @@ export interface LibraryFiltersProps {
   mood: string | null;
   theme: string | null;
   favorite: boolean;
+  format: LibraryFormat | null;
   onToggleFavorite: () => void;
+  onSelectFormat: (format: LibraryFormat) => void;
   onSelectStatus: (status: LibraryStatus) => void;
   onSelectCategory: (category: string) => void;
   onSelectMood: (mood: string) => void;
@@ -45,7 +48,9 @@ export function LibraryFilters({
   mood,
   theme,
   favorite,
+  format,
   onToggleFavorite,
+  onSelectFormat,
   onSelectStatus,
   onSelectCategory,
   onSelectMood,
@@ -54,7 +59,8 @@ export function LibraryFilters({
 }: LibraryFiltersProps) {
   const counts = statusCounts(entries);
   const favoriteCount = entries.filter((entry) => entry.isFavorite).length;
-  const hasActiveFilters = Boolean(status || category || mood || theme || favorite);
+  const formats = formatCounts(entries);
+  const hasActiveFilters = Boolean(status || category || mood || theme || favorite || format);
 
   return (
     <aside className={styles.rail} aria-label="Library filters">
@@ -68,6 +74,19 @@ export function LibraryFilters({
           items={[{ value: 'favorite', label: `Favourites (${favoriteCount})` }]}
           activeValue={favorite ? 'favorite' : null}
           onSelect={onToggleFavorite}
+        />
+      )}
+      {/* Both pills or neither. A shelf with no ebooks would get a Physical
+          pill that can only ever filter to everything it already shows. */}
+      {formats.ebook > 0 && formats.physical > 0 && (
+        <FilterGroup
+          title="Format"
+          items={[
+            { value: 'ebook', label: `Ebook ${formats.ebook}` },
+            { value: 'physical', label: `Physical ${formats.physical}` },
+          ]}
+          activeValue={format}
+          onSelect={(value) => onSelectFormat(value as LibraryFormat)}
         />
       )}
       <FilterGroup

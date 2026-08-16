@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   filterEntries,
+  formatCounts,
   sortByShelf,
   statusCounts,
   topCategories,
@@ -23,6 +24,7 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
     addedAt: overrides.addedAt ?? null,
     isFavorite: overrides.isFavorite ?? false,
     isHidden: false,
+    isEbook: overrides.isEbook ?? false,
     book: {
       id,
       slug: `book-${id}`,
@@ -53,6 +55,13 @@ describe('statusCounts', () => {
 
 
 
+describe('formatCounts', () => {
+  it('splits the shelf in two, so neither half has to be inferred', () => {
+    const entries = [makeEntry({ isEbook: true }), makeEntry(), makeEntry()];
+    expect(formatCounts(entries)).toEqual({ ebook: 1, physical: 2 });
+  });
+});
+
 describe('filterEntries', () => {
   it('narrows to favourites', () => {
     const entries = [
@@ -61,6 +70,13 @@ describe('filterEntries', () => {
       makeEntry({ isFavorite: true }),
     ];
     expect(filterEntries(entries, { status: null, category: null, favorite: true })).toHaveLength(2);
+  });
+
+  it('narrows to one format, with physical meaning the flag is off', () => {
+    const entries = [makeEntry({ isEbook: true }), makeEntry(), makeEntry()];
+
+    expect(filterEntries(entries, { status: null, category: null, format: 'ebook' })).toHaveLength(1);
+    expect(filterEntries(entries, { status: null, category: null, format: 'physical' })).toHaveLength(2);
   });
 
   it('composes with the other filters rather than replacing them', () => {

@@ -7,6 +7,8 @@ export interface LibraryCardMenuProps {
   onToggleFavorite: (next: boolean) => void;
   isHidden: boolean;
   onToggleHidden: (next: boolean) => void;
+  isEbook: boolean;
+  onToggleEbook: (next: boolean) => void;
 }
 
 /**
@@ -23,6 +25,8 @@ export function LibraryCardMenu({
   onToggleFavorite,
   isHidden,
   onToggleHidden,
+  isEbook,
+  onToggleEbook,
 }: LibraryCardMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,6 +104,26 @@ export function LibraryCardMenu({
             }}
           >
             {isHidden ? 'Show on my public page' : 'Hide from my public page'}
+          </li>
+          {/* Below the two flags that change what others see, because this one
+              only describes the copy on the shelf. */}
+          <li
+            role="menuitemcheckbox"
+            aria-checked={isEbook}
+            tabIndex={0}
+            className={styles.item}
+            onClick={() => {
+              setOpen(false);
+              onToggleEbook(!isEbook);
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              setOpen(false);
+              onToggleEbook(!isEbook);
+            }}
+          >
+            {isEbook ? 'Mark as physical book' : 'Mark as ebook'}
           </li>
           <li
             role="menuitem"

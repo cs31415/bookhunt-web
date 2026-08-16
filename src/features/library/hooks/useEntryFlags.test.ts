@@ -3,15 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEntryFlags } from './useEntryFlags';
 import { setFavorite } from '../../../api/library/set-favorite';
 import { setHidden } from '../../../api/library/set-hidden';
+import { setEbook } from '../../../api/library/set-ebook';
 import { ApiError } from '../../../api/client';
 import { clearToasts, getToasts } from '../../../shared/toast/toast-store';
 import type { LibraryEntry } from '../../../normalize/library';
 
 vi.mock('../../../api/library/set-favorite');
 vi.mock('../../../api/library/set-hidden');
+vi.mock('../../../api/library/set-ebook');
 
 const mockedSetFavorite = vi.mocked(setFavorite);
 const mockedSetHidden = vi.mocked(setHidden);
+const mockedSetEbook = vi.mocked(setEbook);
 
 const entry = {
   status: 'queued',
@@ -22,6 +25,7 @@ const entry = {
   addedAt: null,
   isFavorite: false,
   isHidden: false,
+  isEbook: false,
   book: {
     id: 12,
     slug: 'dune',
@@ -44,6 +48,10 @@ beforeEach(() => {
   mockedSetHidden.mockReset();
   mockedSetHidden.mockResolvedValue({
     entry: { user_id: 1, book_id: 12, is_favorite: false, is_hidden: true },
+  });
+  mockedSetEbook.mockReset();
+  mockedSetEbook.mockResolvedValue({
+    entry: { user_id: 1, book_id: 12, is_favorite: false, is_hidden: false, is_ebook: true },
   });
   clearToasts();
 });
@@ -87,17 +95,31 @@ describe('useEntryFlags', () => {
     expect(getToasts()[0].text).toContain('Could not favourite');
   });
 
-  it('keeps the two flags independent on the same book', async () => {
+  it('keeps the three flags independent on the same book', async () => {
     const { result } = renderHook(() => useEntryFlags());
 
     await act(async () => {
       await result.current.toggleFavorite(entry, true);
       await result.current.toggleHidden(entry, true);
+      await result.current.toggleEbook(entry, true);
     });
 
     const [merged] = result.current.apply([entry]);
     expect(merged.isFavorite).toBe(true);
     expect(merged.isHidden).toBe(true);
+    expect(merged.isEbook).toBe(true);
+  });
+
+  it('rolls back the format and says so when the request fails', async () => {
+    mockedSetEbook.mockRejectedValue(new ApiError(500, 'Internal server error'));
+    const { result } = renderHook(() => useEntryFlags());
+
+    await act(async () => {
+      await result.current.toggleEbook(entry, true);
+    });
+
+    expect(result.current.apply([entry])[0].isEbook).toBe(false);
+    expect(getToasts()[0].text).toContain('as an ebook');
   });
 
   it('rolls back only the flag that failed', async () => {

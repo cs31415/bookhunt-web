@@ -17,6 +17,7 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
     addedAt: null,
     isFavorite: overrides.isFavorite ?? false,
     isHidden: false,
+    isEbook: overrides.isEbook ?? false,
     book: {
       id,
       slug: `book-${id}`,
@@ -43,7 +44,9 @@ function renderRail(entries: LibraryEntry[], props: Partial<Parameters<typeof Li
       mood={null}
       theme={null}
       favorite={false}
+      format={null}
       onToggleFavorite={vi.fn()}
+      onSelectFormat={vi.fn()}
       onSelectStatus={onSelectStatus}
       onSelectCategory={onSelectCategory}
       onSelectMood={vi.fn()}
@@ -133,5 +136,25 @@ describe('LibraryFilters', () => {
   it('drops the group once nothing is favourited', () => {
     const { rail } = renderRail([makeEntry(), makeEntry()]);
     expect(within(rail).queryByText(/^Favourites/)).not.toBeInTheDocument();
+  });
+
+  it('splits a mixed shelf by format, counting both halves', () => {
+    const { rail } = renderRail([makeEntry({ isEbook: true }), makeEntry(), makeEntry()]);
+
+    expect(within(rail).getByText('Ebook 1')).toBeInTheDocument();
+    expect(within(rail).getByText('Physical 2')).toBeInTheDocument();
+  });
+
+  it('drops the format group when every book is the same format', () => {
+    const { rail } = renderRail([makeEntry(), makeEntry()]);
+    expect(within(rail).queryByText('Format')).not.toBeInTheDocument();
+  });
+
+  it('reports the format picked', () => {
+    const onSelectFormat = vi.fn();
+    const { rail } = renderRail([makeEntry({ isEbook: true }), makeEntry()], { onSelectFormat });
+
+    fireEvent.click(within(rail).getByText('Ebook 1'));
+    expect(onSelectFormat).toHaveBeenCalledWith('ebook');
   });
 });
