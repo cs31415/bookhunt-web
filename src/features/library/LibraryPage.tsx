@@ -5,6 +5,7 @@ import { Loader } from '../../shared/components/Loader/Loader';
 import { Pagination } from '../../shared/components/Pagination/Pagination';
 import { ALL_LIBRARY_STATUSES } from '../../shared/types/library-status';
 import type { LibraryStatus } from '../../shared/types/library-status';
+import type { LibraryEntry } from '../../normalize/library';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { LibraryHeader } from './components/LibraryHeader/LibraryHeader';
 import { LibraryFilters } from './components/LibraryFilters/LibraryFilters';
@@ -19,7 +20,8 @@ import { useCsvImportSession } from './hooks/useCsvImportSession';
 import { removeEntry } from '../../api/library/remove-entry';
 import { removeEntries, MAX_REMOVE_PER_REQUEST } from '../../api/library/remove-entries';
 import { toast } from '../../shared/toast/toast-store';
-import { filterEntries, sortByShelf } from './lib/breakdowns';
+import { filterEntries, sortByShelf, asFormat } from './lib/breakdowns';
+import type { LibraryFormat } from './lib/breakdowns';
 import { useEntryFlags } from './hooks/useEntryFlags';
 import { FavoriteButton } from '../../shared/components/FavoriteButton/FavoriteButton';
 import styles from './LibraryPage.module.css';
@@ -30,6 +32,19 @@ function asStatus(value: string | null): LibraryStatus | null {
   return value && (ALL_LIBRARY_STATUSES as string[]).includes(value)
     ? (value as LibraryStatus)
     : null;
+}
+
+/**
+ * The card's eyebrow line, which the library grid uses for nothing else: it is
+ * already recessive and sits above the title, which is what a badge wants.
+ * Joined rather than chosen between, so a hidden ebook reads as both instead of
+ * one silently winning.
+ */
+function cardBadges(entry: LibraryEntry): string | undefined {
+  const badges: string[] = [];
+  if (entry.isEbook) badges.push('Ebook');
+  if (entry.isHidden) badges.push('Hidden from your public page');
+  return badges.length > 0 ? badges.join(' · ') : undefined;
 }
 
 export function LibraryPage() {
@@ -58,6 +73,7 @@ export function LibraryPage() {
   const mood = searchParams.get('mood');
   const theme = searchParams.get('theme');
   const favorite = searchParams.get('favorite') === 'true';
+  const format = asFormat(searchParams.get('format'));
   const flags = useEntryFlags();
   const urlQuery = searchParams.get('q') ?? '';
 
@@ -89,7 +105,7 @@ export function LibraryPage() {
   }, [q]);
 
   // Reset to the first page whenever the active filter changes.
-  const filterKey = `${status ?? ''}|${category ?? ''}|${mood ?? ''}|${theme ?? ''}|${q}|${favorite}`;
+  const filterKey = `${status ?? ''}|${category ?? ''}|${mood ?? ''}|${theme ?? ''}|${q}|${favorite}|${format ?? ''}`;
   const [syncedKey, setSyncedKey] = useState(filterKey);
   if (filterKey !== syncedKey) {
     setSyncedKey(filterKey);
@@ -123,12 +139,17 @@ export function LibraryPage() {
     updateParams({ ...NO_ATTRIBUTES, mood: next === mood ? null : next });
   }
   function clearFilters() {
-    updateParams({ ...NO_ATTRIBUTES, status: null, favorite: null });
+    updateParams({ ...NO_ATTRIBUTES, status: null, favorite: null, format: null });
   }
   // Its own axis, unlike category/mood/theme: narrowing to favourites is a
   // question you ask alongside a shelf, not instead of one.
   function toggleFavoriteFilter() {
     updateParams({ favorite: favorite ? null : 'true' });
+  }
+  // Also its own axis, for the same reason. Re-clicking the active pill is the
+  // way back out, as everywhere else on this rail.
+  function selectFormat(next: LibraryFormat) {
+    updateParams({ format: next === format ? null : next });
   }
 
   // A finished or failed session is stale by the time the button is clicked again;
@@ -147,8 +168,11 @@ export function LibraryPage() {
   const shownEntries = useMemo(() => flags.apply(entries), [flags, entries]);
 
   const sorted = useMemo(
-    () => sortByShelf(filterEntries(shownEntries, { status, category, mood, theme, q, favorite })),
-    [shownEntries, status, category, mood, theme, q, favorite],
+    () =>
+      sortByShelf(
+        filterEntries(shownEntries, { status, category, mood, theme, q, favorite, format }),
+      ),
+    [shownEntries, status, category, mood, theme, q, favorite, format],
   );
   const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
   // Clamped rather than clipped: removing the last few books on the final page
@@ -227,16 +251,18 @@ export function LibraryPage() {
         <LibraryFilters
           // shownEntries, not entries: the rail's favourite count has to see
           // optimistic toggles, or un-favouriting the last book empties the
-          // grid while the pill still claims one. The other facets read the
-          // same prop and are unaffected, since an override only touches
-          // isFavorite and isHidden.
+          // grid while the pill still claims one. The Format counts need it for
+          // the same reason; the tag facets read the same prop and are
+          // unaffected, since an override only touches the three flags.
           entries={shownEntries}
           status={status}
           category={category}
           mood={mood}
           theme={theme}
           favorite={favorite}
+          format={format}
           onToggleFavorite={toggleFavoriteFilter}
+          onSelectFormat={selectFormat}
           onSelectStatus={selectStatus}
           onSelectCategory={selectCategory}
           onSelectMood={selectMood}
@@ -291,10 +317,7 @@ export function LibraryPage() {
                   key={entry.book.id}
                   book={entry.book}
                   status={entry.status}
-                  // BookCard's eyebrow, which the library grid never uses
-                  // otherwise: already a recessive line above the title, which
-                  // is exactly what this badge wants to be.
-                  reason={entry.isHidden ? 'Hidden from your public page' : undefined}
+                  reason={cardBadges(entry)}
                   // While selecting, the card picks rather than navigates —
                   // leaving the page mid-selection would discard it.
                   onClick={
@@ -326,6 +349,8 @@ export function LibraryPage() {
                       <LibraryCardMenu
                         isHidden={entry.isHidden}
                         onToggleHidden={(next) => flags.toggleHidden(entry, next)}
+                        isEbook={entry.isEbook}
+                        onToggleEbook={(next) => flags.toggleEbook(entry, next)}
                         isFavorite={entry.isFavorite}
                         onToggleFavorite={(next) => flags.toggleFavorite(entry, next)}
                         onRemove={() =>

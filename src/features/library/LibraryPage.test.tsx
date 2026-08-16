@@ -5,6 +5,7 @@ import { LibraryPage } from './LibraryPage';
 import { getLibrary } from '../../api/library/get-library';
 import { removeEntry } from '../../api/library/remove-entry';
 import { removeEntries } from '../../api/library/remove-entries';
+import { setEbook } from '../../api/library/set-ebook';
 import { ToastHost } from '../../shared/toast/ToastHost';
 import { clearToasts } from '../../shared/toast/toast-store';
 import type { RawLibraryEntry } from '../../normalize/library';
@@ -13,10 +14,12 @@ import type { LibraryStatus } from '../../shared/types/library-status';
 vi.mock('../../api/library/get-library');
 vi.mock('../../api/library/remove-entry');
 vi.mock('../../api/library/remove-entries');
+vi.mock('../../api/library/set-ebook');
 
 const mockedGetLibrary = vi.mocked(getLibrary);
 const mockedRemoveEntry = vi.mocked(removeEntry);
 const mockedRemoveEntries = vi.mocked(removeEntries);
+const mockedSetEbook = vi.mocked(setEbook);
 
 let idSeq = 1;
 
@@ -106,6 +109,10 @@ describe('LibraryPage', () => {
     mockedRemoveEntry.mockResolvedValue(undefined);
     mockedRemoveEntries.mockReset();
     mockedRemoveEntries.mockResolvedValue({ removed: 0, requested: 0 });
+    mockedSetEbook.mockReset();
+    mockedSetEbook.mockResolvedValue({
+      entry: { user_id: 1, book_id: 1, is_favorite: false, is_hidden: false, is_ebook: true },
+    });
     clearToasts();
   });
 
@@ -527,6 +534,54 @@ describe('LibraryPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Done' }));
       expect(screen.queryByRole('checkbox', { name: 'Select Dune' })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Book actions' })).toBeInTheDocument();
+    });
+  });
+
+  describe('format', () => {
+    const kindleDune = { ...dune, is_ebook: true };
+
+    it('badges an ebook on the card', async () => {
+      mockLibrary([kindleDune], { reading: 1 });
+      renderLibrary();
+
+      const card = await screen.findByRole('group', { name: 'Dune' });
+      expect(within(card).getByText('Ebook')).toBeInTheDocument();
+    });
+
+    // The eyebrow is one line and two flags can be true at once, so it says
+    // both rather than letting the first one win.
+    it('badges a hidden ebook as both', async () => {
+      mockLibrary([{ ...kindleDune, is_hidden: true }], { reading: 1 });
+      renderLibrary();
+
+      const card = await screen.findByRole('group', { name: 'Dune' });
+      expect(within(card).getByText('Ebook · Hidden from your public page')).toBeInTheDocument();
+    });
+
+    it('marks the copy as an ebook from the card menu', async () => {
+      mockLibrary([dune], { reading: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '1 book' });
+
+      const card = screen.getByRole('group', { name: 'Dune' });
+      fireEvent.click(within(card).getByRole('button', { name: 'Book actions' }));
+      fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Mark as ebook' }));
+
+      expect(mockedSetEbook).toHaveBeenCalledWith(dune.book_id, true);
+      // Optimistic: the badge is there before any refetch.
+      expect(await within(card).findByText('Ebook')).toBeInTheDocument();
+    });
+
+    it('narrows the grid to one format and keeps it in the url', async () => {
+      mockLibrary([kindleDune, sapiens], { reading: 1, finished: 1 });
+      const router = renderLibrary();
+      await screen.findByRole('heading', { name: '2 books' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ebook 1' }));
+
+      expect(screen.getByRole('group', { name: 'Dune' })).toBeInTheDocument();
+      expect(screen.queryByRole('group', { name: 'Sapiens' })).not.toBeInTheDocument();
+      expect(router.state.location.search).toContain('format=ebook');
     });
   });
 });

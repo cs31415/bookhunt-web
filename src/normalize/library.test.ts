@@ -30,6 +30,7 @@ describe('normalizeLibraryEntry', () => {
       // reads as false rather than unknown.
       isFavorite: false,
       isHidden: false,
+      isEbook: false,
       book: {
         id: 1,
         slug: 'dune',
@@ -72,8 +73,19 @@ describe('normalizeLibraryEntry', () => {
   });
 
   it('carries the library flags through when the row has them', () => {
-    const raw = { ...rawEntry, is_favorite: true, is_hidden: true };
-    expect(normalizeLibraryEntry(raw)).toMatchObject({ isFavorite: true, isHidden: true });
+    const raw = { ...rawEntry, is_favorite: true, is_hidden: true, is_ebook: true };
+    expect(normalizeLibraryEntry(raw)).toMatchObject({
+      isFavorite: true,
+      isHidden: true,
+      isEbook: true,
+    });
+  });
+
+  // Null is what a source with no flags sends, and a book with no recorded
+  // format is a physical one.
+  it('reads a null or absent ebook flag as a physical book', () => {
+    expect(normalizeLibraryEntry(rawEntry).isEbook).toBe(false);
+    expect(normalizeLibraryEntry({ ...rawEntry, is_ebook: null }).isEbook).toBe(false);
   });
 });
 
