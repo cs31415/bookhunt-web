@@ -75,6 +75,9 @@ describe('normalizeBookDetail', () => {
     expect(result.libraryEntry).toEqual({
       status: 'reading',
       userRating: 4,
+      // Absent on the raw row reads as false: the flag has been in the payload
+      // since LOS-249, but a fixture written before it will not carry one.
+      isFavorite: false,
       notes: 'Gripping',
       userRelatedIds: [1, 2, 3],
     });

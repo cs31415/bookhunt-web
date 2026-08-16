@@ -10,6 +10,7 @@ import { useThemes } from './hooks/useThemes';
 import { useRelatedReads } from './hooks/useRelatedReads';
 import { addToLibrary } from '../../api/library/add-to-library';
 import type { AddToLibraryRawFields } from '../../api/library/add-to-library';
+import { setFavorite } from '../../api/library/set-favorite';
 import { updateEntry } from '../../api/library/update-entry';
 import { removeEntry } from '../../api/library/remove-entry';
 import { ConfirmRemoveModal } from '../../shared/components/ConfirmRemoveModal/ConfirmRemoveModal';
@@ -50,7 +51,13 @@ export function BookDetailPage() {
     pid,
   });
   const book = detail?.book ?? null;
-  const libraryEntry = detail?.libraryEntry;
+  // null means "whatever the server said", so a reload needs no synchronising
+  // effect and a failed toggle needs no remembered value to restore.
+  const [favoriteOverride, setFavoriteOverride] = useState<boolean | null>(null);
+  const fetchedEntry = detail?.libraryEntry;
+  const libraryEntry = fetchedEntry
+    ? { ...fetchedEntry, isFavorite: favoriteOverride ?? fetchedEntry.isFavorite }
+    : undefined;
   const [addingToLibrary, setAddingToLibrary] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
 
@@ -144,6 +151,28 @@ export function BookDetailPage() {
   // changes add the book first (idempotent) before updating it (AC12) — and
   // for a not-yet-cataloged book, that add is also what creates its catalog
   // row, so we canonicalize the URL to the real slug afterward.
+  /**
+   * Optimistic, and rolled back to whatever the server last said rather than to
+   * a remembered value -- the same contract the library grid uses in
+   * useEntryFlags, and the author page in its override.
+   */
+  async function handleToggleFavorite(next: boolean) {
+    const real = detail?.book;
+    if (!real) return;
+
+    setFavoriteOverride(next);
+    try {
+      await setFavorite(real.id, next);
+    } catch {
+      setFavoriteOverride(null);
+      toast({
+        text: next
+          ? `Could not favourite “${real.title}”`
+          : `Could not remove “${real.title}” from favourites`,
+      });
+    }
+  }
+
   async function handleRate(rating: number) {
     if (!book) return;
     const wasEphemeral = !book.cataloged;
@@ -205,6 +234,7 @@ export function BookDetailPage() {
         onRemoveFromLibrary={() => setConfirmingRemove(true)}
         onStatusChange={handleStatusChange}
         onRate={handleRate}
+        onToggleFavorite={handleToggleFavorite}
         onOpenAuthor={() => navigate(`/authors/${book.authorSlug}`)}
         onThemeClick={(theme) => navigate(`/search?q=${encodeURIComponent(theme)}&theme=true`)}
         onMoodClick={(mood) =>
