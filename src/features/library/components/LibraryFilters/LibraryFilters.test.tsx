@@ -116,4 +116,22 @@ describe('LibraryFilters', () => {
     const { rail } = renderRail([makeEntry()]);
     expect(within(rail).queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument();
   });
+
+  it('counts favourites from what it was given, so an optimistic toggle shows', () => {
+    // The rail is fed the override-merged entries. Reading the fetched set
+    // instead left the pill claiming a favourite after the last one had been
+    // un-favourited and the grid had already emptied.
+    const { rail } = renderRail([
+      makeEntry({ isFavorite: true }),
+      makeEntry({ isFavorite: true }),
+      makeEntry(),
+    ]);
+
+    expect(within(rail).getByText('Favourites (2)')).toBeInTheDocument();
+  });
+
+  it('drops the group once nothing is favourited', () => {
+    const { rail } = renderRail([makeEntry(), makeEntry()]);
+    expect(within(rail).queryByText(/^Favourites/)).not.toBeInTheDocument();
+  });
 });

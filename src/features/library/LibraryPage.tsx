@@ -225,7 +225,12 @@ export function LibraryPage() {
 
       <div className={styles.layout}>
         <LibraryFilters
-          entries={entries}
+          // shownEntries, not entries: the rail's favourite count has to see
+          // optimistic toggles, or un-favouriting the last book empties the
+          // grid while the pill still claims one. The other facets read the
+          // same prop and are unaffected, since an override only touches
+          // isFavorite and isHidden.
+          entries={shownEntries}
           status={status}
           category={category}
           mood={mood}
