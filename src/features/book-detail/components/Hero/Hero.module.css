@@ -217,10 +217,10 @@
   }
 }
 
-/* Opposite corner from the status fold, matching BookCard's overlay so the two
-   surfaces put a book's marks in the same places. */
+/* Bottom-right, clear of the status fold in the top-right corner, matching
+   BookCard's overlay so the two surfaces put a book's marks in the same places. */
 .favorite {
   position: absolute;
-  top: 8px;
+  bottom: 8px;
   right: 8px;
 }
