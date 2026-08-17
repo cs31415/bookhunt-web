@@ -8,9 +8,11 @@ export interface LibraryFlags {
   book_id: number;
   is_favorite: boolean;
   is_hidden: boolean;
-  // Optional: the favourite and hidden functions predate the column and were
-  // not re-signed for it, so only /library/:bookId/ebook returns it (LOS-271).
+  // Optional: the favourite and hidden functions predate these columns and were
+  // not re-signed for them, so only the format endpoints return them
+  // (LOS-271, LOS-273).
   is_ebook?: boolean;
+  is_audiobook?: boolean;
 }
 
 export function setFavorite(bookId: number, isFavorite: boolean): Promise<{ entry: LibraryFlags }> {

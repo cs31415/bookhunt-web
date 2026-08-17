@@ -9,6 +9,8 @@ export interface LibraryCardMenuProps {
   onToggleHidden: (next: boolean) => void;
   isEbook: boolean;
   onToggleEbook: (next: boolean) => void;
+  isAudiobook: boolean;
+  onToggleAudiobook: (next: boolean) => void;
 }
 
 /**
@@ -27,6 +29,8 @@ export function LibraryCardMenu({
   onToggleHidden,
   isEbook,
   onToggleEbook,
+  isAudiobook,
+  onToggleAudiobook,
 }: LibraryCardMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -124,6 +128,27 @@ export function LibraryCardMenu({
             }}
           >
             {isEbook ? 'Mark as physical book' : 'Mark as ebook'}
+          </li>
+          {/* Its own item rather than a third state of the one above: owning
+              both the Kindle and the Audible copy is ordinary, so neither
+              clears the other. */}
+          <li
+            role="menuitemcheckbox"
+            aria-checked={isAudiobook}
+            tabIndex={0}
+            className={styles.item}
+            onClick={() => {
+              setOpen(false);
+              onToggleAudiobook(!isAudiobook);
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              setOpen(false);
+              onToggleAudiobook(!isAudiobook);
+            }}
+          >
+            {isAudiobook ? 'Not an audiobook' : 'Mark as audiobook'}
           </li>
           <li
             role="menuitem"

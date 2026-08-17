@@ -56,7 +56,7 @@ describe('parseCsv', () => {
 
     expect(error).toBeNull();
     expect(rows).toEqual([
-      { title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null, status: null },
+      { title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null, status: null, format: null },
     ]);
   });
 
@@ -65,7 +65,7 @@ describe('parseCsv', () => {
     const { rows } = parseCsv("title,author,publisher\nHong Kong,,Frommer's");
 
     expect(rows).toEqual([
-      { title: 'Hong Kong', author: null, publisher: "Frommer's", isbn: null, status: null },
+      { title: 'Hong Kong', author: null, publisher: "Frommer's", isbn: null, status: null, format: null },
     ]);
   });
 
@@ -73,7 +73,7 @@ describe('parseCsv', () => {
     const { rows } = parseCsv(' Publisher , Book Title ,AUTHOR\nAce,Dune,Frank Herbert');
 
     expect(rows).toEqual([
-      { title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null, status: null },
+      { title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null, status: null, format: null },
     ]);
   });
 
@@ -82,7 +82,7 @@ describe('parseCsv', () => {
 
     expect(error).toBeNull();
     expect(rows).toEqual([
-      { title: 'Dune', author: null, publisher: null, isbn: null, status: null },
+      { title: 'Dune', author: null, publisher: null, isbn: null, status: null, format: null },
     ]);
   });
 
@@ -95,6 +95,7 @@ describe('parseCsv', () => {
       publisher: null,
       isbn: null,
       status: null,
+      format: null,
     });
   });
 
@@ -137,6 +138,7 @@ describe('parseCsv', () => {
           publisher: "Frommer's",
           isbn: null,
           status: null,
+          format: null,
         },
       ]);
     });
@@ -149,7 +151,7 @@ describe('parseCsv', () => {
       );
 
       expect(rows).toEqual([
-        { title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null, status: null },
+        { title: 'Dune', author: 'Frank Herbert', publisher: 'Ace', isbn: null, status: null, format: null },
       ]);
       expect(warning).toContain('Skipped 1 row');
       expect(warning).toContain('quotes');
@@ -175,7 +177,7 @@ describe('parseCsv', () => {
 
       expect(warning).toBeNull();
       expect(rows).toEqual([
-        { title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null, status: null },
+        { title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null, status: null, format: null },
       ]);
     });
   });
@@ -261,7 +263,7 @@ describe('parseCsv', () => {
 
       expect(error).toBeNull();
       expect(rows).toEqual([
-        { title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null, status: null },
+        { title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null, status: null, format: null },
       ]);
     });
 
@@ -272,6 +274,56 @@ describe('parseCsv', () => {
 
       expect(warning).toContain('Skipped 1 row');
       expect(warning).toContain("Didn't recognise the status on 1 row");
+    });
+  });
+
+  describe('format', () => {
+    // The spellings the two exports readers actually bring use: Goodreads
+    // writes "Kindle Edition" and "Audio CD", StoryGraph "digital" and "audio".
+    it.each([
+      ['Kindle Edition', 'ebook'],
+      ['ebook', 'ebook'],
+      ['digital', 'ebook'],
+      ['Audiobook', 'audiobook'],
+      ['Audio CD', 'audiobook'],
+      ['audio', 'audiobook'],
+      ['Paperback', 'physical'],
+      ['Hardcover', 'physical'],
+      ['Mass Market Paperback', 'physical'],
+      ['Unknown Binding', 'physical'],
+    ])('reads %s as %s', (word, expected) => {
+      const { rows } = parseCsv(`title,format\nDune,${word}`);
+      expect(rows[0].format).toBe(expected);
+    });
+
+    // Goodreads calls the column Binding, StoryGraph calls it Format.
+    it('takes a Goodreads Binding column as-is', () => {
+      const { rows, warning } = parseCsv('Title,Author,Binding\nDune,Frank Herbert,Kindle Edition');
+
+      expect(rows[0].format).toBe('ebook');
+      expect(warning).toBeNull();
+    });
+
+    it('leaves format null when the column is absent or blank', () => {
+      expect(parseCsv('title\nDune').rows[0].format).toBeNull();
+      expect(parseCsv('title,format\nDune,').rows[0].format).toBeNull();
+    });
+
+    // Same treatment as an unreadable status: silently filing it as a paperback
+    // would be indistinguishable from having ignored the column.
+    it('keeps the book and warns when the format is unreadable', () => {
+      const { rows, warning, error } = parseCsv('title,format\nDune,papyrus scroll');
+
+      expect(error).toBeNull();
+      expect(rows[0]).toMatchObject({ title: 'Dune', format: null });
+      expect(warning).toContain("Didn't recognise the format on 1 row");
+    });
+
+    it('reports an unreadable format and status together', () => {
+      const { warning } = parseCsv('title,status,format\nDune,nonsense,papyrus');
+
+      expect(warning).toContain("Didn't recognise the status on 1 row");
+      expect(warning).toContain("Didn't recognise the format on 1 row");
     });
   });
 

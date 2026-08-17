@@ -166,7 +166,7 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
                 say, with no annotation a reader might carry into their own. */}
             <pre className={styles.sample}>
               {
-                'title,author,publisher,isbn,status\nDune,Frank Herbert,Ace,9780441013593,Finished\nHong Kong,,Frommer’s,,New'
+                'title,author,publisher,isbn,status,format\nDune,Frank Herbert,Ace,9780441013593,Finished,Paperback\nHong Kong,,Frommer’s,,New,Ebook'
               }
             </pre>
             <p className={styles.formatHint}>
@@ -175,6 +175,13 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
               status can be one of:{' '}
               {ALL_LIBRARY_STATUSES.map((status) => LIBRARY_STATUS_LABELS[status]).join(', ')}.
               Defaults to {LIBRARY_STATUS_LABELS.queued}.
+            </p>
+            {/* Named as the two that change anything. A binding is taken too --
+                Goodreads exports "Binding", not "format" -- but listing every
+                accepted word here would be longer than the sample above it. */}
+            <p className={styles.formatHint}>
+              format can be ebook, audiobook, or a binding like paperback or hardcover. A
+              Goodreads “Binding” column works as-is. Defaults to a physical book.
             </p>
           </div>
 
@@ -283,6 +290,7 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
                 ticked={session.isTicked(row.key)}
                 onCycleStatus={() => session.cycleStatus(row.key)}
                 onToggle={() => session.toggle(row.key)}
+                format={row.hint.format}
                 note={
                   row.resolved && row.candidates.length === 0
                     ? `Couldn’t find “${row.hint.title}” — add it as-is?`

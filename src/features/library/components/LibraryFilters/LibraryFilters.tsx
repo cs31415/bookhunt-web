@@ -27,6 +27,13 @@ function toItems(values: string[]) {
   return values.map((value) => ({ value, label: value }));
 }
 
+/** Reading order, and the only place these are spelled for a reader. */
+const FORMAT_LABELS: { value: LibraryFormat; label: string }[] = [
+  { value: 'ebook', label: 'Ebook' },
+  { value: 'audiobook', label: 'Audiobook' },
+  { value: 'physical', label: 'Physical' },
+];
+
 /**
  * The library's filter rail, matching the search page's so the two read the
  * same way.
@@ -60,6 +67,9 @@ export function LibraryFilters({
   const counts = statusCounts(entries);
   const favoriteCount = entries.filter((entry) => entry.isFavorite).length;
   const formats = formatCounts(entries);
+  const formatPills = FORMAT_LABELS.filter(({ value }) => formats[value] > 0).map(
+    ({ value, label }) => ({ value, label: `${label} ${formats[value]}` }),
+  );
   const hasActiveFilters = Boolean(status || category || mood || theme || favorite || format);
 
   return (
@@ -76,15 +86,13 @@ export function LibraryFilters({
           onSelect={onToggleFavorite}
         />
       )}
-      {/* Both pills or neither. A shelf with no ebooks would get a Physical
-          pill that can only ever filter to everything it already shows. */}
-      {formats.ebook > 0 && formats.physical > 0 && (
+      {/* Only formats the shelf actually holds, and only when more than one
+          does: a lone pill over an all-paperback library can filter to nothing
+          but what it already shows. */}
+      {formatPills.length > 1 && (
         <FilterGroup
           title="Format"
-          items={[
-            { value: 'ebook', label: `Ebook ${formats.ebook}` },
-            { value: 'physical', label: `Physical ${formats.physical}` },
-          ]}
+          items={formatPills}
           activeValue={format}
           onSelect={(value) => onSelectFormat(value as LibraryFormat)}
         />

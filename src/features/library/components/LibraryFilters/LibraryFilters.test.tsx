@@ -18,6 +18,7 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
     isFavorite: overrides.isFavorite ?? false,
     isHidden: false,
     isEbook: overrides.isEbook ?? false,
+    isAudiobook: overrides.isAudiobook ?? false,
     book: {
       id,
       slug: `book-${id}`,
@@ -148,6 +149,24 @@ describe('LibraryFilters', () => {
   it('drops the format group when every book is the same format', () => {
     const { rail } = renderRail([makeEntry(), makeEntry()]);
     expect(within(rail).queryByText('Format')).not.toBeInTheDocument();
+  });
+
+  it('offers all three when the shelf holds all three', () => {
+    const { rail } = renderRail([
+      makeEntry({ isEbook: true }),
+      makeEntry({ isAudiobook: true }),
+      makeEntry(),
+    ]);
+
+    expect(within(rail).getByText('Ebook 1')).toBeInTheDocument();
+    expect(within(rail).getByText('Audiobook 1')).toBeInTheDocument();
+    expect(within(rail).getByText('Physical 1')).toBeInTheDocument();
+  });
+
+  // No pill for a format nothing on the shelf is.
+  it('leaves out a format the shelf does not hold', () => {
+    const { rail } = renderRail([makeEntry({ isEbook: true }), makeEntry()]);
+    expect(within(rail).queryByText(/^Audiobook/)).not.toBeInTheDocument();
   });
 
   it('reports the format picked', () => {

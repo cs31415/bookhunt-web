@@ -11,6 +11,7 @@ import type { LibraryEntry } from '../../../normalize/library';
 vi.mock('../../../api/library/set-favorite');
 vi.mock('../../../api/library/set-hidden');
 vi.mock('../../../api/library/set-ebook');
+vi.mock('../../../api/library/set-audiobook');
 
 const mockedSetFavorite = vi.mocked(setFavorite);
 const mockedSetHidden = vi.mocked(setHidden);
@@ -26,6 +27,7 @@ const entry = {
   isFavorite: false,
   isHidden: false,
   isEbook: false,
+  isAudiobook: false,
   book: {
     id: 12,
     slug: 'dune',
@@ -108,6 +110,21 @@ describe('useEntryFlags', () => {
     expect(merged.isFavorite).toBe(true);
     expect(merged.isHidden).toBe(true);
     expect(merged.isEbook).toBe(true);
+  });
+
+  // Two independent flags, not two values of one: a reader can own the Kindle
+  // and the Audible copy of the same book.
+  it('marks a book as both an ebook and an audiobook', async () => {
+    const { result } = renderHook(() => useEntryFlags());
+
+    await act(async () => {
+      await result.current.toggleEbook(entry, true);
+      await result.current.toggleAudiobook(entry, true);
+    });
+
+    const [merged] = result.current.apply([entry]);
+    expect(merged.isEbook).toBe(true);
+    expect(merged.isAudiobook).toBe(true);
   });
 
   it('rolls back the format and says so when the request fails', async () => {

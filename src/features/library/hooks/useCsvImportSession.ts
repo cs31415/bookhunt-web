@@ -106,6 +106,15 @@ function placeholderBook(hint: CsvBookRow): BookSummary {
   };
 }
 
+/**
+ * The file's format word as the two flags the API takes. 'physical' and a
+ * missing column are the same thing here — neither flag set — which is what
+ * makes an absent column cost nothing.
+ */
+function formatFlags(format: CsvBookRow['format']) {
+  return { isEbook: format === 'ebook', isAudiobook: format === 'audiobook' };
+}
+
 function toCandidates(raw: RawResolvedRow): CsvCandidate[] {
   return raw.candidates.map((candidate, index) => {
     const { book } = normalizeAiSearchBook(candidate);
@@ -166,6 +175,7 @@ export function useCsvImportSession(
         // thin row from what the file said. The reader opted in by leaving it ticked.
         return {
           slug: slugify(candidate?.book.title ?? row.hint.title),
+          format: formatFlags(row.hint.format),
           rawFields: {
             title: candidate?.book.title ?? row.hint.title,
             authorName: candidate?.book.authorName || row.hint.author || 'Unknown',
@@ -177,6 +187,7 @@ export function useCsvImportSession(
       const { raw, book } = candidate;
       return {
         slug: slugify(book.title),
+        format: formatFlags(row.hint.format),
         rawFields: {
           title: book.title,
           authorName: book.authorName || 'Unknown',

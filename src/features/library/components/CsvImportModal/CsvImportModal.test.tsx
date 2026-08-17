@@ -292,8 +292,61 @@ describe('CsvImportModal', () => {
           'hong-kong',
           'queued',
           expect.objectContaining({ googleBooksId: 'g2' }),
-          { enrich: false },
+          { enrich: false, isEbook: false, isAudiobook: false },
         ),
+      );
+    });
+  });
+
+  describe('format', () => {
+    const KINDLE_CSV = 'title,author,binding\nDune,Frank Herbert,Kindle Edition';
+
+    it('sets the flag the file asked for, in the same write as the status', async () => {
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(KINDLE_CSV));
+
+      fireEvent.click(await screen.findByRole('button', { name: /Add 1 to library/ }));
+
+      await waitFor(() =>
+        expect(mockedAddToLibrary).toHaveBeenCalledWith(
+          expect.any(String),
+          'queued',
+          expect.anything(),
+          expect.objectContaining({ isEbook: true, isAudiobook: false }),
+        ),
+      );
+    });
+
+    it('says what the file called each row', async () => {
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title,binding\nDune,Audiobook'));
+
+      expect(await screen.findByText('Audiobook')).toBeInTheDocument();
+    });
+
+    // A shelf of paperbacks would otherwise carry the word on every row.
+    it('says nothing for a physical book', async () => {
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title,binding\nDune,Paperback'));
+
+      await screen.findByRole('button', { name: /Add 1 to library/ });
+      expect(screen.queryByText('Physical')).not.toBeInTheDocument();
+    });
+
+    // The lookup is about which book this is; the format is the reader's own
+    // shelf metadata and means nothing to a catalog search.
+    it('does not send the format to the resolve step', async () => {
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(KINDLE_CSV));
+
+      await screen.findByText(/Found matches for/);
+      expect(mockedResolve).toHaveBeenCalledWith(
+        [{ title: 'Dune', author: 'Frank Herbert', publisher: null, isbn: null }],
+        expect.any(AbortSignal),
       );
     });
   });

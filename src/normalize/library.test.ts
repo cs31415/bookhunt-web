@@ -31,6 +31,7 @@ describe('normalizeLibraryEntry', () => {
       isFavorite: false,
       isHidden: false,
       isEbook: false,
+      isAudiobook: false,
       book: {
         id: 1,
         slug: 'dune',

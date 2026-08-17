@@ -25,6 +25,7 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
     isFavorite: overrides.isFavorite ?? false,
     isHidden: false,
     isEbook: overrides.isEbook ?? false,
+    isAudiobook: overrides.isAudiobook ?? false,
     book: {
       id,
       slug: `book-${id}`,
@@ -56,9 +57,16 @@ describe('statusCounts', () => {
 
 
 describe('formatCounts', () => {
-  it('splits the shelf in two, so neither half has to be inferred', () => {
-    const entries = [makeEntry({ isEbook: true }), makeEntry(), makeEntry()];
-    expect(formatCounts(entries)).toEqual({ ebook: 1, physical: 2 });
+  it('counts each format, with physical meaning neither flag', () => {
+    const entries = [makeEntry({ isEbook: true }), makeEntry({ isAudiobook: true }), makeEntry()];
+    expect(formatCounts(entries)).toEqual({ ebook: 1, audiobook: 1, physical: 1 });
+  });
+
+  // The flags are independent, so these can sum to more than the shelf. Owning
+  // the Kindle and the Audible copy of one book is one book in two formats.
+  it('counts a book owned in two formats under both', () => {
+    const entries = [makeEntry({ isEbook: true, isAudiobook: true })];
+    expect(formatCounts(entries)).toEqual({ ebook: 1, audiobook: 1, physical: 0 });
   });
 });
 
@@ -72,11 +80,26 @@ describe('filterEntries', () => {
     expect(filterEntries(entries, { status: null, category: null, favorite: true })).toHaveLength(2);
   });
 
-  it('narrows to one format, with physical meaning the flag is off', () => {
-    const entries = [makeEntry({ isEbook: true }), makeEntry(), makeEntry()];
+  it('narrows to one format, with physical meaning neither flag is set', () => {
+    const entries = [makeEntry({ isEbook: true }), makeEntry({ isAudiobook: true }), makeEntry()];
+    const narrow = (format: 'ebook' | 'audiobook' | 'physical') =>
+      filterEntries(entries, { status: null, category: null, format });
+
+    expect(narrow('ebook')).toHaveLength(1);
+    expect(narrow('audiobook')).toHaveLength(1);
+    expect(narrow('physical')).toHaveLength(1);
+  });
+
+  it('finds a book owned in two formats under either', () => {
+    const entries = [makeEntry({ isEbook: true, isAudiobook: true })];
 
     expect(filterEntries(entries, { status: null, category: null, format: 'ebook' })).toHaveLength(1);
-    expect(filterEntries(entries, { status: null, category: null, format: 'physical' })).toHaveLength(2);
+    expect(
+      filterEntries(entries, { status: null, category: null, format: 'audiobook' }),
+    ).toHaveLength(1);
+    expect(
+      filterEntries(entries, { status: null, category: null, format: 'physical' }),
+    ).toHaveLength(0);
   });
 
   it('composes with the other filters rather than replacing them', () => {

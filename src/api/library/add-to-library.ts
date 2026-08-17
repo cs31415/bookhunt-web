@@ -40,7 +40,17 @@ export function addToLibrary(
   });
 }
 
-export interface AddToLibraryOptions {
+/**
+ * The format the reader owns, when the source knows it (LOS-273). Independent
+ * of each other: neither set means a physical book, and both can be true for a
+ * reader who owns the Kindle and the Audible copy.
+ */
+export interface LibraryFormatFlags {
+  isEbook?: boolean;
+  isAudiobook?: boolean;
+}
+
+export interface AddToLibraryOptions extends LibraryFormatFlags {
   /**
    * Whether the server should fetch whatever this payload is missing before
    * saving. Defaults to true on the server, which is right for adding one book
