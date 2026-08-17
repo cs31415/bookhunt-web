@@ -54,6 +54,10 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
 
   { method: 'get', path: '/books', auth: 'optional' },
   { method: 'get', path: '/books/:slug', auth: 'optional' },
+  // Public, like the page that calls it: a visitor who is not signed in sees
+  // the same blank covers (LOS-272). The API rate-limits it and checks the
+  // cover itself before writing, so reaching it proves nothing.
+  { method: 'post', path: '/books/:slug/cover', auth: 'public' },
   // The literal above ':slug', mirroring routes/authors.ts.
   { method: 'get', path: '/authors/favorites', auth: 'required' },
   { method: 'get', path: '/authors/:slug', auth: 'optional' },

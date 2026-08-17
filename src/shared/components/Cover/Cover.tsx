@@ -1,9 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { BookSummary } from '../../types/book';
 import { getSurname, wrapTitle } from '../../lib/text';
+import { repairCover } from '../../../api/books/repair-cover';
 import styles from './Cover.module.css';
 
-type CoverBook = Pick<BookSummary, 'title' | 'authorName' | 'coverUrl' | 'hue' | 'year'>;
+type CoverBook = Pick<BookSummary, 'title' | 'authorName' | 'coverUrl' | 'hue' | 'year'> &
+  // Optional: the CSV import's placeholder rows have no slug yet, and a cover
+  // cannot be repaired without one to address.
+  Partial<Pick<BookSummary, 'slug'>>;
+
+/**
+ * How long a cover gets before the reader stops waiting for it.
+ *
+ * `onError` is not enough on its own. When a cover host stops accepting
+ * connections rather than refusing them — which is what covers.openlibrary.org
+ * did (LOS-272) — no error ever fires, and the browser sits on its own connect
+ * timeout showing a bare coloured box.
+ */
+const PATIENCE_MS = 3000;
 
 export interface CoverProps {
   book: CoverBook;
@@ -25,11 +39,77 @@ function wrapDimensions(width: number | string): {
 
 export function Cover({ book, width = 132, onClick }: CoverProps) {
   const [imgOk, setImgOk] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  // What to actually load. Starts as the catalog's URL and becomes the repaired
+  // one, so a fixed cover appears without a reload.
+  const [src, setSrc] = useState(book.coverUrl);
   const dimensions = wrapDimensions(width);
+
+  // A new book in the same slot — the grid reuses these — starts over.
+  const [syncedUrl, setSyncedUrl] = useState(book.coverUrl);
+  if (book.coverUrl !== syncedUrl) {
+    setSyncedUrl(book.coverUrl);
+    setSrc(book.coverUrl);
+    setImgOk(true);
+    setLoaded(false);
+  }
+
+  /**
+   * Whether the browser has any reason to have started fetching yet.
+   *
+   * The images are `loading="lazy"`, so one far down a sixty-book grid is not
+   * requested at all until it nears the viewport. Timing those out on mount
+   * would replace most of a shelf with procedural covers, and ask the API to
+   * repair covers nothing had tried to load.
+   *
+   * No IntersectionObserver — jsdom, chiefly — means assume visible, which is
+   * how this behaved before the timer existed.
+   */
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(() => typeof IntersectionObserver === 'undefined');
+
+  useEffect(() => {
+    if (visible) return;
+    const node = wrapRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setVisible(true);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [visible]);
+
+  /**
+   * Gives the image PATIENCE_MS to arrive, then gives up on it and asks the API
+   * for a cover that works. The fallback is immediate and does not wait on the
+   * repair: the reader is owed a cover now, and the repair is for whoever opens
+   * this book next.
+   *
+   * `loaded` is what stops the timer — not `imgOk`, which stays true for a
+   * cover that is on screen and would fire this at three seconds anyway.
+   */
+  useEffect(() => {
+    if (!src || !visible || loaded || !imgOk) return;
+
+    const timer = setTimeout(() => {
+      setImgOk(false);
+      if (!book.slug) return;
+      void repairCover(book.slug).then((result) => {
+        if (result?.coverUrl && result.coverUrl !== src) {
+          setSrc(result.coverUrl);
+          setImgOk(true);
+        }
+      });
+    }, PATIENCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [src, visible, loaded, imgOk, book.slug]);
 
   return (
     <div
       className={styles.cover}
+      ref={wrapRef}
       onClick={onClick}
       style={{
         ['--cover-bg' as string]: book.hue,
@@ -38,10 +118,10 @@ export function Cover({ book, width = 132, onClick }: CoverProps) {
         ...dimensions,
       }}
     >
-      {book.coverUrl && imgOk ? (
+      {src && imgOk ? (
         <img
           className={styles.image}
-          src={book.coverUrl}
+          src={src}
           alt={book.title}
           loading="lazy"
           onError={() => setImgOk(false)}
@@ -49,6 +129,7 @@ export function Cover({ book, width = 132, onClick }: CoverProps) {
             // OpenLibrary's covers-by-ISBN endpoint returns a 1x1 placeholder
             // (HTTP 200, so onError never fires) when it has no real cover.
             if (event.currentTarget.naturalWidth <= 1) setImgOk(false);
+            else setLoaded(true);
           }}
         />
       ) : (

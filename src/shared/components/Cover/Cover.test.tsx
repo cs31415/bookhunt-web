@@ -1,44 +1,141 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Cover } from './Cover';
+import { repairCover, resetRepairedCovers } from '../../../api/books/repair-cover';
 
-const baseBook = {
-  title: 'Dune',
-  authorName: 'Frank Herbert',
+vi.mock('../../../api/books/repair-cover', async () => {
+  const actual = await vi.importActual<typeof import('../../../api/books/repair-cover')>(
+    '../../../api/books/repair-cover',
+  );
+  return { ...actual, repairCover: vi.fn() };
+});
+
+const mockedRepairCover = vi.mocked(repairCover);
+
+const DEAD = 'https://covers.openlibrary.org/b/id/13985317-M.jpg';
+const GOOGLE = 'https://books.google.com/books/content?id=abc&img=1';
+
+const book = {
+  slug: 'enlightenment',
+  title: 'Enlightenment',
+  authorName: 'Ritchie Robertson',
+  coverUrl: DEAD,
   hue: '#6f7a55',
-  year: 1965,
+  year: 2020,
 };
 
+beforeEach(() => {
+  vi.useFakeTimers();
+  resetRepairedCovers();
+  mockedRepairCover.mockReset();
+  mockedRepairCover.mockResolvedValue(null);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+/** The procedural cover is an SVG labelled for the book; the <img> is not. */
+function proceduralShown(title: string) {
+  return screen.queryByLabelText(`Cover for ${title}`) !== null;
+}
+
 describe('Cover', () => {
-  it('renders a real image when coverUrl is set', () => {
-    render(<Cover book={{ ...baseBook, coverUrl: 'https://example.com/dune.jpg' }} />);
-    const img = screen.getByRole('img', { name: 'Dune' });
-    expect(img.tagName).toBe('IMG');
+  it('shows the image while it is still within its patience', () => {
+    render(<Cover book={book} />);
+
+    act(() => {
+      vi.advanceTimersByTime(2900);
+    });
+
+    expect(screen.getByRole('img', { name: 'Enlightenment' })).toHaveAttribute('src', DEAD);
+    expect(proceduralShown('Enlightenment')).toBe(false);
   });
 
-  it('falls back to the procedural SVG cover when the image fails to load', () => {
-    render(<Cover book={{ ...baseBook, coverUrl: 'https://example.com/dune.jpg' }} />);
-    const img = screen.getByRole('img', { name: 'Dune' });
-    fireEvent.error(img);
+  // A host that hangs rather than refusing never fires onError, so without the
+  // timer the reader watches a bare coloured box for the browser's own connect
+  // timeout (LOS-272).
+  it('falls back to the procedural cover after three seconds', () => {
+    render(<Cover book={book} />);
 
-    const svg = screen.getByRole('img', { name: 'Cover for Dune' });
-    expect(svg.tagName.toLowerCase()).toBe('svg');
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(proceduralShown('Enlightenment')).toBe(true);
   });
 
-  it('falls back to the procedural SVG cover when the image loads as a 1x1 placeholder', () => {
-    render(<Cover book={{ ...baseBook, coverUrl: 'https://covers.openlibrary.org/b/isbn/0000000000.jpg' }} />);
-    const img = screen.getByRole('img', { name: 'Dune' });
-    Object.defineProperty(img, 'naturalWidth', { value: 1, configurable: true });
-    fireEvent.load(img);
+  it('asks the API to repair the cover it gave up on', () => {
+    render(<Cover book={book} />);
 
-    const svg = screen.getByRole('img', { name: 'Cover for Dune' });
-    expect(svg.tagName.toLowerCase()).toBe('svg');
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(mockedRepairCover).toHaveBeenCalledWith('enlightenment');
   });
 
-  it('renders the procedural SVG cover directly when there is no coverUrl', () => {
-    render(<Cover book={{ ...baseBook, coverUrl: null }} />);
-    const svg = screen.getByRole('img', { name: 'Cover for Dune' });
-    expect(svg.tagName.toLowerCase()).toBe('svg');
-    expect(screen.getByText('1965')).toBeInTheDocument();
+  it('shows the repaired cover without a reload', async () => {
+    mockedRepairCover.mockResolvedValue({ outcome: 'repaired', coverUrl: GOOGLE });
+    render(<Cover book={book} />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.getByRole('img', { name: 'Enlightenment' })).toHaveAttribute('src', GOOGLE);
+  });
+
+  it('keeps the procedural cover when nothing could be found', async () => {
+    mockedRepairCover.mockResolvedValue({ outcome: 'no_replacement', coverUrl: null });
+    render(<Cover book={book} />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(proceduralShown('Enlightenment')).toBe(true);
+  });
+
+  // The timer has to stop when the cover arrives, or every loaded cover on the
+  // page would replace itself with a placeholder three seconds in.
+  it('leaves a loaded cover alone', () => {
+    render(<Cover book={book} />);
+
+    const img = screen.getByRole('img', { name: 'Enlightenment' });
+    Object.defineProperty(img, 'naturalWidth', { value: 300, configurable: true });
+    act(() => {
+      img.dispatchEvent(new Event('load'));
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(proceduralShown('Enlightenment')).toBe(false);
+    expect(mockedRepairCover).not.toHaveBeenCalled();
+  });
+
+  it('shows the procedural cover at once for a book with no cover', () => {
+    render(<Cover book={{ ...book, coverUrl: null }} />);
+
+    expect(proceduralShown('Enlightenment')).toBe(true);
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(mockedRepairCover).not.toHaveBeenCalled();
+  });
+
+  // A CSV import row has no slug until it resolves, and there is nothing to
+  // address a repair to.
+  it('does not try to repair a book with no slug', () => {
+    render(<Cover book={{ ...book, slug: undefined }} />);
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(proceduralShown('Enlightenment')).toBe(true);
+    expect(mockedRepairCover).not.toHaveBeenCalled();
   });
 });
