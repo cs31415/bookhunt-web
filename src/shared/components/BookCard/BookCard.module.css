@@ -19,13 +19,31 @@
   bottom: 0;
 }
 
-/* Top of the cover, opposite corner from the status fold, which sits top-left.
-   Anchored to the cover rather than the card so it does not drift down when a
-   title wraps to two lines. */
+/*
+ * Bottom-right of the cover, clear of the status fold in the top-right corner.
+ *
+ * The heart is a sibling of the card button, so it can only position against
+ * .wrap, whose height includes the title block below the artwork. This box
+ * instead repeats the cover's geometry -- full width, 2:3 as Cover draws it --
+ * and lays the heart in its bottom-right corner, so the heart stays on the
+ * artwork however many lines the title takes.
+ */
 .overlay {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 8px;
+  /* The box spans the whole cover, so only the heart in it may take a click. */
+  pointer-events: none;
+}
+
+.overlay > * {
+  pointer-events: auto;
 }
 
 .card {

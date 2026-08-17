@@ -71,9 +71,9 @@ export function Hero({
             />
           )}
           {/*
-           * Top-right, opposite the status fold, which is the same arrangement
-           * the library grid uses -- a book carries its marks in the same
-           * corners wherever it appears. Only once it is owned: there is no
+           * Bottom-right, clear of the status fold, which is the same
+           * arrangement the library grid uses -- a book carries its marks in the
+           * same corners wherever it appears. Only once it is owned: there is no
            * entry to favourite otherwise, and Add is the control that matters.
            */}
           {libraryEntry && (
