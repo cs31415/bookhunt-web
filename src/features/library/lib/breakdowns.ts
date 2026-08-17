@@ -25,20 +25,39 @@ export interface LibraryFilter {
   format?: LibraryFormat | null;
 }
 
-/** The two values ?format= accepts. Anything else is read as no filter. */
-export type LibraryFormat = 'ebook' | 'physical';
+/** The values ?format= accepts. Anything else is read as no filter. */
+export type LibraryFormat = 'ebook' | 'audiobook' | 'physical';
+
+const FORMATS: LibraryFormat[] = ['ebook', 'audiobook', 'physical'];
 
 export function asFormat(value: string | null): LibraryFormat | null {
-  return value === 'ebook' || value === 'physical' ? value : null;
+  return FORMATS.includes(value as LibraryFormat) ? (value as LibraryFormat) : null;
 }
 
 /**
- * Both halves of the split, so the rail can label each pill and decide whether
- * the group is worth showing at all.
+ * Whether one entry counts as a given format.
+ *
+ * The two flags are independent, so a book can be both an ebook and an
+ * audiobook and is counted under each. Physical is the absence of both, which
+ * is what makes a shelf that predates the flags read as physical.
+ */
+export function isFormat(entry: LibraryEntry, format: LibraryFormat): boolean {
+  if (format === 'ebook') return entry.isEbook;
+  if (format === 'audiobook') return entry.isAudiobook;
+  return !entry.isEbook && !entry.isAudiobook;
+}
+
+/**
+ * Every format's count, so the rail can label each pill and decide which are
+ * worth showing. These can sum to more than the shelf: a book owned in two
+ * formats is in two of them.
  */
 export function formatCounts(entries: LibraryEntry[]): Record<LibraryFormat, number> {
-  const ebook = entries.filter((entry) => entry.isEbook).length;
-  return { ebook, physical: entries.length - ebook };
+  return {
+    ebook: entries.filter((entry) => isFormat(entry, 'ebook')).length,
+    audiobook: entries.filter((entry) => isFormat(entry, 'audiobook')).length,
+    physical: entries.filter((entry) => isFormat(entry, 'physical')).length,
+  };
 }
 
 export function statusCounts(entries: LibraryEntry[]): Record<LibraryStatus, number> {
@@ -94,7 +113,7 @@ export function filterEntries(entries: LibraryEntry[], filter: LibraryFilter): L
   const terms = queryTerms(filter.q);
   return entries.filter((entry) => {
     if (filter.favorite && !entry.isFavorite) return false;
-    if (filter.format && entry.isEbook !== (filter.format === 'ebook')) return false;
+    if (filter.format && !isFormat(entry, filter.format)) return false;
     if (filter.status && entry.status !== filter.status) return false;
     if (filter.category && !entry.subjects.includes(filter.category)) return false;
     if (filter.mood && !entry.moods.includes(filter.mood)) return false;

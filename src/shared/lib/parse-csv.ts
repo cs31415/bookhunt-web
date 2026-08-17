@@ -80,7 +80,16 @@ export interface CsvBookRow {
    * unreadable — the review list then defaults it to New, as it always has.
    */
   status: LibraryStatus | null;
+  /**
+   * The format the reader owns, from a Goodreads "Binding" or a StoryGraph
+   * "Format" column. Null when the column is absent, blank or unreadable, which
+   * the import treats as physical (LOS-273).
+   */
+  format: BookFormat | null;
 }
+
+/** What a format column can say. "Physical" is the absence of the other two. */
+export type BookFormat = 'ebook' | 'audiobook' | 'physical';
 
 export interface ParsedCsv {
   rows: CsvBookRow[];
@@ -102,6 +111,8 @@ const COLUMN_ALIASES: Record<keyof CsvBookRow, string[]> = {
   // isbn13 first: when a file carries both, the 13-digit form is unambiguous.
   isbn: ['isbn13', 'isbn', 'isbn10', 'ean'],
   status: ['status', 'shelf'],
+  // "binding" is what Goodreads calls it, "format" is StoryGraph's.
+  format: ['format', 'binding', 'mediatype', 'media'],
 };
 
 /** Folds case and punctuation, so "Book Title" and "book_title" are one key. */
@@ -122,6 +133,48 @@ function normalizeToken(value: string): string {
 const STATUS_BY_LABEL = new Map<string, LibraryStatus>(
   ALL_LIBRARY_STATUSES.map((status) => [normalizeToken(LIBRARY_STATUS_LABELS[status]), status]),
 );
+
+/**
+ * What each format word means, in the spellings the two exports readers
+ * actually bring use. Goodreads writes "Kindle Edition", "Paperback",
+ * "Audiobook", "Audio CD"; StoryGraph writes "digital", "physical", "audio".
+ *
+ * Every physical binding is listed rather than assumed, so a word nobody
+ * anticipated lands in the warning below instead of being filed as a paperback.
+ * "Unknown Binding" is Goodreads' own way of saying it does not know, and a
+ * book with no known format is the physical default — no warning for it.
+ */
+const FORMAT_BY_WORD = new Map<string, BookFormat>([
+  ['ebook', 'ebook'],
+  ['ebooks', 'ebook'],
+  ['kindleedition', 'ebook'],
+  ['kindle', 'ebook'],
+  ['digital', 'ebook'],
+  ['epub', 'ebook'],
+  ['mobi', 'ebook'],
+  ['pdf', 'ebook'],
+  ['nook', 'ebook'],
+  ['audiobook', 'audiobook'],
+  ['audio', 'audiobook'],
+  ['audible', 'audiobook'],
+  ['audibleaudio', 'audiobook'],
+  ['audiocd', 'audiobook'],
+  ['mp3cd', 'audiobook'],
+  ['cd', 'audiobook'],
+  ['paperback', 'physical'],
+  ['hardcover', 'physical'],
+  ['hardback', 'physical'],
+  ['massmarketpaperback', 'physical'],
+  ['massmarket', 'physical'],
+  ['boardbook', 'physical'],
+  ['spiralbound', 'physical'],
+  ['libmed', 'physical'],
+  ['librarybinding', 'physical'],
+  ['print', 'physical'],
+  ['physical', 'physical'],
+  ['book', 'physical'],
+  ['unknownbinding', 'physical'],
+]);
 
 /** "New, Reading, Finished or Abandoned" — for telling a reader what we take. */
 const ACCEPTED_STATUS_LABELS = (() => {
@@ -166,7 +219,7 @@ export function parseCsv(text: string): ParsedCsv {
     return {
       rows: [],
       error:
-        'That file needs a "title" column. Expected headers: title, author, publisher, isbn, status.',
+        'That file needs a "title" column. Expected headers: title, author, publisher, isbn, status, format.',
       warning: null,
     };
   }
@@ -175,10 +228,12 @@ export function parseCsv(text: string): ParsedCsv {
   const publisherIndex = indexOf('publisher');
   const isbnIndex = indexOf('isbn');
   const statusIndex = indexOf('status');
+  const formatIndex = indexOf('format');
 
   const parsed: CsvBookRow[] = [];
   const raggedLines: number[] = [];
   const unreadableStatusLines: number[] = [];
+  const unreadableFormatLines: number[] = [];
 
   rows.slice(1).forEach((cells, i) => {
     // More cells than headers almost always means an unquoted comma inside a
@@ -200,12 +255,19 @@ export function parseCsv(text: string): ParsedCsv {
       rawStatus === null ? null : (STATUS_BY_LABEL.get(normalizeToken(rawStatus)) ?? null);
     if (rawStatus !== null && status === null) unreadableStatusLines.push(i + 2);
 
+    // Same treatment as status, and for the same reason: a binding we cannot
+    // place would otherwise be indistinguishable from no format column at all.
+    const rawFormat = formatIndex === -1 ? null : blankToNull(cells[formatIndex]);
+    const format = rawFormat === null ? null : (FORMAT_BY_WORD.get(normalizeToken(rawFormat)) ?? null);
+    if (rawFormat !== null && format === null) unreadableFormatLines.push(i + 2);
+
     parsed.push({
       title,
       author: authorIndex === -1 ? null : blankToNull(cells[authorIndex]),
       publisher: publisherIndex === -1 ? null : blankToNull(cells[publisherIndex]),
       isbn: isbnIndex === -1 ? null : blankToNull(cells[isbnIndex]),
       status,
+      format,
     });
   });
 
@@ -220,6 +282,11 @@ export function parseCsv(text: string): ParsedCsv {
   if (unreadableStatusLines.length > 0) {
     warnings.push(
       `Didn't recognise the status on ${unreadableStatusLines.length} ${unreadableStatusLines.length === 1 ? 'row' : 'rows'} (${lineList(unreadableStatusLines)}) — those came in as ${LIBRARY_STATUS_LABELS.queued}. Use ${ACCEPTED_STATUS_LABELS}.`,
+    );
+  }
+  if (unreadableFormatLines.length > 0) {
+    warnings.push(
+      `Didn't recognise the format on ${unreadableFormatLines.length} ${unreadableFormatLines.length === 1 ? 'row' : 'rows'} (${lineList(unreadableFormatLines)}) — those came in as physical books. Use ebook, audiobook, or a binding like paperback or hardcover.`,
     );
   }
   const warning = warnings.length > 0 ? warnings.join(' ') : null;

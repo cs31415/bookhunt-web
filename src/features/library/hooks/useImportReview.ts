@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { addToLibrary } from '../../../api/library/add-to-library';
-import type { AddToLibraryRawFields } from '../../../api/library/add-to-library';
+import type { AddToLibraryRawFields, LibraryFormatFlags } from '../../../api/library/add-to-library';
 import { categorizeBooks } from '../../../api/ai/categorize';
 import { mapWithConcurrency } from '../../../shared/lib/map-with-concurrency';
 import { toast } from '../../../shared/toast/toast-store';
@@ -19,6 +19,12 @@ const ADD_CONCURRENCY = 6;
 export interface AddArgs {
   slug: string;
   rawFields?: AddToLibraryRawFields;
+  /**
+   * The format the source knew, set in the same write as the status. A CSV
+   * carries it in the row it carries the title in, so a second request per book
+   * would double the cost of a 300-row import (LOS-273).
+   */
+  format?: LibraryFormatFlags;
 }
 
 export interface UseImportReviewOptions<TRow> {
@@ -176,6 +182,7 @@ export function useImportReview<TRow>(
           // per book, which is what made a 300-book add take minutes (LOS-202).
           const { book } = await addToLibrary(args.slug, statusFor(keyOf(row)), args.rawFields, {
             enrich: false,
+            ...args.format,
           });
           return book.id;
         } catch {

@@ -43,6 +43,7 @@ function asStatus(value: string | null): LibraryStatus | null {
 function cardBadges(entry: LibraryEntry): string | undefined {
   const badges: string[] = [];
   if (entry.isEbook) badges.push('Ebook');
+  if (entry.isAudiobook) badges.push('Audiobook');
   if (entry.isHidden) badges.push('Hidden from your public page');
   return badges.length > 0 ? badges.join(' · ') : undefined;
 }
@@ -351,6 +352,8 @@ export function LibraryPage() {
                         onToggleHidden={(next) => flags.toggleHidden(entry, next)}
                         isEbook={entry.isEbook}
                         onToggleEbook={(next) => flags.toggleEbook(entry, next)}
+                        isAudiobook={entry.isAudiobook}
+                        onToggleAudiobook={(next) => flags.toggleAudiobook(entry, next)}
                         isFavorite={entry.isFavorite}
                         onToggleFavorite={(next) => flags.toggleFavorite(entry, next)}
                         onRemove={() =>

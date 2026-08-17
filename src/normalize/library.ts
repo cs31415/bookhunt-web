@@ -31,6 +31,7 @@ export interface RawLibraryEntry {
   is_favorite?: boolean | null;
   is_hidden?: boolean | null;
   is_ebook?: boolean | null;
+  is_audiobook?: boolean | null;
 }
 
 export interface RawLibraryStats {
@@ -51,6 +52,8 @@ export interface LibraryEntry {
   isHidden: boolean;
   /** The copy on the shelf is an ebook. False is a physical book (LOS-271). */
   isEbook: boolean;
+  /** Independent of isEbook — a reader can own both. Neither is physical. */
+  isAudiobook: boolean;
 }
 
 export function normalizeLibraryEntry(raw: RawLibraryEntry): LibraryEntry {
@@ -67,8 +70,9 @@ export function normalizeLibraryEntry(raw: RawLibraryEntry): LibraryEntry {
     // from a source that has none, and neither flag is optional in the table.
     isFavorite: raw.is_favorite ?? false,
     isHidden: raw.is_hidden ?? false,
-    // Null reads as physical, which is also what the column defaults to.
+    // Null reads as physical, which is also what the columns default to.
     isEbook: raw.is_ebook ?? false,
+    isAudiobook: raw.is_audiobook ?? false,
     book: {
       id: raw.book_id,
       slug: raw.book_slug,

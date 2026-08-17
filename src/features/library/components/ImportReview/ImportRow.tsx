@@ -20,6 +20,12 @@ export interface ImportRowProps {
   onToggle: () => void;
   /** Shown under the author — e.g. why nothing matched. */
   note?: string;
+  /**
+   * What the file said this copy is. Read-only on purpose: the row already
+   * carries a tick, a status pill and sometimes a candidate picker, and
+   * correcting a format is one click on the card menu after importing.
+   */
+  format?: 'ebook' | 'audiobook' | 'physical' | null;
   /** Alternatives the reader can pick between. */
   candidates?: ImportCandidate[];
   selectedCandidateId?: string;
@@ -43,6 +49,7 @@ export function ImportRow({
   onCycleStatus,
   onToggle,
   note,
+  format,
   candidates,
   selectedCandidateId,
   onSelectCandidate,
@@ -60,6 +67,11 @@ export function ImportRow({
         <div className={styles.rowAuthor}>{book.authorName}</div>
         {disabledReason && <div className={styles.rowNote}>{disabledReason}</div>}
         {!disabledReason && note && <div className={styles.rowNote}>{note}</div>}
+        {/* Only when the file said something other than physical — a note
+            saying "Physical" on every row of a paperback shelf is noise. */}
+        {!disabledReason && (format === 'ebook' || format === 'audiobook') && (
+          <div className={styles.rowNote}>{format === 'ebook' ? 'Ebook' : 'Audiobook'}</div>
+        )}
 
         {!inert && candidates && candidates.length > 1 && (
           <select

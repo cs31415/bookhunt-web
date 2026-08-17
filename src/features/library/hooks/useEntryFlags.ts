@@ -2,10 +2,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { setFavorite } from '../../../api/library/set-favorite';
 import { setHidden } from '../../../api/library/set-hidden';
 import { setEbook } from '../../../api/library/set-ebook';
+import { setAudiobook } from '../../../api/library/set-audiobook';
 import { toast } from '../../../shared/toast/toast-store';
 import type { LibraryEntry } from '../../../normalize/library';
 
-type Flag = 'isFavorite' | 'isHidden' | 'isEbook';
+type Flag = 'isFavorite' | 'isHidden' | 'isEbook' | 'isAudiobook';
 
 /** One override per book per flag, so favouriting and hiding cannot clobber each other. */
 type Overrides = Record<number, Partial<Record<Flag, boolean>>>;
@@ -101,6 +102,23 @@ export function useEntryFlags() {
     [set],
   );
 
+  const toggleAudiobook = useCallback(
+    async (entry: LibraryEntry, next: boolean) => {
+      set(entry.book.id, 'isAudiobook', next);
+      try {
+        await setAudiobook(entry.book.id, next);
+      } catch {
+        set(entry.book.id, 'isAudiobook', undefined);
+        toast({
+          text: next
+            ? `Could not mark “${entry.book.title}” as an audiobook`
+            : `Could not clear the audiobook mark on “${entry.book.title}”`,
+        });
+      }
+    },
+    [set],
+  );
+
   /**
    * Hides several at once. Sequential rather than parallel: the selection can
    * be the whole shelf, and a few hundred simultaneous requests is how a
@@ -131,7 +149,7 @@ export function useEntryFlags() {
   );
 
   return useMemo(
-    () => ({ apply, toggleFavorite, toggleHidden, toggleEbook, hideMany }),
-    [apply, toggleFavorite, toggleHidden, toggleEbook, hideMany],
+    () => ({ apply, toggleFavorite, toggleHidden, toggleEbook, toggleAudiobook, hideMany }),
+    [apply, toggleFavorite, toggleHidden, toggleEbook, toggleAudiobook, hideMany],
   );
 }
