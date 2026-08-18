@@ -78,38 +78,6 @@
   opacity: 0.55;
 }
 
-.tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--line);
-  overflow-x: auto;
-}
-
-.tab {
-  font-family: var(--ui-sans);
-  font-size: 0.875rem;
-  padding: 10px 14px;
-  border: none;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-  white-space: nowrap;
-  /* Reserves the underline's space in both states, so selecting a tab does not
-     nudge the grid down by two pixels. */
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-
-.tab:hover {
-  color: var(--ink-2);
-}
-
-.tabActive {
-  color: var(--ink);
-  border-bottom-color: var(--rust);
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--book-grid-min), 1fr));

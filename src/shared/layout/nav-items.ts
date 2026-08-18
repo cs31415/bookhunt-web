@@ -37,14 +37,14 @@ export function useNavItems(): NavItem[] {
   if (lastSearch) items.push({ label: 'Search', path: '/search', to: lastSearch, Icon: SearchIcon });
   items.push(LIBRARY_ITEM);
 
-  // Points at the reader's own profile, where favourites live (LOS-259).
-  // Hidden entirely when signed out, unlike Library, which shows and bounces:
-  // there is no handle to build a URL from, so the link would go nowhere.
-  if (user?.handle) {
+  // A page of its own now, not the profile filtered (LOS-279). No handle in the
+  // URL, so unlike before it survives a reader who has not set one — and it is
+  // shown to anyone signed in, the way Library is.
+  if (user) {
     items.push({
       label: 'Favourites',
-      path: `/${user.handle}`,
-      to: `/${user.handle}?tab=favorites`,
+      path: '/favorites',
+      to: '/favorites',
       Icon: HeartIcon,
     });
   }
