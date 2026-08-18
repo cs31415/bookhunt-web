@@ -5,6 +5,11 @@ export interface FavoriteAuthor {
   slug: string;
   /** How many of that author's books the reader owns. */
   bookCount: number;
+  /**
+   * Kept off the public page (LOS-282). Present on the owner's own list only:
+   * a visitor is never told something was withheld, only shown what was not.
+   */
+  isHidden?: boolean;
 }
 
 /** The signed-in reader's own list. */

@@ -63,6 +63,8 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   { method: 'get', path: '/authors/:slug', auth: 'optional' },
   { method: 'post', path: '/authors/:slug/favorite', auth: 'required' },
   { method: 'delete', path: '/authors/:slug/favorite', auth: 'required' },
+  { method: 'put', path: '/authors/:slug/favorite/hidden', auth: 'required' },
+  { method: 'delete', path: '/authors/:slug/favorite/hidden', auth: 'required' },
   { method: 'get', path: '/search', auth: 'optional' },
   { method: 'get', path: '/recommendations', auth: 'required' },
 
