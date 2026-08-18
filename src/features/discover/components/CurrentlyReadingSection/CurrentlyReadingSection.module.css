@@ -4,41 +4,73 @@
   border-top: 1px solid var(--line);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 18px;
+/* Sideways rather than wrapping: books on a shelf run off the end of it. */
+.scroller {
+  overflow-x: auto;
+  /* Room for the scrollbar where the platform draws one over the content. */
+  padding-bottom: 4px;
 }
 
-.card {
+.scroller:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 4px;
+  border-radius: var(--r-sm);
+}
+
+/* max-content so the row grows with the books it holds rather than clipping
+   them; min-width so it still fills the page when there are only two. */
+.row {
   display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-1);
+  gap: var(--book-grid-gap);
+  width: max-content;
+  min-width: 100%;
+}
+
+.book {
+  /* The track the library grid uses, so a book is the same size wherever it is
+     shown, and grows with the type on a phone (LOS-247). */
+  width: var(--book-grid-min);
+  flex: none;
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
 }
 
-.info {
-  flex: 1;
-  min-width: 0;
+.book:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+/* The 12px BookCard puts between a cover and its words, so a book reads the
+   same here as it does in the grid. */
+.label {
+  display: block;
+  margin-top: 12px;
 }
 
 .title {
-  font-size: 1.0625rem;
+  display: block;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  /* A track is narrower than some single words, and without this one runs on
+     over the next book. Same pair, and same order, as BookCard. */
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .author {
-  font-size: 0.8125rem;
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
   color: var(--muted);
-  margin: 3px 0 10px;
-}
-
-.notes {
-  font-size: 0.8125rem;
-  color: var(--ink-2);
-  font-style: italic;
-  line-height: 1.5;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
