@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from './ProfilePage';
@@ -55,6 +56,8 @@ function renderProfile(path = '/ada') {
       <RouterProvider router={router} />
     </AuthProvider>,
   );
+  // Returned so a test can read the URL the page navigated to.
+  return router;
 }
 
 beforeEach(() => {
@@ -189,7 +192,7 @@ describe('the Authors tab', () => {
   });
 
   it('reads the public list for a visitor', async () => {
-    renderProfile('/ada?tab=authors');
+    renderProfile('/ada?tab=favorites&sub=authors');
 
     expect(await screen.findByRole('link', { name: 'Carl Sagan' })).toHaveAttribute(
       'href',
@@ -220,10 +223,54 @@ describe('the Authors tab', () => {
       authors: [{ name: 'Ursula Le Guin', slug: 'ursula-le-guin', bookCount: 4 }],
     });
 
-    renderProfile('/ada?tab=authors');
+    renderProfile('/ada?tab=favorites&sub=authors');
 
     expect(await screen.findByRole('link', { name: 'Ursula Le Guin' })).toBeInTheDocument();
     expect(mockedMyAuthors).toHaveBeenCalled();
     expect(mockedPublicAuthors).not.toHaveBeenCalled();
+  });
+});
+
+describe('the Favourites sub-tabs', () => {
+  beforeEach(() => {
+    mockedPublicAuthors.mockResolvedValue({
+      authors: [{ name: 'Carl Sagan', slug: 'carl-sagan', bookCount: 2 }],
+    });
+  });
+
+  it('shows books under Favourites by default', async () => {
+    renderProfile('/ada?tab=favorites');
+
+    expect(await screen.findByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Books' })).toHaveAttribute('aria-selected', 'true');
+    // Favourites, not the whole shelf: the filter reaches the API.
+    expect(mockedPublicLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ favorites: true }),
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('switches to authors and says so in the URL, so the link survives sharing', async () => {
+    const router = renderProfile('/ada?tab=favorites');
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Authors' }));
+
+    expect(await screen.findByRole('link', { name: 'Carl Sagan' })).toBeInTheDocument();
+    expect(router.state.location.search).toContain('sub=authors');
+  });
+
+  it('offers no sub-tabs outside Favourites', async () => {
+    renderProfile();
+
+    await screen.findByRole('button', { name: /Cosmos/ });
+    expect(screen.queryByRole('tab', { name: 'Books' })).not.toBeInTheDocument();
+  });
+
+  it('never offers People — a follow list is not public', async () => {
+    renderProfile('/ada?tab=favorites');
+
+    await screen.findByRole('button', { name: /Cosmos/ });
+    expect(screen.queryByRole('tab', { name: 'People' })).not.toBeInTheDocument();
   });
 });

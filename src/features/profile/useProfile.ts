@@ -6,17 +6,13 @@ import { ApiError, isAbortError } from '../../api/client';
 import { normalizeLibraryEntry } from '../../normalize/library';
 import type { LibraryEntry } from '../../normalize/library';
 
-export type ProfileTab = 'library' | 'reading' | 'favorites' | 'authors' | 'people';
+export type ProfileTab = 'library' | 'reading' | 'favorites';
 
 /** The API filters each tab answers with. */
 const TAB_QUERY: Record<ProfileTab, { status?: string; favorites?: boolean }> = {
   library: {},
   reading: { status: 'reading' },
   favorites: { favorites: true },
-  // Neither of these comes from the library endpoint; each tab fetches its
-  // own. The entries exist so the map stays exhaustive.
-  authors: {},
-  people: {},
 };
 
 interface Answer {
@@ -53,26 +49,31 @@ export interface VisitorProfile {
  */
 export function useVisitorProfile(
   handle: string,
-  tab: ProfileTab,
+  tab: ProfileTab | null,
   page: number,
   pageSize: number,
 ): VisitorProfile {
-  const key = `${handle}|${tab}|${page}|${pageSize}`;
+  const key = `${handle}|${tab ?? 'none'}|${page}|${pageSize}`;
   const [answer, setAnswer] = useState<Answer | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
 
+    // A null tab means the section on screen is not the library -- favourite
+    // authors, which fetch themselves. The header still has to load, so the
+    // profile request stays and only the shelf request is skipped.
     Promise.all([
       getProfile(handle, controller.signal),
-      getPublicLibrary({ handle, ...TAB_QUERY[tab], page, limit: pageSize }, controller.signal),
+      tab === null
+        ? Promise.resolve(null)
+        : getPublicLibrary({ handle, ...TAB_QUERY[tab], page, limit: pageSize }, controller.signal),
     ])
       .then(([profileResponse, libraryResponse]) =>
         setAnswer({
           key,
           profile: profileResponse.profile,
-          entries: libraryResponse.entries.map(normalizeLibraryEntry),
-          total: libraryResponse.total,
+          entries: libraryResponse ? libraryResponse.entries.map(normalizeLibraryEntry) : [],
+          total: libraryResponse?.total ?? 0,
           outcome: 'ok',
         }),
       )
