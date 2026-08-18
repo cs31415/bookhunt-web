@@ -22,7 +22,11 @@ export function SearchBar({
   value,
   onChange,
   onSubmit,
-  placeholder = 'Search by idea, title, author, mood…',
+  // Names the @ gesture where it is read at the moment of use. Reader lookup is
+  // otherwise invisible: the only other mention of handles is inside the
+  // dropdown, which nobody sees until they have already typed one. Callers that
+  // pass their own placeholder and turn `people` on say it themselves.
+  placeholder = 'Search by idea, title, author, mood… or @handle',
   big = false,
   autoFocus = false,
   people = false,
