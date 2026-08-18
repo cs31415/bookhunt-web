@@ -1,8 +1,7 @@
 import type { ComponentType } from 'react';
-import { HeartIcon, LibraryIcon, SearchIcon } from './icons';
+import { LibraryIcon, SearchIcon } from './icons';
 import type { IconProps } from './icons';
 import { useLastSearch } from './use-last-search';
-import { useAuth } from '../../features/auth/AuthContext';
 
 export interface NavItem {
   label: string;
@@ -31,23 +30,15 @@ const LIBRARY_ITEM: NavItem = {
  */
 export function useNavItems(): NavItem[] {
   const lastSearch = useLastSearch();
-  const { user } = useAuth();
 
   const items: NavItem[] = [];
   if (lastSearch) items.push({ label: 'Search', path: '/search', to: lastSearch, Icon: SearchIcon });
   items.push(LIBRARY_ITEM);
 
-  // A page of its own now, not the profile filtered (LOS-279). No handle in the
-  // URL, so unlike before it survives a reader who has not set one — and it is
-  // shown to anyone signed in, the way Library is.
-  if (user) {
-    items.push({
-      label: 'Favourites',
-      path: '/favorites',
-      to: '/favorites',
-      Icon: HeartIcon,
-    });
-  }
+  // Favourites is deliberately absent: it lives in the account menu beside
+  // Profile. Both are the reader's own things, where this nav is for where the
+  // app takes you — and it leaves this hook with no reason to know who is
+  // signed in.
 
   return items;
 }

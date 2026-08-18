@@ -66,9 +66,19 @@ function AccountMenu() {
               className={styles.accountItem}
               onClick={() => setOpen(false)}
             >
-              My profile
+              Profile
             </Link>
           )}
+          {/* Beside Profile rather than in the nav: both are the reader's own
+              things, and the nav is for where the app takes you. */}
+          <Link
+            to="/favorites"
+            role="menuitem"
+            className={styles.accountItem}
+            onClick={() => setOpen(false)}
+          >
+            Favourites
+          </Link>
           <Link
             to="/settings"
             role="menuitem"

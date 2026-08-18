@@ -138,6 +138,37 @@ describe('TopBar', () => {
     expect(localStorage.getItem('bookhunt_user')).toBeNull();
   });
 
+  it('offers Profile and Favourites in the account menu, not in the nav', () => {
+    localStorage.setItem(
+      'bookhunt_user',
+      JSON.stringify({ id: 7, email: 'reader@example.com', displayName: 'Ada Reader', handle: 'ada' }),
+    );
+    renderAt('/');
+
+    // Neither is a nav entry: both are the reader's own things.
+    expect(screen.queryByRole('link', { name: 'Favourites' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Account' }));
+
+    expect(screen.getByRole('menuitem', { name: 'Profile' })).toHaveAttribute('href', '/ada');
+    expect(screen.getByRole('menuitem', { name: 'Favourites' })).toHaveAttribute(
+      'href',
+      '/favorites',
+    );
+  });
+
+  it('offers Favourites even to a reader with no handle, which Profile needs', () => {
+    localStorage.setItem(
+      'bookhunt_user',
+      JSON.stringify({ id: 7, email: 'reader@example.com', displayName: 'Ada Reader' }),
+    );
+    renderAt('/');
+    fireEvent.click(screen.getByRole('button', { name: 'Account' }));
+
+    expect(screen.queryByRole('menuitem', { name: 'Profile' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Favourites' })).toBeInTheDocument();
+  });
+
   it('walks back through history via the Back button', () => {
     const router = renderAt('/');
     router.navigate('/search');
