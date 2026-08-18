@@ -199,16 +199,6 @@ function OwnerProfile({
         bookCount={total}
       />
 
-      <div className={styles.ownerBar}>
-        <span className={styles.ownerState}>
-          {isPublic ? 'Your page is public.' : 'Your page is private.'}{' '}
-          <Link to="/settings" className={styles.settingsLink}>
-            {isPublic ? 'Change' : 'Make it public'}
-          </Link>
-        </span>
-        <CopyLink handle={handle} enabled={isPublic} />
-      </div>
-
       <Tabs active={tab} onSelect={onSelectTab} sub={sub} onSelectSub={onSelectSub} />
       {showsAuthors(tab, sub) ? (
         <AuthorsTab handle={handle} owner />
@@ -222,6 +212,19 @@ function OwnerProfile({
           />
         </>
       )}
+
+      {/* Last, not first (LOS-281). It is the state of the page and the link to
+          it — a thing to reach for once, having read what is on the page — and
+          above the books it stood between the reader and their own shelf. */}
+      <div className={styles.ownerBar}>
+        <span className={styles.ownerState}>
+          {isPublic ? 'Your page is public.' : 'Your page is private.'}{' '}
+          <Link to="/settings" className={styles.settingsLink}>
+            {isPublic ? 'Change' : 'Make it public'}
+          </Link>
+        </span>
+        <CopyLink handle={handle} enabled={isPublic} />
+      </div>
     </div>
   );
 }
