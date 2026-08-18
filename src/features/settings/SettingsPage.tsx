@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useThemeChoice } from '../../shared/theme/ThemeContext';
 import type { ThemeChoice } from '../../shared/theme/theme';
 import styles from './SettingsPage.module.css';
+import { PublicVisibilityPicker } from './PublicVisibilityPicker';
 
 const THEME_CHOICES: { value: ThemeChoice; label: string }[] = [
   { value: 'light', label: 'Light' },
@@ -189,6 +190,10 @@ export function SettingsPage() {
             </>
           )}
         </p>
+
+        {/* Inside the same card as the switch, and below it: choose what would
+            be shown, then decide whether to show it (LOS-283). */}
+        <PublicVisibilityPicker isPublic={isDiscoverable} />
       </section>
     </div>
   );

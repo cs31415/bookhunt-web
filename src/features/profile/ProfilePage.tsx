@@ -12,7 +12,6 @@ import { useVisitorProfile } from './useProfile';
 import type { ProfileTab } from './useProfile';
 import type { LibraryEntry } from '../../normalize/library';
 import { AuthorsTab } from './AuthorsTab';
-import { PeopleTab } from './PeopleTab';
 import { FavoriteButton } from '../../shared/components/FavoriteButton/FavoriteButton';
 import { setUserFavorite } from '../../api/users/set-user-favorite';
 import { toast } from '../../shared/toast/toast-store';
@@ -24,13 +23,27 @@ const TABS: { id: ProfileTab; label: string }[] = [
   { id: 'library', label: 'Library' },
   { id: 'reading', label: 'Currently reading' },
   { id: 'favorites', label: 'Favourites' },
-  // Public, like favourite books: an author list reads as taste, not as a
-  // social graph (LOS-255).
+];
+
+/**
+ * Favourites hold two kinds of thing, so they carry a second row rather than a
+ * fourth tab. Authors are public — a list of authors reads as taste, not as a
+ * social graph (LOS-255) — which is why they live here and favourite *readers*
+ * do not appear on this page at all (LOS-279).
+ */
+export type FavoritesSub = 'books' | 'authors';
+
+const SUB_TABS: { id: FavoritesSub; label: string }[] = [
+  { id: 'books', label: 'Books' },
   { id: 'authors', label: 'Authors' },
 ];
 
 function asTab(value: string | null): ProfileTab {
   return TABS.some((t) => t.id === value) ? (value as ProfileTab) : 'library';
+}
+
+function asSub(value: string | null): FavoritesSub {
+  return value === 'authors' ? 'authors' : 'books';
 }
 
 /**
@@ -53,36 +66,64 @@ export function ProfilePage() {
   const [page, setPage] = useState(1);
 
   const tab = asTab(searchParams.get('tab'));
+  const sub = asSub(searchParams.get('sub'));
   const isOwner = Boolean(user?.handle && user.handle.toLowerCase() === handle.toLowerCase());
 
   function selectTab(next: ProfileTab) {
     const params = new URLSearchParams(searchParams);
     if (next === 'library') params.delete('tab');
     else params.set('tab', next);
+    // The sub-tab belongs to Favourites, so it leaves with it rather than
+    // lying in wait to reopen on Authors next time Favourites is picked.
+    if (next !== 'favorites') params.delete('sub');
     setSearchParams(params, { replace: true });
     setPage(1);
   }
 
-  return isOwner ? (
-    <OwnerProfile handle={handle} tab={tab} onSelectTab={selectTab} page={page} onPage={setPage} navigate={navigate} />
-  ) : (
-    <VisitorProfileView handle={handle} tab={tab} onSelectTab={selectTab} page={page} onPage={setPage} navigate={navigate} />
-  );
+  function selectSub(next: FavoritesSub) {
+    const params = new URLSearchParams(searchParams);
+    if (next === 'books') params.delete('sub');
+    else params.set('sub', next);
+    setSearchParams(params, { replace: true });
+    setPage(1);
+  }
+
+  const view = { handle, tab, sub, onSelectTab: selectTab, onSelectSub: selectSub, page, onPage: setPage, navigate };
+
+  return isOwner ? <OwnerProfile {...view} /> : <VisitorProfileView {...view} />;
 }
 
 interface ViewProps {
   handle: string;
   tab: ProfileTab;
+  sub: FavoritesSub;
   onSelectTab: (tab: ProfileTab) => void;
+  onSelectSub: (sub: FavoritesSub) => void;
   page: number;
   onPage: (page: number) => void;
   navigate: ReturnType<typeof useNavigate>;
 }
 
-function VisitorProfileView({ handle, tab, onSelectTab, page, onPage, navigate }: ViewProps) {
+/** True when the section on screen is the authors list rather than a shelf. */
+function showsAuthors(tab: ProfileTab, sub: FavoritesSub): boolean {
+  return tab === 'favorites' && sub === 'authors';
+}
+
+function VisitorProfileView({
+  handle,
+  tab,
+  sub,
+  onSelectTab,
+  onSelectSub,
+  page,
+  onPage,
+  navigate,
+}: ViewProps) {
   const { profile, entries, total, loading, notFound, error } = useVisitorProfile(
     handle,
-    tab,
+    // Null skips the shelf request: AuthorsTab fetches its own list, and the
+    // header still comes from the profile call.
+    showsAuthors(tab, sub) ? null : tab,
     page,
     PAGE_SIZE,
   );
@@ -111,8 +152,8 @@ function VisitorProfileView({ handle, tab, onSelectTab, page, onPage, navigate }
         bookCount={profile.counts.total}
         favorite={<FavoriteReader handle={profile.handle} initial={profile.isFavorite ?? false} />}
       />
-      <Tabs active={tab} onSelect={onSelectTab} owner={false} />
-      {tab === 'authors' ? (
+      <Tabs active={tab} onSelect={onSelectTab} sub={sub} onSelectSub={onSelectSub} />
+      {showsAuthors(tab, sub) ? (
         <AuthorsTab handle={handle} owner={false} />
       ) : (
         <>
@@ -124,7 +165,16 @@ function VisitorProfileView({ handle, tab, onSelectTab, page, onPage, navigate }
   );
 }
 
-function OwnerProfile({ handle, tab, onSelectTab, page, onPage, navigate }: ViewProps) {
+function OwnerProfile({
+  handle,
+  tab,
+  sub,
+  onSelectTab,
+  onSelectSub,
+  page,
+  onPage,
+  navigate,
+}: ViewProps) {
   const { user } = useAuth();
   const { entries, total, loading } = useLibraryData();
 
@@ -149,20 +199,8 @@ function OwnerProfile({ handle, tab, onSelectTab, page, onPage, navigate }: View
         bookCount={total}
       />
 
-      <div className={styles.ownerBar}>
-        <span className={styles.ownerState}>
-          {isPublic ? 'Your page is public.' : 'Your page is private.'}{' '}
-          <Link to="/settings" className={styles.settingsLink}>
-            {isPublic ? 'Change' : 'Make it public'}
-          </Link>
-        </span>
-        <CopyLink handle={handle} enabled={isPublic} />
-      </div>
-
-      <Tabs active={tab} onSelect={onSelectTab} owner />
-      {tab === 'people' ? (
-        <PeopleTab />
-      ) : tab === 'authors' ? (
+      <Tabs active={tab} onSelect={onSelectTab} sub={sub} onSelectSub={onSelectSub} />
+      {showsAuthors(tab, sub) ? (
         <AuthorsTab handle={handle} owner />
       ) : (
         <>
@@ -174,6 +212,19 @@ function OwnerProfile({ handle, tab, onSelectTab, page, onPage, navigate }: View
           />
         </>
       )}
+
+      {/* Last, not first (LOS-281). It is the state of the page and the link to
+          it — a thing to reach for once, having read what is on the page — and
+          above the books it stood between the reader and their own shelf. */}
+      <div className={styles.ownerBar}>
+        <span className={styles.ownerState}>
+          {isPublic ? 'Your page is public.' : 'Your page is private.'}{' '}
+          <Link to="/settings" className={styles.settingsLink}>
+            {isPublic ? 'Change' : 'Make it public'}
+          </Link>
+        </span>
+        <CopyLink handle={handle} enabled={isPublic} />
+      </div>
     </div>
   );
 }
@@ -237,19 +288,36 @@ function FavoriteReader({ handle, initial }: { handle: string; initial: boolean 
   return <FavoriteButton isFavorite={favorite} onToggle={toggle} />;
 }
 
+/**
+ * The same rows for the owner as for a visitor. This page is what the public
+ * sees, and the owner sees it as the public would — their private lists live on
+ * /favorites (LOS-279).
+ */
 function Tabs({
   active,
   onSelect,
-  owner,
+  sub,
+  onSelectSub,
 }: {
   active: ProfileTab;
   onSelect: (tab: ProfileTab) => void;
-  owner: boolean;
+  sub: FavoritesSub;
+  onSelectSub: (sub: FavoritesSub) => void;
 }) {
-  // People is owner-only. A visitor never sees who someone follows.
-  const tabs = owner ? [...TABS, { id: 'people' as ProfileTab, label: 'People' }] : TABS;
-
-  return <TabBar tabs={tabs} active={active} onSelect={onSelect} label="Profile sections" />;
+  return (
+    <>
+      <TabBar tabs={TABS} active={active} onSelect={onSelect} label="Profile sections" />
+      {active === 'favorites' && (
+        <TabBar
+          tabs={SUB_TABS}
+          active={sub}
+          onSelect={onSelectSub}
+          label="Favourites"
+          variant="sub"
+        />
+      )}
+    </>
+  );
 }
 
 function Grid({
