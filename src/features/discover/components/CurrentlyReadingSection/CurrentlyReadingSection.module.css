@@ -4,41 +4,106 @@
   border-top: 1px solid var(--line);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 18px;
+/* Sideways rather than wrapping: books on a shelf run off the end of it. */
+.scroller {
+  overflow-x: auto;
+  /* Room for the scrollbar where the platform draws one over the content. */
+  padding-bottom: 4px;
 }
 
-.card {
+.scroller:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 4px;
+  border-radius: var(--r-sm);
+}
+
+/*
+ * max-content so the shelf edge below runs the length of the books when they
+ * overflow; min-width so it still spans the page when there are only two.
+ */
+.row {
+  position: relative;
   display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-1);
+  gap: var(--book-grid-gap);
+  width: max-content;
+  min-width: 100%;
+}
+
+/*
+ * The shelf edge the books stand on. Positioned off the cover height rather
+ * than the flow, because it has to pass *behind* every book at exactly the
+ * line where they end -- and a cover is a fixed 2:3 of the track, so that line
+ * is arithmetic rather than a guess.
+ *
+ * The gradient is the front edge of a board: a firm top face, the thickness
+ * below it, then a fall into shadow. Four pixels of it do the work that a drawn
+ * shelf would need a texture for.
+ *
+ * Mixing --ink into --line rather than picking a colour: --ink is dark on a
+ * light theme and light on a dark one, so the edge gains contrast against the
+ * page in both directions from one declaration.
+ */
+.row::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--book-grid-min) * 1.5);
+  height: 6px;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--line) 55%, var(--ink)) 0 2px,
+    color-mix(in srgb, var(--line) 82%, var(--ink)) 2px 4px,
+    color-mix(in srgb, var(--line) 92%, var(--ink)) 4px 6px
+  );
+  box-shadow: 0 3px 6px -3px rgba(42, 38, 32, 0.3);
+}
+
+.book {
+  /* The track the library grid uses, so a book is the same size wherever it is
+     shown, and grows with the type on a phone (LOS-247). */
+  width: var(--book-grid-min);
+  flex: none;
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
 }
 
-.info {
-  flex: 1;
-  min-width: 0;
+.book:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+/* Clears the shelf edge, so the words sit under the board rather than on it. */
+.label {
+  display: block;
+  margin-top: 13px;
 }
 
 .title {
-  font-size: 1.0625rem;
+  display: block;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  /* A track is narrower than some single words, and without this one runs on
+     over the next book. Same pair, and same order, as BookCard. */
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .author {
-  font-size: 0.8125rem;
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
   color: var(--muted);
-  margin: 3px 0 10px;
-}
-
-.notes {
-  font-size: 0.8125rem;
-  color: var(--ink-2);
-  font-style: italic;
-  line-height: 1.5;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
