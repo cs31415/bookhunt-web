@@ -14,6 +14,7 @@ import { RequireAuth } from '../features/auth/RequireAuth';
 import { LibraryPage } from '../features/library/LibraryPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { ProfilePage } from '../features/profile/ProfilePage';
+import { FavoritesPage } from '../features/favorites/FavoritesPage';
 
 // Plain inline placeholders until Phases 2-6 add the remaining real features/* pages.
 const discoverElement = <DiscoverPage />;
@@ -32,6 +33,16 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <LibraryPage />
+          </RequireAuth>
+        ),
+      },
+      // Above the :handle route, and safe there: 'favorites' is a reserved
+      // handle in the API, so nobody can hold the name this shadows.
+      {
+        path: 'favorites',
+        element: (
+          <RequireAuth>
+            <FavoritesPage />
           </RequireAuth>
         ),
       },

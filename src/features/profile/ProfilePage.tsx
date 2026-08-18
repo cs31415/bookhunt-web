@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
 import { Pagination } from '../../shared/components/Pagination/Pagination';
+import { TabBar } from '../../shared/components/TabBar/TabBar';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { useAuth } from '../auth/AuthContext';
 import { useLibraryData } from '../library/hooks/useLibraryData';
@@ -248,22 +249,7 @@ function Tabs({
   // People is owner-only. A visitor never sees who someone follows.
   const tabs = owner ? [...TABS, { id: 'people' as ProfileTab, label: 'People' }] : TABS;
 
-  return (
-    <div className={styles.tabs} role="tablist" aria-label="Profile sections">
-      {tabs.map(({ id, label }) => (
-        <button
-          key={id}
-          type="button"
-          role="tab"
-          aria-selected={active === id}
-          className={active === id ? `${styles.tab} ${styles.tabActive}` : styles.tab}
-          onClick={() => onSelect(id)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
+  return <TabBar tabs={tabs} active={active} onSelect={onSelect} label="Profile sections" />;
 }
 
 function Grid({
