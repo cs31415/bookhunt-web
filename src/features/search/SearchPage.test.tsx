@@ -8,16 +8,20 @@ import { setStoredUser } from '../../api/auth/stored-user';
 import { aiSearch } from '../../api/ai/search';
 import { searchLibrary } from '../../api/library/search-library';
 import { saveCannedSearch } from '../../api/canned-searches/pin-canned-search';
+import { getCannedSearches } from '../../api/canned-searches/get-canned-searches';
 import type { RawAiSearchBook } from '../../normalize/search';
 import type { RawLibraryEntry } from '../../normalize/library';
 
 vi.mock('../../api/ai/search');
 vi.mock('../../api/library/search-library');
 vi.mock('../../api/canned-searches/pin-canned-search');
+// The save button reads the reader's pins to decide its wording (LOS-295).
+vi.mock('../../api/canned-searches/get-canned-searches');
 
 const mockedAiSearch = vi.mocked(aiSearch);
 const mockedSearchLibrary = vi.mocked(searchLibrary);
 const mockedSaveCannedSearch = vi.mocked(saveCannedSearch);
+const mockedGetCannedSearches = vi.mocked(getCannedSearches);
 
 function LocationProbe() {
   const location = useLocation();
@@ -81,6 +85,8 @@ describe('SearchPage', () => {
     clearSuggestionCache();
     mockedAiSearch.mockReset();
     mockedSearchLibrary.mockReset();
+    // The reader has pinned nothing, so the button offers to keep the search.
+    mockedGetCannedSearches.mockResolvedValue({ pinned: [], suggested: [], history: [] });
     // Most cases are about the AI results; an empty shelf keeps the library
     // section out of the way unless a case opts into it.
     mockedSearchLibrary.mockResolvedValue({

@@ -37,6 +37,8 @@ export interface UseCannedSearchesResult {
    * pins it as part of saving, so the row has to catch up without a refetch.
    */
   addPinned: (search: CannedSearch) => void;
+  /** Its counterpart, for a pill taken away from outside the row (LOS-295). */
+  removePinned: (search: CannedSearch) => void;
   /** Transient message about the last action: a pin refused, a refresh that failed. */
   notice: string | null;
 }
@@ -202,6 +204,11 @@ export function useCannedSearches(): UseCannedSearchesResult {
     );
   }, []);
 
+  /** The counterpart to addPinned, for a pill taken away from outside the row. */
+  const removePinned = useCallback((search: CannedSearch) => {
+    setPinned((current) => current.filter((pin) => pin.id !== search.id));
+  }, []);
+
   return {
     pinned,
     suggested,
@@ -214,6 +221,7 @@ export function useCannedSearches(): UseCannedSearchesResult {
     canGoForward: position < lastIndex,
     togglePin,
     addPinned,
+    removePinned,
     notice,
   };
 }
