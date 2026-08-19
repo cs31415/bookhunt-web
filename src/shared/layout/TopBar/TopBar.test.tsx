@@ -119,6 +119,13 @@ describe('TopBar', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/login');
   });
 
+  it('offers Sign up beside it, in second place', () => {
+    renderAt('/');
+    const links = screen.getAllByRole('link', { name: /^Sign (in|up)$/ });
+    expect(links.map((link) => link.textContent)).toEqual(['Sign in', 'Sign up']);
+    expect(links[1]).toHaveAttribute('href', '/register');
+  });
+
   it('shows an account menu with logout when logged in', async () => {
     localStorage.setItem(
       'bookhunt_user',

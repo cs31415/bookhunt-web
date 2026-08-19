@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError } from '../../api/client';
 import { postResetPassword } from '../../api/auth/reset-password';
+import { PasswordInput } from '../../shared/components/PasswordInput/PasswordInput';
 import styles from './RegisterPage.module.css';
 
 // Mirrors validatePassword on the API, like RegisterPage does. The backend
@@ -85,11 +86,15 @@ export function ResetPasswordPage() {
         <p className={styles.subheading}>Choose a password you have not used here before.</p>
 
         <div className={styles.fieldGroup}>
-          <label className={`${styles.field} ${styles.fieldTight}`}>
-            <span className={styles.label}>New password</span>
-            <input
+          {/* Associated rather than wrapping, so the Show button inside the
+              field stays out of the field's accessible name. */}
+          <div className={`${styles.field} ${styles.fieldTight}`}>
+            <label className={styles.label} htmlFor="reset-password">
+              New password
+            </label>
+            <PasswordInput
+              id="reset-password"
               className={styles.input}
-              type="password"
               name="password"
               autoComplete="new-password"
               minLength={MIN_PASSWORD_LENGTH}
@@ -98,7 +103,7 @@ export function ResetPasswordPage() {
               onChange={(event) => setPassword(event.target.value)}
               required
             />
-          </label>
+          </div>
           <span id="reset-password-hint" className={styles.hint}>
             At least {MIN_PASSWORD_LENGTH} characters.
           </span>

@@ -59,6 +59,15 @@ afterEach(() => {
 });
 
 describe('RegisterPage', () => {
+  it('reveals the password on request', () => {
+    renderRegisterPage();
+    const password = screen.getByLabelText('Password');
+    expect(password).toHaveAttribute('type', 'password');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+    expect(password).toHaveAttribute('type', 'text');
+  });
+
   it('registers and shows the check-your-email panel', async () => {
     mockedPostRegister.mockResolvedValue({ user, verificationRequired: true });
 

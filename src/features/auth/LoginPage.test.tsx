@@ -56,6 +56,15 @@ afterEach(() => {
 });
 
 describe('LoginPage', () => {
+  it('reveals the password on request', () => {
+    renderLoginPage();
+    const password = screen.getByLabelText('Password');
+    expect(password).toHaveAttribute('type', 'password');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+    expect(password).toHaveAttribute('type', 'text');
+  });
+
   it('logs in and navigates home on success', async () => {
     mockedPostLogin.mockResolvedValue({ user });
     renderLoginPage();

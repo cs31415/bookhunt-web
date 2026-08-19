@@ -23,15 +23,16 @@ function AccountMenu() {
   useDismissOnOutside(open, containerRef, () => setOpen(false));
 
   if (!isAuthenticated) {
-    // The avatar alone only ever offered sign-in, which left a first-time
-    // reader with no way into the app at all (LOS-219).
+    // Both doors are named, since the avatar alone left a first-time reader
+    // with no way in at all (LOS-219). Sign in leads, because most people who
+    // come to this corner already have an account (LOS-285).
     return (
       <div className={`${styles.account} ${styles.accountPushRight}`}>
+        <Link to="/login" className={styles.signIn}>
+          Sign in
+        </Link>
         <Link to="/register" className={styles.signUp}>
           Sign up
-        </Link>
-        <Link to="/login" className={styles.avatar} aria-label="Sign in">
-          <UserIcon className={styles.avatarIcon} />
         </Link>
       </div>
     );
