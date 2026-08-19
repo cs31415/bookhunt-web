@@ -19,7 +19,7 @@
 .query {
   display: inline-flex;
   align-items: center;
-  padding: 4px 11px;
+  padding: 2px 11px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--paper-2);
