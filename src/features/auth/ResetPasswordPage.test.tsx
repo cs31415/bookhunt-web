@@ -36,6 +36,15 @@ describe('ResetPasswordPage', () => {
     mockedReset.mockResolvedValue({ ok: true });
   });
 
+  it('reveals the password on request', () => {
+    renderAt('/reset-password?token=abc123');
+    const password = screen.getByLabelText('New password');
+    expect(password).toHaveAttribute('type', 'password');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+    expect(password).toHaveAttribute('type', 'text');
+  });
+
   it('sends the token with the new password and lands on sign-in', async () => {
     const router = renderAt('/reset-password?token=abc123');
     submitPassword('correct-horse-battery');
