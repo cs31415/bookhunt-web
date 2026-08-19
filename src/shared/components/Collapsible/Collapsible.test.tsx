@@ -27,6 +27,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** jsdom measures nothing, so where the panel sits has to be said outright. */
+function withTop(element: Element, top: number) {
+  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ top } as DOMRect);
+}
+
 describe('Collapsible', () => {
   it('offers nothing to expand when the text already fits', () => {
     restore = withScrollHeight(80);
@@ -72,6 +77,46 @@ describe('Collapsible', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /More/ }));
     expect(panel.style.maxHeight).toBe('');
+  });
+
+  it('returns the panel to view when it collapses from below', () => {
+    // Collapsing takes away the text the reader is standing on; without this
+    // they land somewhere in the middle of the page, looking at something else.
+    restore = withScrollHeight(900);
+    const { container } = render(
+      <Collapsible collapsedHeight={180}>
+        <p>A description that runs on.</p>
+      </Collapsible>,
+    );
+    const wrap = container.firstElementChild!;
+    const scrollIntoView = vi.spyOn(wrap, 'scrollIntoView');
+
+    fireEvent.click(screen.getByRole('button', { name: /More/ }));
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    // The reader has scrolled past the top of the panel.
+    withTop(wrap, -420);
+    fireEvent.click(screen.getByRole('button', { name: 'Less' }));
+
+    expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: 'start' }));
+  });
+
+  it('scrolls nothing when the top of the panel is still on screen', () => {
+    restore = withScrollHeight(900);
+    const { container } = render(
+      <Collapsible collapsedHeight={180}>
+        <p>A description that runs on.</p>
+      </Collapsible>,
+    );
+    const wrap = container.firstElementChild!;
+    const scrollIntoView = vi.spyOn(wrap, 'scrollIntoView');
+
+    fireEvent.click(screen.getByRole('button', { name: /More/ }));
+    withTop(wrap, 120);
+    fireEvent.click(screen.getByRole('button', { name: 'Less' }));
+
+    // Nothing above the reader moved, so moving them would be the jarring act.
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
   it('points the control at the panel it governs', () => {
