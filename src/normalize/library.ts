@@ -15,6 +15,10 @@ export interface RawLibraryEntry {
   author_slug: string;
   year: number | null;
   rating: number | null;
+  // The reader's own score, beside the catalog's `rating`. Both library
+  // functions return it; a source with no library rows (Discover, AI
+  // suggestions) carries neither.
+  user_rating?: number | null;
   cover_url: string | null;
   hue: string;
   // Optional: only the Library page (LOS-81) consumes these; Discover's fixtures omit them.
@@ -42,6 +46,8 @@ export interface RawLibraryStats {
 export interface LibraryEntry {
   book: BookSummary;
   status: LibraryStatus;
+  /** What this reader gave the book, where book.rating is what the catalog says. */
+  userRating: number | null;
   notes: string | null;
   subjects: string[];
   moods: string[];
@@ -59,6 +65,9 @@ export interface LibraryEntry {
 export function normalizeLibraryEntry(raw: RawLibraryEntry): LibraryEntry {
   return {
     status: raw.status,
+    // Zero is "unrated" in the column, and reads as no rating rather than as a
+    // score of nought.
+    userRating: toNumber(raw.user_rating) || null,
     notes: raw.notes ?? raw.review ?? null,
     subjects: raw.subjects ?? [],
     // Both are AI-generated per book and populated lazily, so plenty of rows

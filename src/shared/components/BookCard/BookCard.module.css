@@ -125,3 +125,11 @@
   font-size: 0.75rem;
   color: var(--muted);
 }
+
+/* The reader's own score, under the catalog's stars. Named in words because a
+   number on its own beneath five stars would read as part of them. */
+.yourRating {
+  margin-top: 3px;
+  font-size: 0.6875rem;
+  color: var(--ink-2);
+}

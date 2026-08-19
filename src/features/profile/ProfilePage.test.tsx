@@ -198,6 +198,27 @@ describe('ProfilePage as the owner', () => {
     expect(mockedPublicLibrary).not.toHaveBeenCalled();
   });
 
+  it('shows the reader’s own rating beside the catalog’s', async () => {
+    mockedLibrary.mockResolvedValue({
+      entries: [rawEntry(1, 'Cosmos', { rating: 4.2, user_rating: 5 })] as never,
+      total: 1,
+      page: 1,
+      pageSize: 60,
+    } as never);
+    renderProfile();
+
+    const card = within(await screen.findByRole('group', { name: 'Cosmos' }));
+    expect(card.getByText('4.2')).toBeInTheDocument();
+    expect(card.getByText('Your rating 5.0')).toBeInTheDocument();
+  });
+
+  it('says nothing about a rating the reader never gave', async () => {
+    renderProfile();
+
+    const card = within(await screen.findByRole('group', { name: 'Cosmos' }));
+    expect(card.queryByText(/Your rating/)).not.toBeInTheDocument();
+  });
+
   it('ticks what is public and leaves a hidden book unticked', async () => {
     renderProfile();
 

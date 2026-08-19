@@ -26,9 +26,24 @@ export interface BookCardProps {
    * menu at once. Outside the card button for the same reason `action` is.
    */
   overlay?: ReactNode;
+  /**
+   * The reader's own score, shown under the catalog's (LOS-291). Passed only
+   * where a card stands for a shelf entry; elsewhere there is no such score and
+   * the rating row reads as it always has.
+   */
+  userRating?: number | null;
 }
 
-export function BookCard({ book, status, reason, onClick, action, overlay }: BookCardProps) {
+export function BookCard({
+  book,
+  status,
+  reason,
+  onClick,
+  action,
+  overlay,
+  userRating,
+}: BookCardProps) {
+
   return (
     // Grouped and named after the book only when there is an action, so the
     // control beside the card has context to inherit: it can then be labelled
@@ -54,6 +69,12 @@ export function BookCard({ book, status, reason, onClick, action, overlay }: Boo
             <Stars value={book.rating ?? 0} mode="display" />
             {book.rating != null && <span className={styles.ratingValue}>{book.rating.toFixed(1)}</span>}
           </div>
+          {/* Words rather than a second row of stars: the card is narrower
+              than one row of five, so two would wrap into a block. The stars
+              stay the catalog's, as they are everywhere else. */}
+          {userRating != null && userRating > 0 && (
+            <div className={styles.yourRating}>Your rating {userRating.toFixed(1)}</div>
+          )}
         </div>
       </button>
       {/* A sibling of the card button, laid over the cover by CSS: nesting it

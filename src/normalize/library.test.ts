@@ -18,6 +18,21 @@ const rawEntry: RawLibraryEntry = {
 };
 
 describe('normalizeLibraryEntry', () => {
+  it('keeps the reader\'s own rating apart from the catalog\'s', () => {
+    // fn_get_user_library returns both; the shelf shows both (LOS-291).
+    expect(normalizeLibraryEntry({ ...rawEntry, rating: 4.2, user_rating: 5 })).toMatchObject({
+      userRating: 5,
+      book: expect.objectContaining({ rating: 4.2 }),
+    });
+  });
+
+  it('reads an unrated zero as no rating at all', () => {
+    // The column stores 0 for "not rated", which is not a score of nought.
+    expect(normalizeLibraryEntry({ ...rawEntry, user_rating: 0 })).toMatchObject({
+      userRating: null,
+    });
+  });
+
   it('maps snake_case fields to a BookSummary + status + notes', () => {
     expect(normalizeLibraryEntry(rawEntry)).toEqual({
       status: 'reading',
@@ -32,6 +47,8 @@ describe('normalizeLibraryEntry', () => {
       isHidden: false,
       isEbook: false,
       isAudiobook: false,
+      // Absent for the same reason: no library row, no score of the reader's.
+      userRating: null,
       book: {
         id: 1,
         slug: 'dune',
