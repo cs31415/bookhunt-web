@@ -37,6 +37,7 @@ export function Collapsible({
 }: CollapsibleProps) {
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const id = useId();
 
@@ -57,10 +58,38 @@ export function Collapsible({
     return () => observer.disconnect();
   }, [measure, children]);
 
+  /**
+   * Collapsing takes away the text the reader is standing on, so without this
+   * they land wherever that scroll position now falls -- somewhere in the
+   * middle of the page, looking at something else (LOS-293).
+   *
+   * Only when they have actually scrolled past the top of the panel. If it is
+   * still on screen, nothing above them moves and scrolling would itself be
+   * the jarring act.
+   */
+  function toggle() {
+    if (!expanded) {
+      setExpanded(true);
+      return;
+    }
+
+    setExpanded(false);
+    const el = wrapRef.current;
+    if (!el || typeof el.scrollIntoView !== 'function') return;
+    if (el.getBoundingClientRect().top >= 0) return;
+
+    el.scrollIntoView({
+      block: 'start',
+      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth',
+    });
+  }
+
   const capped = overflows && !expanded;
 
   return (
-    <div className={className ? `${styles.wrap} ${className}` : styles.wrap}>
+    <div ref={wrapRef} className={className ? `${styles.wrap} ${className}` : styles.wrap}>
       <div
         id={id}
         ref={contentRef}
@@ -76,7 +105,7 @@ export function Collapsible({
           className={styles.toggle}
           aria-expanded={expanded}
           aria-controls={id}
-          onClick={() => setExpanded((value) => !value)}
+          onClick={toggle}
         >
           {expanded ? 'Less' : 'More…'}
           {label && <span className={styles.srOnly}> {label}</span>}
