@@ -5,6 +5,7 @@ import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
 import { Pagination } from '../../shared/components/Pagination/Pagination';
 import { TabBar } from '../../shared/components/TabBar/TabBar';
+import { VisibilityBar } from './VisibilityBar';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { useAuth } from '../auth/AuthContext';
 import { updateMe } from '../../api/users/update-me';
@@ -180,15 +181,56 @@ function OwnerProfile({
   const { user } = useAuth();
   const { entries, total, loading } = useLibraryData();
   const flags = useEntryFlags();
+  // Ticks move this, not the server. Book id -> the isHidden it would be
+  // saved with; a key disappears again as soon as it agrees with the shelf.
+  const [staged, setStaged] = useState<Record<number, boolean>>({});
+  const [saving, setSaving] = useState(false);
+
+  // What the server last said, as the ticks would be without the staging.
+  const saved = useMemo(() => flags.apply(entries), [entries, flags]);
 
   // Filtered here rather than by the server: useLibraryData already holds the
   // whole shelf, which is what the owner's /library page works from too.
   const shown = useMemo(() => {
-    const applied = flags.apply(entries);
-    if (tab === 'reading') return applied.filter((e) => e.status === 'reading');
-    if (tab === 'favorites') return applied.filter((e) => e.isFavorite);
-    return applied;
-  }, [entries, flags, tab]);
+    const withStaged = saved.map((entry) =>
+      entry.book.id in staged ? { ...entry, isHidden: staged[entry.book.id] } : entry,
+    );
+    if (tab === 'reading') return withStaged.filter((e) => e.status === 'reading');
+    if (tab === 'favorites') return withStaged.filter((e) => e.isFavorite);
+    return withStaged;
+  }, [saved, staged, tab]);
+
+  // Compared against, so a tick moved back to what the shelf says stops
+  // counting as a change rather than being saved as a no-op.
+  const savedHidden = useMemo(
+    () => new Map(saved.map((entry) => [entry.book.id, Boolean(entry.isHidden)])),
+    [saved],
+  );
+
+  function stage(items: LibraryEntry[], hidden: boolean) {
+    setStaged((current) => {
+      const next = { ...current };
+      for (const item of items) {
+        if (savedHidden.get(item.book.id) === hidden) delete next[item.book.id];
+        else next[item.book.id] = hidden;
+      }
+      return next;
+    });
+  }
+
+  async function save() {
+    // Only what differs, and hideMany already reports what it could not write.
+    const toHide = saved.filter((entry) => staged[entry.book.id] === true);
+    const toShow = saved.filter((entry) => staged[entry.book.id] === false);
+
+    setSaving(true);
+    if (toHide.length > 0) await flags.hideMany(toHide, true);
+    if (toShow.length > 0) await flags.hideMany(toShow, false);
+    setSaving(false);
+    // Dropped whatever the writes did: the overrides now carry the answer, and
+    // a failed one has fallen back to what the server says.
+    setStaged({});
+  }
 
   if (loading) return <Loader />;
 
@@ -207,13 +249,21 @@ function OwnerProfile({
         <AuthorsTab handle={handle} owner />
       ) : (
         <>
-          {/* Reaches the whole tab rather than the page on screen: paging is
-              not a filter, and 24 of 349 is not what "all" means here. */}
-          <ShowAllRow items={shown} onSetAll={flags.hideMany} />
+          {/* Show all reaches the whole tab rather than the page on screen:
+              paging is not a filter, and 24 of 349 is not what "all" means. */}
+          <VisibilityBar
+            publicCount={shown.filter((entry) => !entry.isHidden).length}
+            total={shown.length}
+            onSetAll={(shownNext) => stage(shown, !shownNext)}
+            dirtyCount={Object.keys(staged).length}
+            saving={saving}
+            onSave={save}
+            onCancel={() => setStaged({})}
+          />
           <Grid
             entries={pageItems}
             navigate={navigate}
-            onToggleShown={(entry, shownNext) => flags.toggleHidden(entry, !shownNext)}
+            onToggleShown={(entry, shownNext) => stage([entry], !shownNext)}
           />
           <Pagination
             page={page}
@@ -272,42 +322,6 @@ function PublicPageBar({ handle }: { handle: string }) {
         <p className={styles.ownerHint}>Unticked books and authors stay off it.</p>
       </div>
       <CopyLink handle={handle} enabled={isPublic} />
-    </div>
-  );
-}
-
-/**
- * One button for the whole tab, named for what it reaches the way the library's
- * selection toolbar is. Only the rows that would change are sent, so ticking
- * "all" on a shelf that is already public costs nothing.
- */
-function ShowAllRow({
-  items,
-  onSetAll,
-}: {
-  items: LibraryEntry[];
-  onSetAll: (entries: LibraryEntry[], hidden: boolean) => void;
-}) {
-  // Nothing to count and nothing to flip, so the row would only say so twice:
-  // the grid already answers with "Nothing here yet".
-  if (items.length === 0) return null;
-
-  const publicCount = items.filter((entry) => !entry.isHidden).length;
-  const allPublic = publicCount === items.length;
-
-  function setAll(nextShown: boolean) {
-    const changing = items.filter((entry) => !entry.isHidden !== nextShown);
-    if (changing.length > 0) onSetAll(changing, !nextShown);
-  }
-
-  return (
-    <div className={styles.bulkRow}>
-      <span className={styles.bulkCount}>
-        {publicCount} of {items.length} shown publicly
-      </span>
-      <button type="button" className={styles.bulkButton} onClick={() => setAll(!allPublic)}>
-        {allPublic ? `Hide all ${items.length}` : `Show all ${items.length}`}
-      </button>
     </div>
   );
 }

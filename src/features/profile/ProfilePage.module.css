@@ -103,6 +103,32 @@
   opacity: 0.55;
 }
 
+/* Says how much is waiting, so Save is never a button with nothing behind it. */
+.dirtyCount {
+  font-size: 0.75rem;
+  color: var(--rust-deep);
+}
+
+.saveButton {
+  font-family: var(--ui-sans);
+  font-size: 0.75rem;
+  padding: 4px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: var(--rust);
+  color: #fff;
+  cursor: pointer;
+}
+
+.saveButton:hover:not(:disabled) {
+  background: var(--rust-deep);
+}
+
+.saveButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 /* A tick means the book or author is on the public page. */
 .showBox {
   width: 16px;

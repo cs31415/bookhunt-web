@@ -201,7 +201,7 @@ describe('ProfilePage as the owner', () => {
     ).not.toBeChecked();
   });
 
-  it('hides a book when its tick comes off', async () => {
+  it('stages a tick rather than writing it, until Save', async () => {
     renderProfile();
     const tick = await screen.findByRole('checkbox', {
       name: 'Show Cosmos on your public page',
@@ -209,11 +209,51 @@ describe('ProfilePage as the owner', () => {
 
     await userEvent.click(tick);
 
-    expect(mockedSetHidden).toHaveBeenCalledWith(1, true);
     expect(tick).not.toBeChecked();
+    expect(mockedSetHidden).not.toHaveBeenCalled();
+    expect(screen.getByText('1 unsaved')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(mockedSetHidden).toHaveBeenCalledWith(1, true);
+    await waitFor(() => expect(screen.queryByText('1 unsaved')).not.toBeInTheDocument());
   });
 
-  it('puts the tick back when the server refuses', async () => {
+  it('offers no Save until something is staged', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+  });
+
+  it('drops the staged ticks on Cancel, writing nothing', async () => {
+    renderProfile();
+    const tick = await screen.findByRole('checkbox', {
+      name: 'Show Cosmos on your public page',
+    });
+    await userEvent.click(tick);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(tick).toBeChecked();
+    expect(mockedSetHidden).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+  });
+
+  it('forgets a tick moved back to where it started', async () => {
+    renderProfile();
+    const tick = await screen.findByRole('checkbox', {
+      name: 'Show Cosmos on your public page',
+    });
+
+    await userEvent.click(tick);
+    await userEvent.click(tick);
+
+    // Saving a no-op is still a request, so it must not count as a change.
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+  });
+
+  it('puts the tick back when the server refuses the save', async () => {
     mockedSetHidden.mockRejectedValue(new ApiError(500, 'Internal server error'));
     renderProfile();
     const tick = await screen.findByRole('checkbox', {
@@ -221,6 +261,7 @@ describe('ProfilePage as the owner', () => {
     });
 
     await userEvent.click(tick);
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     // Falls back to whatever the server last said, never claiming a state it
     // refused.
@@ -231,14 +272,17 @@ describe('ProfilePage as the owner', () => {
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
 
-    // One book of the two is hidden, so only that one needs a request.
     await userEvent.click(screen.getByRole('button', { name: 'Show all 2' }));
+    // One book of the two is hidden, so only that one is a change to save.
+    expect(screen.getByText('1 unsaved')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(mockedSetHidden).toHaveBeenCalledTimes(1);
     expect(mockedSetHidden).toHaveBeenCalledWith(2, false);
   });
 
-  it('sends nothing when every book already agrees', async () => {
+  it('offers the other direction when every book already agrees', async () => {
     mockedLibrary.mockResolvedValue({
       entries: [rawEntry(1, 'Cosmos')] as never,
       total: 1,
@@ -248,7 +292,6 @@ describe('ProfilePage as the owner', () => {
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
 
-    // Everything is public, so the button offers the other direction.
     expect(screen.getByRole('button', { name: 'Hide all 1' })).toBeInTheDocument();
   });
 
@@ -335,7 +378,7 @@ describe('the Authors tab', () => {
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
-  it('hides an author when its tick comes off', async () => {
+  it('stages an author tick until Save, like the shelf does', async () => {
     signInAsOwner();
     mockedLibrary.mockResolvedValue({
       entries: [] as never,
@@ -354,8 +397,13 @@ describe('the Authors tab', () => {
 
     await userEvent.click(tick);
 
-    expect(mockedSetAuthorHidden).toHaveBeenCalledWith('ursula-le-guin', true);
     expect(tick).not.toBeChecked();
+    expect(mockedSetAuthorHidden).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(mockedSetAuthorHidden).toHaveBeenCalledWith('ursula-le-guin', true);
+    await waitFor(() => expect(tick).not.toBeChecked());
   });
 });
 
