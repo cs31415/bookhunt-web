@@ -442,6 +442,9 @@ function Grid({
           key={entry.book.id}
           book={entry.book}
           status={entry.status}
+          // Both scores, since the shelf is a reader's and the stars alone
+          // were the catalog's (LOS-291).
+          userRating={entry.userRating}
           onClick={() => navigate(buildBookHref(entry.book))}
           // The same slot the library grid uses for its select box. A tick
           // means the book is on the public page; no separate badge says so
