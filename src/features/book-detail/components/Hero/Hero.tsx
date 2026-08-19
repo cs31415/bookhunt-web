@@ -7,6 +7,7 @@ import type { BookDetail, LibraryEntrySummary } from '../../../../normalize/book
 import type { LibraryStatus } from '../../../../shared/types/library-status';
 import { readTime } from '../../../../shared/lib/read-time';
 import { RichText } from '../../../../shared/lib/rich-text';
+import { Collapsible } from '../../../../shared/components/Collapsible/Collapsible';
 import styles from './Hero.module.css';
 
 export interface HeroProps {
@@ -165,7 +166,13 @@ export function Hero({
           no blurb at all -- an import that resolved against Open Library often
           brings back none -- and RichText calls .replace on what it is given.
         */}
-        {book.blurb && <RichText className={styles.blurb} text={book.blurb} />}
+        {book.blurb && (
+          // Capped, since a Google Books description can run for paragraphs and
+          // push Themes and everything under it off the screen (LOS-292).
+          <Collapsible label="description" className={styles.blurbBlock}>
+            <RichText className={styles.blurb} text={book.blurb} />
+          </Collapsible>
+        )}
 
         <div className={styles.themesBlock}>
           <span className={styles.eyebrow}>Themes</span>

@@ -5,6 +5,7 @@ import { SectionHead } from '../../shared/components/SectionHead/SectionHead';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { pluralize } from '../../shared/lib/text';
 import { RichText } from '../../shared/lib/rich-text';
+import { Collapsible } from '../../shared/components/Collapsible/Collapsible';
 import { useAuthorData } from './hooks/useAuthorData';
 import { FavoriteButton } from '../../shared/components/FavoriteButton/FavoriteButton';
 import { setAuthorFavorite } from '../../api/authors/set-favorite';
@@ -84,7 +85,11 @@ export function AuthorPage() {
               <FavoriteButton isFavorite={favorite} onToggle={toggleFavorite} />
             )}
           </div>
-          {author.bio && <RichText className={styles.bio} text={author.bio} />}
+          {author.bio && (
+            <Collapsible label="biography" className={styles.bioBlock}>
+              <RichText className={styles.bio} text={author.bio} />
+            </Collapsible>
+          )}
           <div className={styles.count}>
             {works.length} {pluralize(works.length, 'book')}
           </div>

@@ -153,6 +153,12 @@
   color: var(--ink);
   font-family: var(--serif);
   max-width: 580px;
+}
+
+/* The space below belongs to the whole panel, not to the text: inside the cap
+   it would be clipped while collapsed and appear only once expanded. */
+.blurbBlock {
+  max-width: 580px;
   margin-bottom: 20px;
 }
 
