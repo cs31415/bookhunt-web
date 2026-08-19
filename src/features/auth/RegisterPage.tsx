@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError } from '../../api/client';
 import { postRegister } from '../../api/auth/register';
+import { PasswordInput } from '../../shared/components/PasswordInput/PasswordInput';
 import { CheckYourEmail } from './CheckYourEmail';
 import { storeCredential } from './store-credential';
 import { useHandleAvailability } from './useHandleAvailability';
@@ -134,11 +135,16 @@ export function RegisterPage() {
             accessible name, which screen readers announce as "Password at
             least 8 characters" every time focus lands. */}
         <div className={styles.fieldGroup}>
-          <label className={`${styles.field} ${styles.fieldTight}`}>
-            <span className={styles.label}>Password</span>
-            <input
+          {/* Associated rather than wrapping, for the second reason as well as
+              the first: the Show button inside the field would otherwise join
+              the accessible name too. */}
+          <div className={`${styles.field} ${styles.fieldTight}`}>
+            <label className={styles.label} htmlFor="register-password">
+              Password
+            </label>
+            <PasswordInput
+              id="register-password"
               className={styles.input}
-              type="password"
               name="password"
               autoComplete="new-password"
               minLength={MIN_PASSWORD_LENGTH}
@@ -147,7 +153,7 @@ export function RegisterPage() {
               onChange={(event) => setPassword(event.target.value)}
               required
             />
-          </label>
+          </div>
           <span id="password-hint" className={styles.hint}>
             At least {MIN_PASSWORD_LENGTH} characters.
           </span>

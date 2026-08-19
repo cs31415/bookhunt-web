@@ -127,6 +127,9 @@
   white-space: nowrap;
 }
 
+/* The default way in, so it carries the full weight; Sign up sits beside it,
+   dimmed, as the offer for whoever has no account yet. */
+.signIn,
 .signUp {
   font-size: 0.875rem;
   font-weight: 500;
@@ -135,6 +138,12 @@
   text-decoration: none;
 }
 
+.signUp {
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.signIn:hover,
 .signUp:hover {
   text-decoration: underline;
 }

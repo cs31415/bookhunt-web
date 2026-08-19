@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '../../api/client';
+import { PasswordInput } from '../../shared/components/PasswordInput/PasswordInput';
 import { storeCredential } from './store-credential';
 import { useAuth } from './AuthContext';
 import { useResendVerification } from './use-resend-verification';
@@ -80,18 +81,22 @@ export function LoginPage() {
           />
         </label>
 
-        <label className={styles.field}>
-          <span className={styles.label}>Password</span>
-          <input
+        {/* Associated with htmlFor rather than wrapping, so the Show button
+            inside the field stays out of the field's accessible name. */}
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="login-password">
+            Password
+          </label>
+          <PasswordInput
+            id="login-password"
             className={styles.input}
-            type="password"
             name="password"
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
           />
-        </label>
+        </div>
 
         {error && (
           <p className={styles.error} role="alert">
