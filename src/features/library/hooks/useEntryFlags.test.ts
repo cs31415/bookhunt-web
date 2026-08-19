@@ -28,6 +28,7 @@ const entry = {
   isHidden: false,
   isEbook: false,
   isAudiobook: false,
+  userRating: null,
   book: {
     id: 12,
     slug: 'dune',

@@ -26,6 +26,7 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
     isHidden: false,
     isEbook: overrides.isEbook ?? false,
     isAudiobook: overrides.isAudiobook ?? false,
+    userRating: overrides.userRating ?? null,
     book: {
       id,
       slug: `book-${id}`,
