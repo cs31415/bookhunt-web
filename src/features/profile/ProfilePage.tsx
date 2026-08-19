@@ -5,6 +5,7 @@ import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
 import { Pagination } from '../../shared/components/Pagination/Pagination';
 import { TabBar } from '../../shared/components/TabBar/TabBar';
+import { PublicTick } from './PublicTick';
 import { VisibilityBar } from './VisibilityBar';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { useAuth } from '../auth/AuthContext';
@@ -447,12 +448,9 @@ function Grid({
           // as well, because the tick already does.
           action={
             onToggleShown && (
-              <input
-                type="checkbox"
-                className={styles.showBox}
-                checked={!entry.isHidden}
-                onChange={(event) => onToggleShown(entry, event.target.checked)}
-                aria-label={`Show ${entry.book.title} on your public page`}
+              <PublicTick
+                shown={!entry.isHidden}
+                onChange={(shown) => onToggleShown(entry, shown)}
               />
             )
           }

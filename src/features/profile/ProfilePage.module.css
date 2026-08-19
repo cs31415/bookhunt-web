@@ -138,6 +138,32 @@
   flex: none;
 }
 
+/* Takes the full width of the card's action row, so the words start at the
+   left edge under the cover rather than trailing off the right. */
+.tick {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.tickText {
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--muted);
+  /* Wraps under a narrow cover instead of forcing the column wider. */
+  min-width: 0;
+}
+
+/* On an author row the words sit at the end of a wide line, so they read as
+   one phrase rather than wrapping mid-way. */
+.authorRow .tick {
+  width: auto;
+  align-items: center;
+  white-space: nowrap;
+}
+
 .copyRow {
   display: flex;
   align-items: center;

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -67,6 +67,15 @@ function signInAsOwner() {
       isDiscoverable: false,
     }),
   );
+}
+
+/**
+ * The tick on a named card. Its label says what pressing it would do, so it
+ * reads the same on every card -- the group around each card is what tells
+ * them apart.
+ */
+function tickFor(title: string) {
+  return within(screen.getByRole('group', { name: title })).getByRole('checkbox');
 }
 
 function renderProfile(path = '/ada') {
@@ -193,19 +202,17 @@ describe('ProfilePage as the owner', () => {
     renderProfile();
 
     expect(await screen.findByRole('button', { name: /Secret/ })).toBeInTheDocument();
-    expect(
-      screen.getByRole('checkbox', { name: 'Show Cosmos on your public page' }),
-    ).toBeChecked();
-    expect(
-      screen.getByRole('checkbox', { name: 'Show Secret on your public page' }),
-    ).not.toBeChecked();
+    expect(tickFor('Cosmos')).toBeChecked();
+    expect(tickFor('Cosmos')).toHaveAccessibleName('Hide from public profile');
+    expect(tickFor('Secret')).not.toBeChecked();
+    // The label names the click, not the state.
+    expect(tickFor('Secret')).toHaveAccessibleName('Display on public profile');
   });
 
   it('stages a tick rather than writing it, until Save', async () => {
     renderProfile();
-    const tick = await screen.findByRole('checkbox', {
-      name: 'Show Cosmos on your public page',
-    });
+    await screen.findByRole('button', { name: /Cosmos/ });
+    const tick = tickFor('Cosmos');
 
     await userEvent.click(tick);
 
@@ -228,9 +235,8 @@ describe('ProfilePage as the owner', () => {
 
   it('drops the staged ticks on Cancel, writing nothing', async () => {
     renderProfile();
-    const tick = await screen.findByRole('checkbox', {
-      name: 'Show Cosmos on your public page',
-    });
+    await screen.findByRole('button', { name: /Cosmos/ });
+    const tick = tickFor('Cosmos');
     await userEvent.click(tick);
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -242,9 +248,8 @@ describe('ProfilePage as the owner', () => {
 
   it('forgets a tick moved back to where it started', async () => {
     renderProfile();
-    const tick = await screen.findByRole('checkbox', {
-      name: 'Show Cosmos on your public page',
-    });
+    await screen.findByRole('button', { name: /Cosmos/ });
+    const tick = tickFor('Cosmos');
 
     await userEvent.click(tick);
     await userEvent.click(tick);
@@ -256,9 +261,8 @@ describe('ProfilePage as the owner', () => {
   it('puts the tick back when the server refuses the save', async () => {
     mockedSetHidden.mockRejectedValue(new ApiError(500, 'Internal server error'));
     renderProfile();
-    const tick = await screen.findByRole('checkbox', {
-      name: 'Show Cosmos on your public page',
-    });
+    await screen.findByRole('button', { name: /Cosmos/ });
+    const tick = tickFor('Cosmos');
 
     await userEvent.click(tick);
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -391,9 +395,8 @@ describe('the Authors tab', () => {
     });
 
     renderProfile('/ada?tab=favorites&sub=authors');
-    const tick = await screen.findByRole('checkbox', {
-      name: 'Show Ursula Le Guin on your public page',
-    });
+    await screen.findByRole('link', { name: 'Ursula Le Guin' });
+    const tick = screen.getByRole('checkbox', { name: 'Hide from public profile' });
 
     await userEvent.click(tick);
 

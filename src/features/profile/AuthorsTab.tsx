@@ -9,6 +9,7 @@ import type { FavoriteAuthor } from '../../api/users/get-favorite-authors';
 import { setAuthorHidden } from '../../api/users/set-author-hidden';
 import { toast } from '../../shared/toast/toast-store';
 import { pluralize } from '../../shared/lib/text';
+import { PublicTick } from './PublicTick';
 import { VisibilityBar } from './VisibilityBar';
 import styles from './ProfilePage.module.css';
 
@@ -134,21 +135,20 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
       <ul className={styles.authorList}>
         {shown.map((author) => (
           <li key={author.slug} className={styles.authorRow}>
-            {owner && (
-              <input
-                type="checkbox"
-                className={styles.showBox}
-                checked={!author.isHidden}
-                onChange={(event) => stage([author], !event.target.checked)}
-                aria-label={`Show ${author.name} on your public page`}
-              />
-            )}
             <Link to={`/authors/${author.slug}`} className={styles.authorName}>
               {author.name}
             </Link>
             <span className={styles.authorCount}>
               {author.bookCount} {pluralize(author.bookCount, 'book')}
             </span>
+            {/* After the name rather than before it: the row reads as the
+                author first, then what is done with them. */}
+            {owner && (
+              <PublicTick
+                shown={!author.isHidden}
+                onChange={(shown) => stage([author], !shown)}
+              />
+            )}
           </li>
         ))}
       </ul>
