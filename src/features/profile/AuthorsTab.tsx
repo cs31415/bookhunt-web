@@ -9,6 +9,7 @@ import type { FavoriteAuthor } from '../../api/users/get-favorite-authors';
 import { setAuthorHidden } from '../../api/users/set-author-hidden';
 import { toast } from '../../shared/toast/toast-store';
 import { pluralize } from '../../shared/lib/text';
+import { VisibilityBar } from './VisibilityBar';
 import styles from './ProfilePage.module.css';
 
 /**
@@ -20,10 +21,15 @@ import styles from './ProfilePage.module.css';
  *
  * The owner also gets a tick per author, saying whether it appears on the
  * public page. Authors carry their own flag (LOS-282) rather than a library
- * entry's, so the toggle lives here rather than in useEntryFlags.
+ * entry's, so the toggle lives here rather than in useEntryFlags. Ticks are
+ * staged and written by Save (LOS-288), as the book grid's are.
  */
 export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }) {
   const [authors, setAuthors] = useState<FavoriteAuthor[] | null>(null);
+  // Slug -> the isHidden it would be saved with. Ticks move this, not the
+  // server; a key drops out again once it agrees with the fetched list.
+  const [staged, setStaged] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -41,21 +47,59 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
     return () => controller.abort();
   }, [handle, owner]);
 
-  // Optimistic, and a failure falls back to whatever the server last said
-  // rather than to a remembered value -- the rule useEntryFlags follows.
-  async function toggle(author: FavoriteAuthor, isHidden: boolean) {
+  function stage(rows: FavoriteAuthor[], isHidden: boolean) {
+    setStaged((current) => {
+      const next = { ...current };
+      for (const row of rows) {
+        // Against the fetched list rather than the row handed in, which may
+        // already carry a staged value: back to what the server says is no
+        // longer a change to save.
+        const saved = (authors ?? []).find((author) => author.slug === row.slug);
+        if (Boolean(saved?.isHidden) === isHidden) delete next[row.slug];
+        else next[row.slug] = isHidden;
+      }
+      return next;
+    });
+  }
+
+  /**
+   * Writes every staged change, then adopts what went through.
+   *
+   * Sequential rather than parallel, like useEntryFlags.hideMany: a list can be
+   * long, and a burst of simultaneous requests is how a rate limit gets hit.
+   * Failures are counted and reported once, and those rows keep what the server
+   * last said rather than a remembered value.
+   */
+  async function save() {
+    const rows = (authors ?? []).filter((row) => row.slug in staged);
+    setSaving(true);
+
+    const done: Record<string, boolean> = {};
+    const failed: string[] = [];
+    for (const row of rows) {
+      try {
+        await setAuthorHidden(row.slug, staged[row.slug]);
+        done[row.slug] = staged[row.slug];
+      } catch {
+        failed.push(row.name);
+      }
+    }
+
     setAuthors((current) =>
-      (current ?? []).map((row) => (row.slug === author.slug ? { ...row, isHidden } : row)),
+      (current ?? []).map((row) =>
+        row.slug in done ? { ...row, isHidden: done[row.slug] } : row,
+      ),
     );
-    try {
-      await setAuthorHidden(author.slug, isHidden);
-    } catch {
-      setAuthors((current) =>
-        (current ?? []).map((row) =>
-          row.slug === author.slug ? { ...row, isHidden: author.isHidden } : row,
-        ),
-      );
-      toast({ text: `Could not update ${author.name}` });
+    setStaged({});
+    setSaving(false);
+
+    if (failed.length > 0) {
+      toast({
+        text:
+          failed.length === 1
+            ? `Could not update ${failed[0]}`
+            : `Could not update ${failed.length} authors`,
+      });
     }
   }
 
@@ -68,43 +112,34 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
     );
   }
 
-  const publicCount = authors.filter((author) => !author.isHidden).length;
-  const allPublic = publicCount === authors.length;
-
-  // Only the rows that would change, so ticking "all" on a list that is
-  // already public sends nothing.
-  function setAll(nextShown: boolean) {
-    for (const author of authors ?? []) {
-      if (!author.isHidden !== nextShown) void toggle(author, !nextShown);
-    }
-  }
+  // What the ticks show: the fetched list with anything staged laid over it.
+  const shown = authors.map((author) =>
+    author.slug in staged ? { ...author, isHidden: staged[author.slug] } : author,
+  );
 
   return (
     <>
       {owner && (
-        <div className={styles.bulkRow}>
-          <span className={styles.bulkCount}>
-            {publicCount} of {authors.length} shown publicly
-          </span>
-          <button
-            type="button"
-            className={styles.bulkButton}
-            onClick={() => setAll(!allPublic)}
-          >
-            {allPublic ? `Hide all ${authors.length}` : `Show all ${authors.length}`}
-          </button>
-        </div>
+        <VisibilityBar
+          publicCount={shown.filter((author) => !author.isHidden).length}
+          total={shown.length}
+          onSetAll={(nextShown) => stage(authors, !nextShown)}
+          dirtyCount={Object.keys(staged).length}
+          saving={saving}
+          onSave={save}
+          onCancel={() => setStaged({})}
+        />
       )}
 
       <ul className={styles.authorList}>
-        {authors.map((author) => (
+        {shown.map((author) => (
           <li key={author.slug} className={styles.authorRow}>
             {owner && (
               <input
                 type="checkbox"
                 className={styles.showBox}
                 checked={!author.isHidden}
-                onChange={(event) => toggle(author, !event.target.checked)}
+                onChange={(event) => stage([author], !event.target.checked)}
                 aria-label={`Show ${author.name} on your public page`}
               />
             )}
