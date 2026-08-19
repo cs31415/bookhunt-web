@@ -21,9 +21,14 @@ export interface GetCannedSearchesParams {
   refresh?: boolean;
   /** Ask for earlier draws too. Worth doing once per page load, not per refresh. */
   history?: boolean;
+  /** Drops the answer when the caller unmounts mid-flight. */
+  signal?: AbortSignal;
 }
 
-export function getCannedSearches(params: GetCannedSearchesParams = {}): Promise<CannedSearchRow> {
+export function getCannedSearches({
+  signal,
+  ...params
+}: GetCannedSearchesParams = {}): Promise<CannedSearchRow> {
   const query = new URLSearchParams();
   if (params.limit !== undefined) query.set('limit', String(params.limit));
   if (params.pinnedIds?.length) query.set('pinnedIds', params.pinnedIds.join(','));
@@ -31,5 +36,5 @@ export function getCannedSearches(params: GetCannedSearchesParams = {}): Promise
   if (params.refresh) query.set('refresh', 'true');
   if (params.history) query.set('history', 'true');
   const qs = query.toString();
-  return apiFetch(`/canned-searches${qs ? `?${qs}` : ''}`);
+  return apiFetch(`/canned-searches${qs ? `?${qs}` : ''}`, { signal });
 }

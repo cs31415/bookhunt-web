@@ -23,6 +23,7 @@ function DiscoverHero({ onSearch }: { onSearch: (query: string) => void }) {
     canGoForward,
     togglePin,
     addPinned,
+    removePinned,
     notice,
   } = useCannedSearches();
 
@@ -39,9 +40,10 @@ function DiscoverHero({ onSearch }: { onSearch: (query: string) => void }) {
       </div>
 
       {/* The saved pill is pinned server-side, so it joins the row without a
-          refetch. Withheld from guests and short queries by the button itself. */}
+          refetch, and leaves it the same way. Withheld from guests and short
+          queries by the button itself. */}
       <div className={styles.save}>
-        <SaveSearchButton query={query} onSaved={addPinned} />
+        <SaveSearchButton query={query} onSaved={addPinned} onRemoved={removePinned} />
       </div>
 
       <ExampleQueryPills
