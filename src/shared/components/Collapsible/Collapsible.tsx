@@ -65,6 +65,11 @@ export function Collapsible({
    * Back to the top of the page rather than to the panel (LOS-294): both pages
    * that use this open at the top, so collapsing leaves the reader where a
    * reload would, with the cover and title above the text again.
+   *
+   * Instant, in the two-argument form the pages' own load-time scroll uses. A
+   * smooth scroll is silently a no-op wherever the browser or the machine has
+   * animation turned down, and the reader is then left mid-page with nothing
+   * having moved -- which is the bug this exists to prevent.
    */
   function toggle() {
     if (!expanded) {
@@ -74,13 +79,7 @@ export function Collapsible({
 
     setExpanded(false);
     if (window.scrollY === 0) return;
-
-    window.scrollTo({
-      top: 0,
-      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-        ? 'auto'
-        : 'smooth',
-    });
+    window.scrollTo(0, 0);
   }
 
   const capped = overflows && !expanded;
