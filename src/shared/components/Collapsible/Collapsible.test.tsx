@@ -24,12 +24,15 @@ let restore: (() => void) | null = null;
 afterEach(() => {
   restore?.();
   restore = null;
+  // Without this the window.scrollTo spy is the same mock in the next test,
+  // carrying its calls with it.
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
-/** jsdom measures nothing, so where the panel sits has to be said outright. */
-function withTop(element: Element, top: number) {
-  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ top } as DOMRect);
+/** jsdom never scrolls, so how far down the reader is has to be said outright. */
+function atScrollY(px: number) {
+  Object.defineProperty(window, 'scrollY', { configurable: true, value: px });
 }
 
 describe('Collapsible', () => {
@@ -79,44 +82,41 @@ describe('Collapsible', () => {
     expect(panel.style.maxHeight).toBe('');
   });
 
-  it('returns the panel to view when it collapses from below', () => {
+  it('returns to the top of the page when it collapses', () => {
     // Collapsing takes away the text the reader is standing on; without this
     // they land somewhere in the middle of the page, looking at something else.
     restore = withScrollHeight(900);
-    const { container } = render(
+    const scrollTo = vi.spyOn(window, 'scrollTo');
+    render(
       <Collapsible collapsedHeight={180}>
         <p>A description that runs on.</p>
       </Collapsible>,
     );
-    const wrap = container.firstElementChild!;
-    const scrollIntoView = vi.spyOn(wrap, 'scrollIntoView');
 
+    atScrollY(900);
     fireEvent.click(screen.getByRole('button', { name: /More/ }));
-    expect(scrollIntoView).not.toHaveBeenCalled();
+    // Expanding adds text below the reader and moves nothing above them.
+    expect(scrollTo).not.toHaveBeenCalled();
 
-    // The reader has scrolled past the top of the panel.
-    withTop(wrap, -420);
     fireEvent.click(screen.getByRole('button', { name: 'Less' }));
 
-    expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: 'start' }));
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
   });
 
-  it('scrolls nothing when the top of the panel is still on screen', () => {
+  it('scrolls nothing when the page is already at the top', () => {
     restore = withScrollHeight(900);
-    const { container } = render(
+    const scrollTo = vi.spyOn(window, 'scrollTo');
+    render(
       <Collapsible collapsedHeight={180}>
         <p>A description that runs on.</p>
       </Collapsible>,
     );
-    const wrap = container.firstElementChild!;
-    const scrollIntoView = vi.spyOn(wrap, 'scrollIntoView');
 
+    atScrollY(0);
     fireEvent.click(screen.getByRole('button', { name: /More/ }));
-    withTop(wrap, 120);
     fireEvent.click(screen.getByRole('button', { name: 'Less' }));
 
-    // Nothing above the reader moved, so moving them would be the jarring act.
-    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it('points the control at the panel it governs', () => {

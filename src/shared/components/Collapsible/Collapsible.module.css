@@ -3,8 +3,6 @@
      different ground than the page. */
   --collapse-fade: var(--paper);
   position: relative;
-  /* Clears the sticky header when collapsing scrolls this back into view. */
-  scroll-margin-top: 78px;
 }
 
 .content {

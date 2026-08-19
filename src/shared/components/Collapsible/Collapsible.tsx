@@ -37,7 +37,6 @@ export function Collapsible({
 }: CollapsibleProps) {
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const id = useId();
 
@@ -63,9 +62,9 @@ export function Collapsible({
    * they land wherever that scroll position now falls -- somewhere in the
    * middle of the page, looking at something else (LOS-293).
    *
-   * Only when they have actually scrolled past the top of the panel. If it is
-   * still on screen, nothing above them moves and scrolling would itself be
-   * the jarring act.
+   * Back to the top of the page rather than to the panel (LOS-294): both pages
+   * that use this open at the top, so collapsing leaves the reader where a
+   * reload would, with the cover and title above the text again.
    */
   function toggle() {
     if (!expanded) {
@@ -74,12 +73,10 @@ export function Collapsible({
     }
 
     setExpanded(false);
-    const el = wrapRef.current;
-    if (!el || typeof el.scrollIntoView !== 'function') return;
-    if (el.getBoundingClientRect().top >= 0) return;
+    if (window.scrollY === 0) return;
 
-    el.scrollIntoView({
-      block: 'start',
+    window.scrollTo({
+      top: 0,
       behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
         ? 'auto'
         : 'smooth',
@@ -89,7 +86,7 @@ export function Collapsible({
   const capped = overflows && !expanded;
 
   return (
-    <div ref={wrapRef} className={className ? `${styles.wrap} ${className}` : styles.wrap}>
+    <div className={className ? `${styles.wrap} ${className}` : styles.wrap}>
       <div
         id={id}
         ref={contentRef}
