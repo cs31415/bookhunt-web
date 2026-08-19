@@ -119,11 +119,9 @@ describe('TopBar', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/login');
   });
 
-  it('offers Sign up beside it, in second place', () => {
+  it('does not repeat the offer to register that the sign-in page makes', () => {
     renderAt('/');
-    const links = screen.getAllByRole('link', { name: /^Sign (in|up)$/ });
-    expect(links.map((link) => link.textContent)).toEqual(['Sign in', 'Sign up']);
-    expect(links[1]).toHaveAttribute('href', '/register');
+    expect(screen.queryByRole('link', { name: 'Sign up' })).not.toBeInTheDocument();
   });
 
   it('shows an account menu with logout when logged in', async () => {
