@@ -100,7 +100,9 @@ describe('Collapsible', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Less' }));
 
-    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    // The two-argument form: a smooth scroll is a silent no-op wherever
+    // animation is turned down, which strands the reader exactly as before.
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
   });
 
   it('scrolls nothing when the page is already at the top', () => {
