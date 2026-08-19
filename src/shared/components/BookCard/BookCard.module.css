@@ -1,22 +1,27 @@
 /*
- * Exists so `action` has something to position against. Without an action this
- * is an inert block and the card below is unchanged.
+ * A column so `action` can sit under the card in flow, and so `overlay` has
+ * something to position against. Without either this is an inert block and the
+ * card below is unchanged.
  */
 .wrap {
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 /*
- * Anchored to the bottom of the card, level with the rating row, rather than to
- * the title line as first drawn. The title is the one element here whose height
- * is not fixed -- it wraps to two lines often enough -- so anchoring to it puts
- * the control in a different place from card to card. The rating row is always
- * last and always one line, and its right side is always empty.
+ * Its own row below the card, right-aligned.
+ *
+ * It used to be absolute, in the empty right half of the rating row -- which
+ * only worked while a taller card in the same grid row stretched this wrapper.
+ * A short card standing alone had no spare height and the control landed on the
+ * stars (LOS-289). In flow it reserves its own space, whatever its size, and
+ * the card growing to fill the row keeps the controls level across it.
  */
 .action {
-  position: absolute;
-  right: 0;
-  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
 }
 
 /*
@@ -51,6 +56,9 @@
   flex-direction: column;
   gap: 12px;
   width: 100%;
+  /* Grows to the tallest card in the grid row, so every action row below sits
+     on the same line across it. */
+  flex: 1;
   padding: 0;
   border: none;
   background: none;
