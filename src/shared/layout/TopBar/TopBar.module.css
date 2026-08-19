@@ -127,10 +127,9 @@
   white-space: nowrap;
 }
 
-/* The default way in, so it carries the full weight; Sign up sits beside it,
-   dimmed, as the offer for whoever has no account yet. */
-.signIn,
-.signUp {
+/* The only way in from the bar; the sign-in page carries the offer to
+   register, so nothing sits beside this. */
+.signIn {
   font-size: 0.875rem;
   font-weight: 500;
   color: #fff;
@@ -138,13 +137,7 @@
   text-decoration: none;
 }
 
-.signUp {
-  font-weight: 400;
-  opacity: 0.8;
-}
-
-.signIn:hover,
-.signUp:hover {
+.signIn:hover {
   text-decoration: underline;
 }
 

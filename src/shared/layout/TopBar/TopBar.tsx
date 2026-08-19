@@ -23,16 +23,13 @@ function AccountMenu() {
   useDismissOnOutside(open, containerRef, () => setOpen(false));
 
   if (!isAuthenticated) {
-    // Both doors are named, since the avatar alone left a first-time reader
-    // with no way in at all (LOS-219). Sign in leads, because most people who
-    // come to this corner already have an account (LOS-285).
+    // One door, named in words. A Sign up link beside it would repeat what the
+    // sign-in page already offers at the foot of its form (LOS-286), and the
+    // word alone answers what the bare avatar could not (LOS-219).
     return (
       <div className={`${styles.account} ${styles.accountPushRight}`}>
         <Link to="/login" className={styles.signIn}>
           Sign in
-        </Link>
-        <Link to="/register" className={styles.signUp}>
-          Sign up
         </Link>
       </div>
     );
