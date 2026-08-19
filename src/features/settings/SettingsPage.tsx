@@ -6,7 +6,6 @@ import { useAuth } from '../auth/AuthContext';
 import { useThemeChoice } from '../../shared/theme/ThemeContext';
 import type { ThemeChoice } from '../../shared/theme/theme';
 import styles from './SettingsPage.module.css';
-import { PublicVisibilityPicker } from './PublicVisibilityPicker';
 
 const THEME_CHOICES: { value: ThemeChoice; label: string }[] = [
   { value: 'light', label: 'Light' },
@@ -15,8 +14,9 @@ const THEME_CHOICES: { value: ThemeChoice; label: string }[] = [
 ];
 
 /**
- * Configuration only. Favourites and the library live on the profile page --
- * settings holds the things a reader changes and leaves.
+ * Configuration only. Favourites and the library live on the profile page, and
+ * so does the public-page switch (LOS-287) -- what a page shows is chosen where
+ * the page is. Settings holds the things a reader changes and leaves.
  */
 export function SettingsPage() {
   const { user, updateUser } = useAuth();
@@ -24,11 +24,6 @@ export function SettingsPage() {
 
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [handle, setHandle] = useState(user?.handle ?? '');
-  // The public-page switch is saved on the spot rather than with the form: it
-  // is one click with a visible consequence, and pairing it with a Save button
-  // invites a reader to flip it, walk away, and believe their library is public
-  // when it is not.
-  const [isDiscoverable, setIsDiscoverable] = useState(user?.isDiscoverable ?? false);
 
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -48,21 +43,6 @@ export function SettingsPage() {
       setError(messageFor(err));
     } finally {
       setPending(false);
-    }
-  }
-
-  async function toggleDiscoverable(next: boolean) {
-    setError(null);
-    // Moved before the request so the switch answers the click; put back if the
-    // request refuses it, so the control never claims a state the server denies.
-    setIsDiscoverable(next);
-    try {
-      const { user: updated } = await updateMe({ isDiscoverable: next });
-      setIsDiscoverable(updated.isDiscoverable);
-      updateUser({ isDiscoverable: updated.isDiscoverable });
-    } catch (err) {
-      setIsDiscoverable(!next);
-      setError(messageFor(err));
     }
   }
 
@@ -160,41 +140,6 @@ export function SettingsPage() {
         </p>
       </fieldset>
 
-      <section className={styles.card} aria-labelledby="public-heading">
-        <h2 id="public-heading" className={styles.sectionHeading}>
-          Public page
-        </h2>
-        <p className={styles.explain}>
-          Off by default. When it is on, anyone with the link can read your library, what you
-          are currently reading, and your favourites. Books you have hidden never appear.
-        </p>
-
-        <label className={styles.switchRow}>
-          <input
-            type="checkbox"
-            className={styles.switch}
-            checked={isDiscoverable}
-            onChange={(event) => toggleDiscoverable(event.target.checked)}
-          />
-          <span>Make my library public</span>
-        </label>
-
-        <p className={styles.address}>
-          {isDiscoverable ? (
-            <>
-              Your page: <code className={styles.code}>bookhunt.net/{handle}</code>
-            </>
-          ) : (
-            <>
-              It would be at <code className={styles.code}>bookhunt.net/{handle}</code>
-            </>
-          )}
-        </p>
-
-        {/* Inside the same card as the switch, and below it: choose what would
-            be shown, then decide whether to show it (LOS-283). */}
-        <PublicVisibilityPicker isPublic={isDiscoverable} />
-      </section>
     </div>
   );
 }

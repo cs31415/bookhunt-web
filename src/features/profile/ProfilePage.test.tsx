@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,17 +12,26 @@ import {
   getMyFavoriteAuthors,
   getPublicFavoriteAuthors,
 } from '../../api/users/get-favorite-authors';
+import { setHidden } from '../../api/library/set-hidden';
+import { setAuthorHidden } from '../../api/users/set-author-hidden';
+import { updateMe } from '../../api/users/update-me';
 
 vi.mock('../../api/users/get-profile');
 vi.mock('../../api/users/get-public-library');
 vi.mock('../../api/library/get-library');
 vi.mock('../../api/users/get-favorite-authors');
+vi.mock('../../api/library/set-hidden');
+vi.mock('../../api/users/set-author-hidden');
+vi.mock('../../api/users/update-me');
 
 const mockedProfile = vi.mocked(getProfile);
 const mockedPublicLibrary = vi.mocked(getPublicLibrary);
 const mockedLibrary = vi.mocked(getLibrary);
 const mockedMyAuthors = vi.mocked(getMyFavoriteAuthors);
 const mockedPublicAuthors = vi.mocked(getPublicFavoriteAuthors);
+const mockedSetHidden = vi.mocked(setHidden);
+const mockedSetAuthorHidden = vi.mocked(setAuthorHidden);
+const mockedUpdateMe = vi.mocked(updateMe);
 
 const profile = {
   handle: 'ada',
@@ -47,6 +56,19 @@ function rawEntry(id: number, title: string, extra: Record<string, unknown> = {}
   };
 }
 
+function signInAsOwner() {
+  localStorage.setItem(
+    'bookhunt_user',
+    JSON.stringify({
+      id: 7,
+      email: 'a@b.com',
+      displayName: 'Ada Reader',
+      handle: 'ada',
+      isDiscoverable: false,
+    }),
+  );
+}
+
 function renderProfile(path = '/ada') {
   const router = createMemoryRouter([{ path: '/:handle', element: <ProfilePage /> }], {
     initialEntries: [path],
@@ -67,6 +89,11 @@ beforeEach(() => {
   mockedLibrary.mockReset();
   mockedMyAuthors.mockReset();
   mockedPublicAuthors.mockReset();
+  mockedSetHidden.mockReset();
+  mockedSetAuthorHidden.mockReset();
+  mockedUpdateMe.mockReset();
+  mockedSetHidden.mockResolvedValue(undefined as never);
+  mockedSetAuthorHidden.mockResolvedValue(undefined as never);
   mockedProfile.mockResolvedValue({ profile });
   mockedPublicLibrary.mockResolvedValue({
     entries: [rawEntry(1, 'Cosmos')] as never,
@@ -121,22 +148,28 @@ describe('ProfilePage as a visitor', () => {
 
     await screen.findByText('Ada Reader');
     expect(screen.queryByRole('button', { name: 'Copy' })).not.toBeInTheDocument();
-    expect(screen.queryByText(/your page is/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Show all/ })).not.toBeInTheDocument();
+  });
+
+  it('shows none of them to a signed-in reader either, on someone else’s page', async () => {
+    // Signed in is not the same as being the owner. The split is on the handle.
+    localStorage.setItem(
+      'bookhunt_user',
+      JSON.stringify({ id: 9, email: 'b@c.com', displayName: 'Bo', handle: 'bo' }),
+    );
+    renderProfile('/ada');
+
+    await screen.findByText('Ada Reader');
+    expect(mockedLibrary).not.toHaveBeenCalled();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy' })).not.toBeInTheDocument();
   });
 });
 
 describe('ProfilePage as the owner', () => {
   beforeEach(() => {
-    localStorage.setItem(
-      'bookhunt_user',
-      JSON.stringify({
-        id: 7,
-        email: 'a@b.com',
-        displayName: 'Ada Reader',
-        handle: 'ada',
-        isDiscoverable: false,
-      }),
-    );
+    signInAsOwner();
     mockedLibrary.mockResolvedValue({
       entries: [rawEntry(1, 'Cosmos'), rawEntry(2, 'Secret', { is_hidden: true })] as never,
       total: 2,
@@ -156,21 +189,95 @@ describe('ProfilePage as the owner', () => {
     expect(mockedPublicLibrary).not.toHaveBeenCalled();
   });
 
-  it('shows hidden books, badged, so what is excluded stays legible', async () => {
+  it('ticks what is public and leaves a hidden book unticked', async () => {
     renderProfile();
 
     expect(await screen.findByRole('button', { name: /Secret/ })).toBeInTheDocument();
-    expect(screen.getByText('Hidden from your public page')).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: 'Show Cosmos on your public page' }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: 'Show Secret on your public page' }),
+    ).not.toBeChecked();
   });
 
-  it('reports the page as private and offers the way to change it', async () => {
+  it('hides a book when its tick comes off', async () => {
     renderProfile();
+    const tick = await screen.findByRole('checkbox', {
+      name: 'Show Cosmos on your public page',
+    });
 
-    expect(await screen.findByText(/your page is private/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Make it public' })).toHaveAttribute(
-      'href',
-      '/settings',
+    await userEvent.click(tick);
+
+    expect(mockedSetHidden).toHaveBeenCalledWith(1, true);
+    expect(tick).not.toBeChecked();
+  });
+
+  it('puts the tick back when the server refuses', async () => {
+    mockedSetHidden.mockRejectedValue(new ApiError(500, 'Internal server error'));
+    renderProfile();
+    const tick = await screen.findByRole('checkbox', {
+      name: 'Show Cosmos on your public page',
+    });
+
+    await userEvent.click(tick);
+
+    // Falls back to whatever the server last said, never claiming a state it
+    // refused.
+    await waitFor(() => expect(tick).toBeChecked());
+  });
+
+  it('reaches the whole tab from Show all, not the page on screen', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    // One book of the two is hidden, so only that one needs a request.
+    await userEvent.click(screen.getByRole('button', { name: 'Show all 2' }));
+
+    expect(mockedSetHidden).toHaveBeenCalledTimes(1);
+    expect(mockedSetHidden).toHaveBeenCalledWith(2, false);
+  });
+
+  it('sends nothing when every book already agrees', async () => {
+    mockedLibrary.mockResolvedValue({
+      entries: [rawEntry(1, 'Cosmos')] as never,
+      total: 1,
+      page: 1,
+      pageSize: 60,
+    } as never);
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    // Everything is public, so the button offers the other direction.
+    expect(screen.getByRole('button', { name: 'Hide all 1' })).toBeInTheDocument();
+  });
+
+  it('publishes the page from the switch, on the spot', async () => {
+    mockedUpdateMe.mockResolvedValue({ user: { isDiscoverable: true } } as never);
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: /Anyone with the link can see this page/ }),
     );
+
+    expect(mockedUpdateMe).toHaveBeenCalledWith({ isDiscoverable: true });
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem('bookhunt_user')!).isDiscoverable).toBe(true);
+    });
+  });
+
+  it('puts the switch back when the server refuses', async () => {
+    mockedUpdateMe.mockRejectedValue(new ApiError(500, 'Internal server error'));
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+    const swtch = screen.getByRole('checkbox', {
+      name: /Anyone with the link can see this page/,
+    });
+
+    await userEvent.click(swtch);
+
+    await waitFor(() => expect(swtch).not.toBeChecked());
   });
 
   it('disables the copy button while the page is private', async () => {
@@ -203,16 +310,7 @@ describe('the Authors tab', () => {
   });
 
   it('reads the owner’s own list instead, so a private page still shows it', async () => {
-    localStorage.setItem(
-      'bookhunt_user',
-      JSON.stringify({
-        id: 7,
-        email: 'a@b.com',
-        displayName: 'Ada Reader',
-        handle: 'ada',
-        isDiscoverable: false,
-      }),
-    );
+    signInAsOwner();
     mockedLibrary.mockResolvedValue({
       entries: [] as never,
       total: 0,
@@ -228,6 +326,36 @@ describe('the Authors tab', () => {
     expect(await screen.findByRole('link', { name: 'Ursula Le Guin' })).toBeInTheDocument();
     expect(mockedMyAuthors).toHaveBeenCalled();
     expect(mockedPublicAuthors).not.toHaveBeenCalled();
+  });
+
+  it('gives the owner a tick per author, and the visitor none', async () => {
+    renderProfile('/ada?tab=favorites&sub=authors');
+
+    await screen.findByRole('link', { name: 'Carl Sagan' });
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('hides an author when its tick comes off', async () => {
+    signInAsOwner();
+    mockedLibrary.mockResolvedValue({
+      entries: [] as never,
+      total: 0,
+      page: 1,
+      pageSize: 60,
+    } as never);
+    mockedMyAuthors.mockResolvedValue({
+      authors: [{ name: 'Ursula Le Guin', slug: 'ursula-le-guin', bookCount: 4 }],
+    });
+
+    renderProfile('/ada?tab=favorites&sub=authors');
+    const tick = await screen.findByRole('checkbox', {
+      name: 'Show Ursula Le Guin on your public page',
+    });
+
+    await userEvent.click(tick);
+
+    expect(mockedSetAuthorHidden).toHaveBeenCalledWith('ursula-le-guin', true);
+    expect(tick).not.toBeChecked();
   });
 });
 

@@ -49,8 +49,67 @@
   color: var(--ink-2);
 }
 
-.settingsLink {
-  color: var(--rust);
+.switchRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.switch {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--rust);
+  cursor: pointer;
+}
+
+/* Indented to the label's text, so it reads as a note on the switch rather
+   than as a second line of the bar. */
+.ownerHint {
+  margin: 4px 0 0 28px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* Owner only: the count of what is public, and the one button that flips it. */
+.bulkRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.bulkCount {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.bulkButton {
+  font-family: var(--ui-sans);
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.bulkButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* A tick means the book or author is on the public page. */
+.showBox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--rust);
+  cursor: pointer;
+  flex: none;
 }
 
 .copyRow {
@@ -103,10 +162,11 @@
   max-width: 40rem;
 }
 
+/* Centred rather than on the baseline since the owner's tick sits here too,
+   and a checkbox has no baseline worth aligning to. */
 .authorRow {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 16px;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
@@ -116,6 +176,8 @@
   font-family: var(--serif);
   font-size: 1.0625rem;
   color: var(--ink);
+  /* Holds the count at the right whether or not a tick precedes the name. */
+  margin-right: auto;
 }
 
 .authorCount {

@@ -101,17 +101,10 @@
   padding-left: 2px;
 }
 
-.hint,
-.explain {
+.hint {
   font-size: 0.75rem;
   color: var(--muted);
   margin: 0;
-}
-
-.explain {
-  font-size: 0.8125rem;
-  margin-bottom: 16px;
-  line-height: 1.5;
 }
 
 .error {
@@ -141,36 +134,6 @@
 .submit:disabled {
   opacity: 0.7;
   cursor: default;
-}
-
-.switchRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.9375rem;
-  color: var(--ink);
-  cursor: pointer;
-  margin-bottom: 12px;
-}
-
-.switch {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--rust);
-  cursor: pointer;
-}
-
-.address {
-  font-size: 0.8125rem;
-  color: var(--muted);
-  margin: 0;
-}
-
-.code {
-  font-family: var(--mono);
-  font-size: 0.8125rem;
-  color: var(--ink-2);
-  word-break: break-all;
 }
 
 /* A fieldset gets the browser's default border and padding; the card look has

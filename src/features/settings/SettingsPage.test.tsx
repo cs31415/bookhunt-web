@@ -51,19 +51,15 @@ describe('SettingsPage', () => {
 
     expect(screen.getByLabelText('Name')).toHaveValue('Ada Reader');
     expect(screen.getByLabelText('Handle')).toHaveValue('ada');
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
-  it('shows the switch already on when the page is public', () => {
-    // There is no who-am-I endpoint, so this can only come from the cached
-    // session payload — which is why the API sends isDiscoverable with it.
-    localStorage.setItem(
-      'bookhunt_user',
-      JSON.stringify({ ...storedUser, isDiscoverable: true }),
-    );
+  it('leaves the public page to the profile, switch and all', () => {
+    // What a page shows is chosen where the page is (LOS-287). Settings holds
+    // the things a reader changes and leaves.
     renderSettings();
 
-    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByText('bookhunt.net/ada')).not.toBeInTheDocument();
   });
 
   it('saves the profile and adopts what came back', async () => {
@@ -94,34 +90,6 @@ describe('SettingsPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('That handle is taken.');
     expect(screen.getByLabelText('Handle')).toHaveValue('taken');
-  });
-
-  it('saves the public-page switch on the spot, not with the form', async () => {
-    // Pairing it with Save invites a reader to flip it, walk away, and believe
-    // their library is public when it is not.
-    mockedUpdateMe.mockResolvedValue({ user: { ...storedUser, isDiscoverable: true } });
-
-    renderSettings();
-    fireEvent.click(screen.getByRole('checkbox'));
-
-    await waitFor(() => {
-      expect(mockedUpdateMe).toHaveBeenCalledWith({ isDiscoverable: true });
-    });
-    expect(screen.getByRole('checkbox')).toBeChecked();
-    await waitFor(() => {
-      expect(JSON.parse(localStorage.getItem('bookhunt_user')!).isDiscoverable).toBe(true);
-    });
-  });
-
-  it('puts the switch back when the server refuses', async () => {
-    mockedUpdateMe.mockRejectedValue(new ApiError(500, 'Internal server error'));
-
-    renderSettings();
-    fireEvent.click(screen.getByRole('checkbox'));
-
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
-    // Never claims a state the server denied.
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
   describe('the appearance control', () => {
@@ -176,10 +144,5 @@ describe('SettingsPage', () => {
       });
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
     });
-  });
-
-  it('shows the address the public page would have', () => {
-    renderSettings();
-    expect(screen.getByText('bookhunt.net/ada')).toBeInTheDocument();
   });
 });
