@@ -1,0 +1,56 @@
+.wrap {
+  /* What the fade blends into. Overridden by a caller whose panel sits on a
+     different ground than the page. */
+  --collapse-fade: var(--paper);
+  position: relative;
+}
+
+.content {
+  position: relative;
+}
+
+.capped {
+  overflow: hidden;
+}
+
+/*
+ * A short fade over the last visible line, so the cut reads as "there is more"
+ * rather than as a sentence that simply stops.
+ */
+.capped::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3rem;
+  background: linear-gradient(to bottom, transparent, var(--collapse-fade));
+  pointer-events: none;
+}
+
+/* A button because it acts rather than navigates, styled quietly because it is
+   an offer at the foot of the text, not a call to action. */
+.toggle {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--ui-sans);
+  font-size: 0.8125rem;
+  color: var(--rust);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  text-decoration: underline;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

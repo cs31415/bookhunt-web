@@ -48,6 +48,11 @@
   line-height: 1.65;
   color: var(--ink);
   font-family: var(--serif);
+}
+
+/* The width belongs to the panel now, so the fade spans the same column the
+   text does rather than the whole hero. */
+.bioBlock {
   max-width: 680px;
 }
 
