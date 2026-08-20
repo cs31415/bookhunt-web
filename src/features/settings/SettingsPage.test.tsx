@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsPage } from './SettingsPage';
@@ -44,6 +44,11 @@ beforeEach(() => {
 afterEach(() => {
   localStorage.clear();
 });
+
+/** The appearance card, which has a Save button of its own (LOS-299). */
+function appearanceCard(): HTMLElement {
+  return screen.getByRole('group', { name: 'Appearance' });
+}
 
 describe('SettingsPage', () => {
   it('opens with the reader’s current values', () => {
@@ -103,7 +108,9 @@ describe('SettingsPage', () => {
       expect(screen.getByLabelText('System')).toBeChecked();
     });
 
-    it('applies the choice to the document and saves it', async () => {
+    it('applies the choice at once and writes nothing until Save', async () => {
+      // Seeing the theme is how a reader judges it; committing it is a
+      // separate decision (LOS-299).
       mockedUpdateMe.mockResolvedValue({
         user: { ...storedUser, preferences: { theme: 'dark' } },
       });
@@ -113,20 +120,27 @@ describe('SettingsPage', () => {
 
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
       expect(localStorage.getItem('bookhunt_theme')).toBe('dark');
+      expect(mockedUpdateMe).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save appearance' }));
+
       await waitFor(() => {
         expect(mockedUpdateMe).toHaveBeenCalledWith({ preferences: { theme: 'dark' } });
       });
+      expect(await within(appearanceCard()).findByText('Saved.')).toBeInTheDocument();
     });
 
-    it('keeps the choice applied even when the save fails', async () => {
-      // It costs the reader the choice on another browser, nothing more. An
-      // error about a setting they can plainly see applied would be noise.
+    it('reports a failed save rather than swallowing it', async () => {
+      // The old write was fired and forgotten, so a reader who asked for this
+      // was never told it had not happened.
       mockedUpdateMe.mockRejectedValue(new ApiError(500, 'Internal server error'));
 
       renderSettings();
       fireEvent.click(screen.getByLabelText('Dark'));
+      fireEvent.click(screen.getByRole('button', { name: 'Save appearance' }));
 
-      await waitFor(() => expect(mockedUpdateMe).toHaveBeenCalled());
+      expect(await within(appearanceCard()).findByRole('alert')).toBeInTheDocument();
+      // The choice itself still stands: it is applied and held locally.
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
       expect(screen.getByLabelText('Dark')).toBeChecked();
     });

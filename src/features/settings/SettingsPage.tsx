@@ -20,7 +20,7 @@ const THEME_CHOICES: { value: ThemeChoice; label: string }[] = [
  */
 export function SettingsPage() {
   const { user, updateUser } = useAuth();
-  const { choice: themeChoice, setChoice: setThemeChoice } = useThemeChoice();
+  const { choice: themeChoice, setChoice: setThemeChoice, saveChoice } = useThemeChoice();
 
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [handle, setHandle] = useState(user?.handle ?? '');
@@ -28,6 +28,26 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
+
+  // The appearance card keeps its own, so saving one does not report on the
+  // other: two cards, two Save buttons, two answers.
+  const [themeError, setThemeError] = useState<string | null>(null);
+  const [themeSaved, setThemeSaved] = useState(false);
+  const [themePending, setThemePending] = useState(false);
+
+  async function handleSaveTheme() {
+    setThemeError(null);
+    setThemeSaved(false);
+    setThemePending(true);
+    try {
+      await saveChoice();
+      setThemeSaved(true);
+    } catch (err) {
+      setThemeError(messageFor(err));
+    } finally {
+      setThemePending(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -129,15 +149,42 @@ export function SettingsPage() {
                 name="theme"
                 value={value}
                 checked={themeChoice === value}
-                onChange={() => setThemeChoice(value)}
+                // Applied on the click, saved on the button: seeing a theme is
+                // how a reader judges it, and nothing is written until asked.
+                onChange={() => {
+                  setThemeChoice(value);
+                  setThemeSaved(false);
+                }}
               />
               <span>{label}</span>
             </label>
           ))}
         </div>
-        <p className={styles.hint}>
-          Applies straight away, and follows you to another browser once you are signed in.
-        </p>
+
+        {themeError && (
+          <p className={styles.error} role="alert">
+            {themeError}
+          </p>
+        )}
+        {themeSaved && (
+          <p className={styles.saved} role="status">
+            Saved.
+          </p>
+        )}
+
+        {/* Named beyond its visible word: two buttons reading "Save" on one
+            page are told apart by their card on screen, and by this in a list
+            of controls. The visible text is contained in the name, so the two
+            do not disagree. */}
+        <button
+          type="button"
+          className={styles.submit}
+          aria-label={themePending ? 'Saving appearance' : 'Save appearance'}
+          onClick={() => void handleSaveTheme()}
+          disabled={themePending}
+        >
+          {themePending ? 'Saving…' : 'Save'}
+        </button>
       </fieldset>
 
     </div>
