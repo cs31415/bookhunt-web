@@ -102,6 +102,23 @@ describe('VerifyEmailPage', () => {
     expect(mockedPostVerifyEmail).toHaveBeenCalledTimes(1);
   });
 
+  it('says so plainly when the API knows the link was already used', async () => {
+    // The API can tell a link it really sent, presented twice, from one it has
+    // never seen (LOS-298). Only the first gets this answer.
+    mockedPostVerifyEmail.mockRejectedValue(
+      new ApiError(409, 'That address is already confirmed. Sign in to carry on.', 'ALREADY_VERIFIED'),
+    );
+
+    renderVerifyPage();
+
+    expect(await screen.findByText('Your address is already confirmed')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
+    // Nothing to resend: the address is confirmed.
+    expect(screen.queryByRole('button', { name: /resend/i })).not.toBeInTheDocument();
+    // And no session came back from a spent link.
+    expect(localStorage.getItem('bookhunt_user')).toBeNull();
+  });
+
   it('names a used link and leads with signing in', async () => {
     // A used link is the commonest cause, and the reader whose account this
     // came from read the second answer as the verdict on the first (LOS-296).

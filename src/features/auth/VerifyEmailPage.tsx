@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ApiError } from '../../api/client';
 import { useAuth } from './AuthContext';
 import { ResendVerificationForm } from './ResendVerificationForm';
 import styles from './RegisterPage.module.css';
 
-type Phase = 'verifying' | 'used' | 'never-arrived';
+type Phase = 'verifying' | 'confirmed' | 'used' | 'never-arrived';
 
 /**
  * Where the link in the sign-up email lands. Verifying returns a session token,
@@ -40,8 +41,13 @@ export function VerifyEmailPage() {
       try {
         await verifyEmail(token);
         navigate('/', { replace: true });
-      } catch {
-        setPhase('used');
+      } catch (error) {
+        // The API can now tell a link it really sent, presented a second time,
+        // from a token it has never seen (LOS-298). Only the first deserves to
+        // be told plainly that there is nothing left to do.
+        setPhase(
+          error instanceof ApiError && error.code === 'ALREADY_VERIFIED' ? 'confirmed' : 'used',
+        );
       }
     })();
   }, [token, verifyEmail, navigate]);
@@ -54,6 +60,26 @@ export function VerifyEmailPage() {
           <p className={styles.subheading} role="status">
             One moment…
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'confirmed') {
+    return (
+      <div className={styles.page}>
+        <div className={styles.card} aria-labelledby="verify-confirmed-heading">
+          <h1 id="verify-confirmed-heading" className={styles.heading}>
+            Your address is already confirmed
+          </h1>
+          <p className={styles.subheading} role="status">
+            You followed this link before — or your mail app followed it for you. Nothing else is
+            needed: sign in and carry on.
+          </p>
+
+          <Link to="/login" className={`${styles.submit} ${styles.submitLink}`}>
+            Sign in
+          </Link>
         </div>
       </div>
     );
