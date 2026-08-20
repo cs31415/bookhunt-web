@@ -9,7 +9,10 @@ import { updateMe } from '../../api/users/update-me';
 export interface ThemeContextValue {
   choice: ThemeChoice;
   resolved: ResolvedTheme;
+  /** Applies the theme here and now. Writes nothing: that is what saveChoice is for. */
   setChoice: (choice: ThemeChoice) => void;
+  /** Carries the current choice to the account, and so to another browser. */
+  saveChoice: () => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -45,23 +48,31 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (isThemeChoice(storedChoice)) setLocalChoice(storedChoice);
   }, [user, storedChoice, setLocalChoice]);
 
+  /**
+   * Local only (LOS-299). The choice used to write itself on every click; it
+   * now waits for Save, so the appearance card behaves like the profile fields
+   * above it rather than being the one control that commits silently.
+   *
+   * A choice left unsaved still holds in this browser -- useTheme keeps it in
+   * localStorage -- it simply does not follow the reader elsewhere.
+   */
   const setChoice = useCallback(
-    (next: ThemeChoice) => {
-      setLocalChoice(next);
-      if (!user) return;
-
-      // Fired and not awaited: the theme has already changed on screen, and a
-      // failed save is not worth an error message about a setting the reader
-      // can see is applied. It costs them the choice on another browser.
-      updateMe({ preferences: { theme: next } })
-        .then(({ user: updated }) => updateUser({ preferences: updated.preferences }))
-        .catch(() => {});
-    },
-    [setLocalChoice, user, updateUser],
+    (next: ThemeChoice) => setLocalChoice(next),
+    [setLocalChoice],
   );
 
+  // Awaited, unlike the old fire-and-forget write: a reader who pressed Save is
+  // owed an answer, including a failure.
+  const saveChoice = useCallback(async () => {
+    if (!user) return;
+    const { user: updated } = await updateMe({ preferences: { theme: theme.choice } });
+    updateUser({ preferences: updated.preferences });
+  }, [user, updateUser, theme.choice]);
+
   return (
-    <ThemeContext.Provider value={{ ...theme, setChoice }}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={{ ...theme, setChoice, saveChoice }}>
+      {children}
+    </ThemeContext.Provider>
   );
 }
 
