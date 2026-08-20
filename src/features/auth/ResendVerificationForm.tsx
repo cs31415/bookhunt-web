@@ -7,6 +7,11 @@ import styles from './RegisterPage.module.css';
  * Asks for the address before resending. Used where we do not already know it:
  * an expired link carries no identity, and the reader may well have opened it
  * on a different device from the one they signed up on.
+ *
+ * The form stays on screen after sending (LOS-296). It used to be replaced by
+ * the confirmation, which left a reader who had mistyped their address, or who
+ * will never receive anything because they are already confirmed, with nothing
+ * to press.
  */
 export function ResendVerificationForm({ initialEmail = '' }: { initialEmail?: string }) {
   const [email, setEmail] = useState(initialEmail);
@@ -15,14 +20,6 @@ export function ResendVerificationForm({ initialEmail = '' }: { initialEmail?: s
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await resend();
-  }
-
-  if (status === 'sent') {
-    return (
-      <p className={styles.note} role="status">
-        If that address needs confirming, a new link is on its way.
-      </p>
-    );
   }
 
   return (
@@ -46,8 +43,21 @@ export function ResendVerificationForm({ initialEmail = '' }: { initialEmail?: s
         </p>
       )}
 
+      {/*
+        Carefully not a promise of delivery. The endpoint answers the same for
+        an unknown address, an unconfirmed one and one already confirmed -- so
+        that it cannot be used to find out which addresses have accounts -- and
+        the last of those three never produces an email.
+      */}
+      {status === 'sent' && (
+        <p className={styles.note} role="status">
+          Sent, if that address still needs confirming. Nothing arrives for an address that is
+          already confirmed — sign in instead.
+        </p>
+      )}
+
       <button className={styles.submit} type="submit" disabled={status === 'sending'}>
-        {status === 'sending' ? 'Sending…' : 'Send a new link'}
+        {status === 'sending' ? 'Sending…' : 'Resend confirmation email'}
       </button>
     </form>
   );
