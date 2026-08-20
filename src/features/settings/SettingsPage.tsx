@@ -3,24 +3,18 @@ import type { FormEvent } from 'react';
 import { ApiError } from '../../api/client';
 import { updateMe } from '../../api/users/update-me';
 import { useAuth } from '../auth/AuthContext';
-import { useThemeChoice } from '../../shared/theme/ThemeContext';
-import type { ThemeChoice } from '../../shared/theme/theme';
 import styles from './SettingsPage.module.css';
-
-const THEME_CHOICES: { value: ThemeChoice; label: string }[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' },
-];
 
 /**
  * Configuration only. Favourites and the library live on the profile page, and
  * so does the public-page switch (LOS-287) -- what a page shows is chosen where
  * the page is. Settings holds the things a reader changes and leaves.
+ *
+ * The theme is not among them any more: it moved to the top bar (LOS-303),
+ * where it can be judged against the page it changes.
  */
 export function SettingsPage() {
   const { user, updateUser } = useAuth();
-  const { choice: themeChoice, setChoice: setThemeChoice, saveChoice } = useThemeChoice();
 
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [handle, setHandle] = useState(user?.handle ?? '');
@@ -28,26 +22,6 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
-
-  // The appearance card keeps its own, so saving one does not report on the
-  // other: two cards, two Save buttons, two answers.
-  const [themeError, setThemeError] = useState<string | null>(null);
-  const [themeSaved, setThemeSaved] = useState(false);
-  const [themePending, setThemePending] = useState(false);
-
-  async function handleSaveTheme() {
-    setThemeError(null);
-    setThemeSaved(false);
-    setThemePending(true);
-    try {
-      await saveChoice();
-      setThemeSaved(true);
-    } catch (err) {
-      setThemeError(messageFor(err));
-    } finally {
-      setThemePending(false);
-    }
-  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -135,58 +109,6 @@ export function SettingsPage() {
           {pending ? 'Saving…' : 'Save'}
         </button>
       </form>
-
-      {/* A radio group, not a two-state switch: "System" is a real choice --
-          keep following the machine -- and a toggle can only say light or dark,
-          which quietly freezes a reader to whichever the OS is today. */}
-      <fieldset className={styles.card}>
-        <legend className={styles.sectionHeading}>Appearance</legend>
-        <div className={styles.choices}>
-          {THEME_CHOICES.map(({ value, label }) => (
-            <label key={value} className={styles.choice}>
-              <input
-                type="radio"
-                name="theme"
-                value={value}
-                checked={themeChoice === value}
-                // Applied on the click, saved on the button: seeing a theme is
-                // how a reader judges it, and nothing is written until asked.
-                onChange={() => {
-                  setThemeChoice(value);
-                  setThemeSaved(false);
-                }}
-              />
-              <span>{label}</span>
-            </label>
-          ))}
-        </div>
-
-        {themeError && (
-          <p className={styles.error} role="alert">
-            {themeError}
-          </p>
-        )}
-        {themeSaved && (
-          <p className={styles.saved} role="status">
-            Saved.
-          </p>
-        )}
-
-        {/* Named beyond its visible word: two buttons reading "Save" on one
-            page are told apart by their card on screen, and by this in a list
-            of controls. The visible text is contained in the name, so the two
-            do not disagree. */}
-        <button
-          type="button"
-          className={styles.submit}
-          aria-label={themePending ? 'Saving appearance' : 'Save appearance'}
-          onClick={() => void handleSaveTheme()}
-          disabled={themePending}
-        >
-          {themePending ? 'Saving…' : 'Save'}
-        </button>
-      </fieldset>
-
     </div>
   );
 }

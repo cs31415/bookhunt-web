@@ -1,10 +1,55 @@
 import { useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/AuthContext';
-import { BackArrowIcon, LogoMark, MenuIcon, UserIcon } from '../icons';
+import { useThemeChoice } from '../../theme/ThemeContext';
+import type { ThemeChoice } from '../../theme/theme';
+import { BackArrowIcon, LogoMark, MenuIcon, MoonIcon, SunIcon, SystemThemeIcon, UserIcon } from '../icons';
 import { useNavItems } from '../nav-items';
 import { useDismissOnOutside } from '../use-dismiss-on-outside';
 import styles from './TopBar.module.css';
+
+/**
+ * Three states, not two. "System" means keep following the machine, which a
+ * light/dark switch cannot say -- and collapsing it would freeze a reader to
+ * whichever mode their machine happens to be in today.
+ *
+ * So the button cycles rather than toggles, in the order a reader would reach
+ * for: an explicit choice first, the deferral last.
+ */
+const THEME_CYCLE: { choice: ThemeChoice; label: string; Icon: typeof SunIcon }[] = [
+  { choice: 'light', label: 'Light', Icon: SunIcon },
+  { choice: 'dark', label: 'Dark', Icon: MoonIcon },
+  { choice: 'system', label: 'System', Icon: SystemThemeIcon },
+];
+
+function ThemeToggle() {
+  const { choice, setChoice } = useThemeChoice();
+
+  const index = Math.max(
+    THEME_CYCLE.findIndex((state) => state.choice === choice),
+    0,
+  );
+  const current = THEME_CYCLE[index];
+  const next = THEME_CYCLE[(index + 1) % THEME_CYCLE.length];
+  const { Icon } = current;
+
+  return (
+    <button
+      type="button"
+      className={styles.themeToggle}
+      // Both halves said aloud: an icon can show which state is on, but not
+      // that there is a third, nor which one a click will bring.
+      aria-label={`Theme: ${current.label}. Switch to ${next.label}.`}
+      // The tooltip names only the state that is on. It appears under a
+      // pointer, which has the icon in view and the next click a moment away,
+      // so the rest is answered faster by trying it than by reading it.
+      title={current.label}
+      onClick={() => setChoice(next.choice)}
+    >
+      <Icon className={styles.themeIcon} />
+    </button>
+  );
+}
 
 function isActivePath(pathname: string, path: string): boolean {
   return path === '/' ? pathname === '/' : pathname.startsWith(path);
@@ -180,6 +225,10 @@ export function TopBar() {
       </nav>
 
       <AccountMenu />
+      {/* Beside the account rather than in its menu: the theme is changed on
+          sight of a page, and a control you have to open a menu to find is one
+          you reach for after deciding to look for it. */}
+      <ThemeToggle />
       <NavMenu />
     </header>
   );

@@ -187,6 +187,35 @@
   height: 18px;
 }
 
+/* On the rust bar in white, like the back arrow and the hamburger, rather than
+   a second white disc competing with the avatar beside it. */
+.themeToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  /* The bar's 24px gap would read as unrelated to the account it sits with. */
+  margin-left: -14px;
+  padding: 0;
+  border: none;
+  border-radius: 99px;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  flex: none;
+  transition: background 0.14s ease;
+}
+
+.themeToggle:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.themeIcon {
+  width: 19px;
+  height: 19px;
+}
+
 /*
  * The mobile primary nav. Hidden by default: above 640px the inline .nav does
  * this job, and two navs visible at once would be two answers to the same
