@@ -117,10 +117,14 @@ describe('VerifyEmailPage', () => {
     expect(screen.queryByTestId('location')).not.toBeInTheDocument();
   });
 
-  it('shows the same state when the URL carries no token at all', async () => {
+  // No token is not a failed link: it is a reader who never got one, and
+  // saying "that link has been used" to them is simply untrue (LOS-297).
+  it('asks for an address when the URL carries no token at all', async () => {
     renderVerifyPage('');
 
-    expect(await screen.findByText('That link has been used')).toBeInTheDocument();
+    expect(await screen.findByText('Send me a new link')).toBeInTheDocument();
+    expect(screen.queryByText('That link has been used')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /resend confirmation email/i })).toBeInTheDocument();
     expect(mockedPostVerifyEmail).not.toHaveBeenCalled();
   });
 

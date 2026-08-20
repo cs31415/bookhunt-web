@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { ResendVerificationForm } from './ResendVerificationForm';
 import styles from './RegisterPage.module.css';
 
-type Phase = 'verifying' | 'failed';
+type Phase = 'verifying' | 'used' | 'never-arrived';
 
 /**
  * Where the link in the sign-up email lands. Verifying returns a session token,
@@ -17,7 +17,9 @@ export function VerifyEmailPage() {
   const { verifyEmail } = useAuth();
   const navigate = useNavigate();
 
-  const [phase, setPhase] = useState<Phase>(token ? 'verifying' : 'failed');
+  // No token is not a failed link: it is a reader who never got one, and
+  // typing this address is their way to ask again (LOS-297).
+  const [phase, setPhase] = useState<Phase>(token ? 'verifying' : 'never-arrived');
 
   // Verification tokens are single-use, and StrictMode runs effects twice in
   // development. Without this guard the second run spends the token the first
@@ -39,7 +41,7 @@ export function VerifyEmailPage() {
         await verifyEmail(token);
         navigate('/', { replace: true });
       } catch {
-        setPhase('failed');
+        setPhase('used');
       }
     })();
   }, [token, verifyEmail, navigate]);
@@ -51,6 +53,28 @@ export function VerifyEmailPage() {
           <h1 className={styles.heading}>Confirming your address</h1>
           <p className={styles.subheading} role="status">
             One moment…
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'never-arrived') {
+    return (
+      <div className={styles.page}>
+        <div className={styles.card} aria-labelledby="verify-resend-heading">
+          <h1 id="verify-resend-heading" className={styles.heading}>
+            Send me a new link
+          </h1>
+          <p className={styles.subheading}>
+            Confirmation mail sometimes lands in spam, and sometimes never arrives at all. Give
+            us the address you signed up with and we will send another link.
+          </p>
+
+          <ResendVerificationForm />
+
+          <p className={styles.altAction}>
+            Already confirmed? <Link to="/login">Sign in</Link>
           </p>
         </div>
       </div>
