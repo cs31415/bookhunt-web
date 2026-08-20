@@ -9,10 +9,11 @@ import { updateMe } from '../../api/users/update-me';
 export interface ThemeContextValue {
   choice: ThemeChoice;
   resolved: ResolvedTheme;
-  /** Applies the theme here and now. Writes nothing: that is what saveChoice is for. */
+  /**
+   * Applies the theme here and now, and carries it to the account -- and so to
+   * another browser -- when there is one to carry it to.
+   */
   setChoice: (choice: ThemeChoice) => void;
-  /** Carries the current choice to the account, and so to another browser. */
-  saveChoice: () => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -49,30 +50,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [user, storedChoice, setLocalChoice]);
 
   /**
-   * Local only (LOS-299). The choice used to write itself on every click; it
-   * now waits for Save, so the appearance card behaves like the profile fields
-   * above it rather than being the one control that commits silently.
+   * Applies the choice, then writes it. The Save button that used to stand
+   * between the two went with the Settings radio (LOS-303): the theme is now a
+   * button in the bar, and a button in the bar has nothing to press afterwards.
    *
-   * A choice left unsaved still holds in this browser -- useTheme keeps it in
-   * localStorage -- it simply does not follow the reader elsewhere.
+   * A failed write is left unsaid. The choice still holds in this browser --
+   * useTheme has already put it in localStorage -- so all that is lost is the
+   * trip to another browser, and an error toast over a theme click would cost
+   * the reader more attention than the loss is worth.
    */
   const setChoice = useCallback(
-    (next: ThemeChoice) => setLocalChoice(next),
-    [setLocalChoice],
+    (next: ThemeChoice) => {
+      setLocalChoice(next);
+      if (!user) return;
+      void updateMe({ preferences: { theme: next } })
+        .then(({ user: updated }) => updateUser({ preferences: updated.preferences }))
+        .catch(() => {
+          // Deliberately nothing. See above.
+        });
+    },
+    [user, updateUser, setLocalChoice],
   );
 
-  // Awaited, unlike the old fire-and-forget write: a reader who pressed Save is
-  // owed an answer, including a failure.
-  const saveChoice = useCallback(async () => {
-    if (!user) return;
-    const { user: updated } = await updateMe({ preferences: { theme: theme.choice } });
-    updateUser({ preferences: updated.preferences });
-  }, [user, updateUser, theme.choice]);
-
   return (
-    <ThemeContext.Provider value={{ ...theme, setChoice, saveChoice }}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={{ ...theme, setChoice }}>{children}</ThemeContext.Provider>
   );
 }
 

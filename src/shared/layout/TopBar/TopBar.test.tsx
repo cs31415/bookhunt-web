@@ -1,9 +1,17 @@
 import { useLocation } from 'react-router-dom';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TopBar } from './TopBar';
 import { AuthProvider } from '../../../features/auth/AuthContext';
+import { ThemeProvider } from '../../theme/ThemeContext';
+import { updateMe } from '../../../api/users/update-me';
+
+vi.mock('../../../api/users/update-me', () => ({
+  updateMe: vi.fn(),
+}));
+
+const mockedUpdateMe = vi.mocked(updateMe);
 
 // Logging out is a call to the BFF now — only it can clear the httpOnly session
 // cookie (LOS-119). Stubbed so this stays a unit test of the menu.
@@ -37,16 +45,38 @@ function renderAt(initialEntry: string) {
     { initialEntries: [initialEntry] },
   );
   render(
+    // ThemeProvider inside AuthProvider, as App composes them: the theme
+    // toggle in the bar needs both.
     <AuthProvider>
-      <RouterProvider router={router} />
+      <ThemeProvider>
+        <RouterProvider router={router} />
+      </ThemeProvider>
     </AuthProvider>,
   );
   return router;
 }
 
+function signIn() {
+  localStorage.setItem(
+    'bookhunt_user',
+    JSON.stringify({ id: 7, email: 'reader@example.com', displayName: 'Ada Reader' }),
+  );
+}
+
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
+  mockedUpdateMe.mockReset();
+  mockedUpdateMe.mockResolvedValue({
+    user: {
+      id: 7,
+      email: 'reader@example.com',
+      displayName: 'Ada Reader',
+      handle: 'ada',
+      isDiscoverable: true,
+      preferences: { theme: 'dark' },
+    },
+  });
 });
 
 afterEach(() => {
@@ -125,10 +155,7 @@ describe('TopBar', () => {
   });
 
   it('shows an account menu with logout when logged in', async () => {
-    localStorage.setItem(
-      'bookhunt_user',
-      JSON.stringify({ id: 7, email: 'reader@example.com', displayName: 'Ada Reader' }),
-    );
+    signIn();
     renderAt('/');
 
     expect(screen.queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument();
@@ -240,5 +267,106 @@ describe('TopBar mobile menu', () => {
     fireEvent.click(links[links.length - 1]);
 
     expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+  });
+});
+
+describe('TopBar theme toggle', () => {
+  const themeButton = () => screen.getByRole('button', { name: /^Theme:/ });
+
+  it('starts on System, which is what a reader who has never chosen is on', () => {
+    renderAt('/');
+
+    expect(themeButton()).toHaveAccessibleName('Theme: System. Switch to Light.');
+  });
+
+  // Under a pointer the icon is already in view, so the tooltip only has to
+  // settle which of the three it is.
+  it('names just the current theme in the tooltip', () => {
+    renderAt('/');
+    expect(themeButton()).toHaveAttribute('title', 'System');
+
+    fireEvent.click(themeButton());
+    expect(themeButton()).toHaveAttribute('title', 'Light');
+  });
+
+  // Three states, so the label has to say which one is on: the icon can show a
+  // sun, but not that a moon and a half-disc are also in the cycle.
+  it('cycles Light, Dark, System and round again', () => {
+    renderAt('/');
+
+    fireEvent.click(themeButton());
+    expect(themeButton()).toHaveAccessibleName('Theme: Light. Switch to Dark.');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+
+    fireEvent.click(themeButton());
+    expect(themeButton()).toHaveAccessibleName('Theme: Dark. Switch to System.');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+
+    fireEvent.click(themeButton());
+    expect(themeButton()).toHaveAccessibleName('Theme: System. Switch to Light.');
+  });
+
+  it('holds the choice in this browser, so a reload does not undo it', () => {
+    renderAt('/');
+
+    fireEvent.click(themeButton());
+
+    expect(localStorage.getItem('bookhunt_theme')).toBe('light');
+  });
+
+  it('carries a signed-in reader’s choice to their account', async () => {
+    signIn();
+    renderAt('/');
+
+    fireEvent.click(themeButton());
+
+    await waitFor(() => expect(mockedUpdateMe).toHaveBeenCalledWith({ preferences: { theme: 'light' } }));
+  });
+
+  it('writes nothing for a reader with no account to write to', () => {
+    renderAt('/');
+
+    fireEvent.click(themeButton());
+
+    expect(mockedUpdateMe).not.toHaveBeenCalled();
+  });
+
+  // The choice still holds locally, so there is nothing to tell the reader and
+  // nothing for a failed write to interrupt.
+  it('keeps the theme when the write fails', async () => {
+    signIn();
+    mockedUpdateMe.mockRejectedValue(new Error('offline'));
+    renderAt('/');
+
+    fireEvent.click(themeButton());
+
+    await waitFor(() => expect(mockedUpdateMe).toHaveBeenCalled());
+    expect(themeButton()).toHaveAccessibleName('Theme: Light. Switch to Dark.');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+  });
+
+  // What carries a choice to a second browser, and what brings it back when a
+  // reader signs in again.
+  it('adopts the theme stored against the signed-in reader', async () => {
+    localStorage.setItem(
+      'bookhunt_user',
+      JSON.stringify({
+        id: 7,
+        email: 'reader@example.com',
+        displayName: 'Ada Reader',
+        preferences: { theme: 'dark' },
+      }),
+    );
+    renderAt('/');
+
+    await waitFor(() => expect(themeButton()).toHaveAccessibleName('Theme: Dark. Switch to System.'));
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+  });
+
+  it('is offered to a reader who is not signed in', () => {
+    renderAt('/');
+
+    expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
+    expect(themeButton()).toBeInTheDocument();
   });
 });
