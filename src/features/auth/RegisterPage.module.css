@@ -164,6 +164,21 @@
   cursor: default;
 }
 
+/* The same pill, as a link. An anchor is inline, so it would otherwise sit
+   mid-line at the width of its words. */
+.submitLink {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* Sets the way out apart from the fallback beneath it. */
+.divider {
+  margin: 26px 0 10px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
 .secondary {
   border: 1px solid var(--line-2);
   border-radius: 999px;

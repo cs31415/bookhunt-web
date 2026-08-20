@@ -102,22 +102,25 @@ describe('VerifyEmailPage', () => {
     expect(mockedPostVerifyEmail).toHaveBeenCalledTimes(1);
   });
 
-  it('explains an expired link and offers a new one', async () => {
+  it('names a used link and leads with signing in', async () => {
+    // A used link is the commonest cause, and the reader whose account this
+    // came from read the second answer as the verdict on the first (LOS-296).
     mockedPostVerifyEmail.mockRejectedValue(
       new ApiError(400, 'This verification link is invalid or has expired.'),
     );
 
     renderVerifyPage();
 
-    expect(await screen.findByText('This link has expired')).toBeInTheDocument();
+    expect(await screen.findByText('That link has been used')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
     expect(localStorage.getItem('bookhunt_user')).toBeNull();
     expect(screen.queryByTestId('location')).not.toBeInTheDocument();
   });
 
-  it('shows the expired state when the URL carries no token at all', async () => {
+  it('shows the same state when the URL carries no token at all', async () => {
     renderVerifyPage('');
 
-    expect(await screen.findByText('This link has expired')).toBeInTheDocument();
+    expect(await screen.findByText('That link has been used')).toBeInTheDocument();
     expect(mockedPostVerifyEmail).not.toHaveBeenCalled();
   });
 
@@ -127,17 +130,41 @@ describe('VerifyEmailPage', () => {
 
     renderVerifyPage();
 
-    await screen.findByText('This link has expired');
+    await screen.findByText('That link has been used');
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'reader@example.com' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /send a new link/i }));
+    fireEvent.click(screen.getByRole('button', { name: /resend confirmation email/i }));
 
     await waitFor(() => {
       expect(mockedPostResend).toHaveBeenCalledWith({ email: 'reader@example.com' });
     });
+    // Not a promise of delivery: a confirmed address never receives one.
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'If that address needs confirming, a new link is on its way.',
+      'Sent, if that address still needs confirming.',
     );
+  });
+
+  it('keeps the box and the button after sending, so a typo can be corrected', async () => {
+    mockedPostVerifyEmail.mockRejectedValue(new ApiError(400, 'expired'));
+    mockedPostResend.mockResolvedValue({ ok: true });
+
+    renderVerifyPage();
+
+    await screen.findByText('That link has been used');
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'typo@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /resend confirmation email/i }));
+    await screen.findByRole('status');
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'reader@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /resend confirmation email/i }));
+
+    await waitFor(() => {
+      expect(mockedPostResend).toHaveBeenLastCalledWith({ email: 'reader@example.com' });
+    });
   });
 });

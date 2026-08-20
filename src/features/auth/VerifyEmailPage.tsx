@@ -57,22 +57,33 @@ export function VerifyEmailPage() {
     );
   }
 
+  /*
+   * Both causes are named, and signing in comes first (LOS-296).
+   *
+   * A reader reached this after their link had already worked: they opened it
+   * twice, and read the second answer as the verdict on the first. The screen
+   * then offered only a resend, which for a confirmed address sends nothing at
+   * all -- so they asked four times, got nothing four times, and tried to
+   * register again. The way out was a sign-in they were never offered plainly.
+   */
   return (
     <div className={styles.page}>
       <div className={styles.card} aria-labelledby="verify-failed-heading">
         <h1 id="verify-failed-heading" className={styles.heading}>
-          This link has expired
+          That link has been used
         </h1>
         <p className={styles.subheading} role="alert">
-          Confirmation links last 24 hours and can only be used once. Enter your address and we
-          will send a new one.
+          Confirmation links work once and last 24 hours. If you have already followed this one —
+          or your mail app followed it for you — your address is confirmed and you can sign in.
         </p>
+
+        <Link to="/login" className={`${styles.submit} ${styles.submitLink}`}>
+          Sign in
+        </Link>
+
+        <p className={styles.divider}>Never got that far?</p>
 
         <ResendVerificationForm />
-
-        <p className={styles.altAction}>
-          Already confirmed? <Link to="/login">Sign in</Link>
-        </p>
       </div>
     </div>
   );
