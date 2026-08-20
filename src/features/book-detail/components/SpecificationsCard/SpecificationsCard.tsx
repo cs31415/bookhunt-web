@@ -7,6 +7,13 @@ export interface SpecificationsCardProps {
   onSubjectClick: (subject: string) => void;
 }
 
+/**
+ * A well-catalogued book carries far more subjects than a row can hold --
+ * Sapiens has 21 once the API has curated them (LOS-300) -- and the tail is
+ * the least useful part of the list, since providers lead with their best.
+ */
+const SUBJECT_LIMIT = 10;
+
 function Spec({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className={styles.spec}>
@@ -21,7 +28,7 @@ export function SpecificationsCard({ book, onSubjectClick }: SpecificationsCardP
     <div className={styles.card}>
       <Spec label="Category">
         <div className={styles.pillRow}>
-          {book.subjects.map((subject) => (
+          {book.subjects.slice(0, SUBJECT_LIMIT).map((subject) => (
             <button key={subject} type="button" className={styles.pill} onClick={() => onSubjectClick(subject)}>
               {subject}
             </button>
