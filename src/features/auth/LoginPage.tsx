@@ -135,6 +135,14 @@ export function LoginPage() {
           <Link to="/forgot-password">Forgot your password?</Link>
         </p>
 
+        {/* Named for the reader's experience rather than for the mechanism:
+            "confirmation email" is what they are missing, and until now the
+            only route to another one was to attempt a sign-in and be refused
+            (LOS-297). */}
+        <p className={styles.altAction}>
+          <Link to="/verify-email">Never got the confirmation email?</Link>
+        </p>
+
         <p className={styles.altAction}>
           New to BookHunt? <Link to="/register">Create an account</Link>
         </p>

@@ -56,6 +56,14 @@ afterEach(() => {
 });
 
 describe('LoginPage', () => {
+  it('offers the way to a fresh confirmation email', () => {
+    // Until this, the only route was to attempt a sign-in and be refused.
+    renderLoginPage();
+    expect(
+      screen.getByRole('link', { name: 'Never got the confirmation email?' }),
+    ).toHaveAttribute('href', '/verify-email');
+  });
+
   it('reveals the password on request', () => {
     renderLoginPage();
     const password = screen.getByLabelText('Password');
