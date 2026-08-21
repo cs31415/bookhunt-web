@@ -71,6 +71,8 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   // /search and /bulk before /:slug and /:bookId, mirroring routes/library.ts.
   { method: 'get', path: '/library', auth: 'required' },
   { method: 'get', path: '/library/search', auth: 'required' },
+  // A literal, above '/:slug' and '/:bookId' for the same reason '/search' is.
+  { method: 'get', path: '/library/export', auth: 'required' },
   { method: 'post', path: '/library/bulk', auth: 'required' },
   { method: 'post', path: '/library/:slug', auth: 'required' },
   // Before the bare /:bookId, mirroring routes/library.ts: otherwise "favorite"

@@ -19,6 +19,9 @@ import { useLibrarySelection } from './hooks/useLibrarySelection';
 import { useCsvImportSession } from './hooks/useCsvImportSession';
 import { removeEntry } from '../../api/library/remove-entry';
 import { removeEntries, MAX_REMOVE_PER_REQUEST } from '../../api/library/remove-entries';
+import { exportLibrary } from '../../api/library/export-library';
+import { downloadJson, exportFilename } from '../../shared/lib/download-json';
+import { ApiError } from '../../api/client';
 import { toast } from '../../shared/toast/toast-store';
 import { filterEntries, sortByShelf, asFormat } from './lib/breakdowns';
 import type { LibraryFormat } from './lib/breakdowns';
@@ -54,6 +57,7 @@ export function LibraryPage() {
   const { entries, total, loading, error, reload } = useLibraryData();
   const [page, setPage] = useState(1);
   const [csvOpen, setCsvOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const selection = useLibrarySelection();
   // What the confirm modal is asking about: one named book, or the selection.
   // Null when it is closed, which is also what Cancel restores.
@@ -158,6 +162,29 @@ export function LibraryPage() {
   function importCsv() {
     if (csvSession.phase === 'review' || csvSession.phase === 'error') csvSession.reset();
     setCsvOpen(true);
+  }
+
+  /**
+   * The answer to Import, so it sits beside it. The whole library comes back in
+   * one response -- the API walks it server-side -- so there is no progress to
+   * report, only a disabled button while it is in flight.
+   */
+  async function exportJson() {
+    setExporting(true);
+    try {
+      downloadJson(exportFilename(), await exportLibrary());
+    } catch (err) {
+      // The rate limit is the one failure worth telling apart: it says to wait
+      // rather than that something is broken.
+      toast({
+        text:
+          err instanceof ApiError && err.status === 429
+            ? 'Too many exports just now. Please try again shortly.'
+            : 'Could not export your library. Please try again.',
+      });
+    } finally {
+      setExporting(false);
+    }
   }
 
   const modals = (
@@ -280,6 +307,16 @@ export function LibraryPage() {
             <div className={styles.resultsActions}>
               <button type="button" className={styles.importButton} onClick={importCsv}>
                 Import
+              </button>
+              {/* Beside the import it answers, rather than in Settings: this is
+                  where a reader thinks about the shelf as a whole (LOS-302). */}
+              <button
+                type="button"
+                className={styles.importButton}
+                onClick={exportJson}
+                disabled={exporting}
+              >
+                {exporting ? 'Exporting…' : 'Export'}
               </button>
               <button type="button" className={styles.editButton} onClick={selection.enter}>
                 Edit
