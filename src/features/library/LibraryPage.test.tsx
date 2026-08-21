@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { LibraryPage } from './LibraryPage';
@@ -6,6 +6,9 @@ import { getLibrary } from '../../api/library/get-library';
 import { removeEntry } from '../../api/library/remove-entry';
 import { removeEntries } from '../../api/library/remove-entries';
 import { setEbook } from '../../api/library/set-ebook';
+import { exportLibrary } from '../../api/library/export-library';
+import { downloadJson } from '../../shared/lib/download-json';
+import { ApiError } from '../../api/client';
 import { ToastHost } from '../../shared/toast/ToastHost';
 import { clearToasts } from '../../shared/toast/toast-store';
 import type { RawLibraryEntry } from '../../normalize/library';
@@ -15,11 +18,18 @@ vi.mock('../../api/library/get-library');
 vi.mock('../../api/library/remove-entry');
 vi.mock('../../api/library/remove-entries');
 vi.mock('../../api/library/set-ebook');
+vi.mock('../../api/library/export-library');
+vi.mock('../../shared/lib/download-json', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../shared/lib/download-json')>()),
+  downloadJson: vi.fn(),
+}));
 
 const mockedGetLibrary = vi.mocked(getLibrary);
 const mockedRemoveEntry = vi.mocked(removeEntry);
 const mockedRemoveEntries = vi.mocked(removeEntries);
 const mockedSetEbook = vi.mocked(setEbook);
+const mockedExport = vi.mocked(exportLibrary);
+const mockedDownload = vi.mocked(downloadJson);
 
 let idSeq = 1;
 
@@ -113,6 +123,8 @@ describe('LibraryPage', () => {
     mockedSetEbook.mockResolvedValue({
       entry: { user_id: 1, book_id: 1, is_favorite: false, is_hidden: false, is_ebook: true },
     });
+    mockedExport.mockReset();
+    mockedDownload.mockReset();
     clearToasts();
   });
 
@@ -582,6 +594,76 @@ describe('LibraryPage', () => {
       expect(screen.getByRole('group', { name: 'Dune' })).toBeInTheDocument();
       expect(screen.queryByRole('group', { name: 'Sapiens' })).not.toBeInTheDocument();
       expect(router.state.location.search).toContain('format=ebook');
+    });
+  });
+  // The answer to Import, and it sits beside it (LOS-302).
+  describe('exporting the library', () => {
+    const emptyExport = {
+      exportedAt: '2026-08-21T00:00:00.000Z',
+      books: [],
+      favorites: { books: [], authors: [], users: [] },
+    };
+
+    it('hands the reader the file the API answers with', async () => {
+      mockedExport.mockResolvedValue(emptyExport);
+      mockLibrary([dune], { reading: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '1 book' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+
+      await waitFor(() => expect(mockedDownload).toHaveBeenCalled());
+      const [filename, data] = mockedDownload.mock.calls[0];
+      expect(filename).toMatch(/^bookhunt-library-\d{4}-\d{2}-\d{2}\.json$/);
+      expect(data).toBe(emptyExport);
+    });
+
+    // A library of a few hundred books is not instant, and a second click
+    // would spend another of the ten the API allows in an hour.
+    it('disables the button while the export is in flight', async () => {
+      let release: (value: typeof emptyExport) => void = () => {};
+      mockedExport.mockReturnValue(
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+      );
+      mockLibrary([dune], { reading: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '1 book' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+
+      const button = await screen.findByRole('button', { name: 'Exporting…' });
+      expect(button).toBeDisabled();
+
+      release(emptyExport);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled());
+    });
+
+    it('says so when the export fails, and offers the button again', async () => {
+      mockedExport.mockRejectedValue(new Error('network'));
+      mockLibrary([dune], { reading: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '1 book' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+
+      expect(await screen.findByText(/Could not export your library/)).toBeInTheDocument();
+      expect(mockedDownload).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+    });
+
+    // Worth telling apart from a failure: it says to wait, not that something
+    // is broken.
+    it('names the rate limit rather than blaming the export', async () => {
+      mockedExport.mockRejectedValue(new ApiError(429, 'Too many requests'));
+      mockLibrary([dune], { reading: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '1 book' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+
+      expect(await screen.findByText(/Too many exports just now/)).toBeInTheDocument();
     });
   });
 });
