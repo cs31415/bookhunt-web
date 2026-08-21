@@ -4,6 +4,8 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from './ProfilePage';
 import { AuthProvider } from '../auth/AuthContext';
+import { ToastHost } from '../../shared/toast/ToastHost';
+import { clearToasts } from '../../shared/toast/toast-store';
 import { ApiError } from '../../api/client';
 import { getProfile } from '../../api/users/get-profile';
 import { getPublicLibrary } from '../../api/users/get-public-library';
@@ -15,6 +17,11 @@ import {
 import { setHidden } from '../../api/library/set-hidden';
 import { setAuthorHidden } from '../../api/users/set-author-hidden';
 import { updateMe } from '../../api/users/update-me';
+import {
+  createShareLink,
+  deleteShareLink,
+  getShareLink,
+} from '../../api/users/share-link';
 
 vi.mock('../../api/users/get-profile');
 vi.mock('../../api/users/get-public-library');
@@ -23,6 +30,7 @@ vi.mock('../../api/users/get-favorite-authors');
 vi.mock('../../api/library/set-hidden');
 vi.mock('../../api/users/set-author-hidden');
 vi.mock('../../api/users/update-me');
+vi.mock('../../api/users/share-link');
 
 const mockedProfile = vi.mocked(getProfile);
 const mockedPublicLibrary = vi.mocked(getPublicLibrary);
@@ -32,6 +40,9 @@ const mockedPublicAuthors = vi.mocked(getPublicFavoriteAuthors);
 const mockedSetHidden = vi.mocked(setHidden);
 const mockedSetAuthorHidden = vi.mocked(setAuthorHidden);
 const mockedUpdateMe = vi.mocked(updateMe);
+const mockedGetShareLink = vi.mocked(getShareLink);
+const mockedCreateShareLink = vi.mocked(createShareLink);
+const mockedDeleteShareLink = vi.mocked(deleteShareLink);
 
 const profile = {
   handle: 'ada',
@@ -85,6 +96,9 @@ function renderProfile(path = '/ada') {
   render(
     <AuthProvider>
       <RouterProvider router={router} />
+      {/* App renders this, not the page -- without it a toast has nowhere to
+          appear and the assertions below cannot see one. */}
+      <ToastHost />
     </AuthProvider>,
   );
   // Returned so a test can read the URL the page navigated to.
@@ -93,6 +107,7 @@ function renderProfile(path = '/ada') {
 
 beforeEach(() => {
   localStorage.clear();
+  clearToasts();
   mockedProfile.mockReset();
   mockedPublicLibrary.mockReset();
   mockedLibrary.mockReset();
@@ -101,6 +116,11 @@ beforeEach(() => {
   mockedSetHidden.mockReset();
   mockedSetAuthorHidden.mockReset();
   mockedUpdateMe.mockReset();
+  mockedGetShareLink.mockReset();
+  mockedCreateShareLink.mockReset();
+  mockedDeleteShareLink.mockReset();
+  // No share link until a test says otherwise, which is the default state.
+  mockedGetShareLink.mockResolvedValue({ token: null });
   mockedSetHidden.mockResolvedValue(undefined as never);
   mockedSetAuthorHidden.mockResolvedValue(undefined as never);
   mockedProfile.mockResolvedValue({ profile });
@@ -326,7 +346,7 @@ describe('ProfilePage as the owner', () => {
     await screen.findByRole('button', { name: /Cosmos/ });
 
     await userEvent.click(
-      screen.getByRole('checkbox', { name: /Anyone with the link can see this page/ }),
+      screen.getByRole('checkbox', { name: /List my page publicly/ }),
     );
 
     expect(mockedUpdateMe).toHaveBeenCalledWith({ isDiscoverable: true });
@@ -340,7 +360,7 @@ describe('ProfilePage as the owner', () => {
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
     const swtch = screen.getByRole('checkbox', {
-      name: /Anyone with the link can see this page/,
+      name: /List my page publicly/,
     });
 
     await userEvent.click(swtch);
@@ -642,5 +662,122 @@ describe('searching your own profile (LOS-304)', () => {
 
     await screen.findByRole('button', { name: /Dune/ });
     expect(screen.queryByRole('button', { name: /Cosmos/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('the unlisted share link (LOS-305)', () => {
+  beforeEach(() => {
+    signInAsOwner();
+    mockedMyAuthors.mockResolvedValue({ authors: [] } as never);
+    mockedLibrary.mockResolvedValue({
+      entries: [rawEntry(1, 'Cosmos')] as never,
+      total: 1,
+      stats: { total: 1, by_status: { reading: 1 } },
+    });
+  });
+
+  // The old label said "anyone with the link", which is now precisely what the
+  // OTHER state means. Naming them apart is the point of the copy change.
+  it('says the switch makes the page findable, not merely linkable', async () => {
+    renderProfile();
+
+    await screen.findByRole('button', { name: /Cosmos/ });
+    expect(
+      screen.getByRole('checkbox', { name: /List my page publicly, so anyone can find it/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers to create a link when there is none', async () => {
+    renderProfile();
+
+    expect(await screen.findByRole('button', { name: 'Create link' })).toBeInTheDocument();
+  });
+
+  it('shows the address once a link is made', async () => {
+    mockedCreateShareLink.mockResolvedValue({ token: 'tok-abc' });
+    renderProfile();
+    await screen.findByRole('button', { name: 'Create link' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create link' }));
+
+    expect(await screen.findByText(/\/s\/tok-abc$/)).toBeInTheDocument();
+  });
+
+  it('shows an existing link on arrival', async () => {
+    mockedGetShareLink.mockResolvedValue({ token: 'tok-existing' });
+    renderProfile();
+
+    expect(await screen.findByText(/\/s\/tok-existing$/)).toBeInTheDocument();
+  });
+
+  // The one action here that cannot be undone: a misclick would silently break
+  // every link already sent.
+  it('asks before replacing a link that may have spread', async () => {
+    mockedGetShareLink.mockResolvedValue({ token: 'tok-old' });
+    renderProfile();
+    await screen.findByText(/\/s\/tok-old$/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Replace link' }));
+
+    expect(await screen.findByText(/stops working for everyone/)).toBeInTheDocument();
+    expect(mockedCreateShareLink).not.toHaveBeenCalled();
+  });
+
+  it('replaces the link once confirmed, and shows the new one', async () => {
+    mockedGetShareLink.mockResolvedValue({ token: 'tok-old' });
+    mockedCreateShareLink.mockResolvedValue({ token: 'tok-new' });
+    renderProfile();
+    await screen.findByText(/\/s\/tok-old$/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Replace link' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Replace it' }));
+
+    expect(await screen.findByText(/\/s\/tok-new$/)).toBeInTheDocument();
+    expect(screen.queryByText(/\/s\/tok-old$/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the link when the reader backs out', async () => {
+    mockedGetShareLink.mockResolvedValue({ token: 'tok-old' });
+    renderProfile();
+    await screen.findByText(/\/s\/tok-old$/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Replace link' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Keep it' }));
+
+    expect(mockedCreateShareLink).not.toHaveBeenCalled();
+    expect(screen.getByText(/\/s\/tok-old$/)).toBeInTheDocument();
+  });
+
+  // Turning it off is what returns the page to private.
+  it('turns the link off and offers to make a new one', async () => {
+    mockedGetShareLink.mockResolvedValue({ token: 'tok-old' });
+    mockedDeleteShareLink.mockResolvedValue({ token: null });
+    renderProfile();
+    await screen.findByText(/\/s\/tok-old$/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Turn off' }));
+
+    expect(await screen.findByRole('button', { name: 'Create link' })).toBeInTheDocument();
+    expect(screen.queryByText(/\/s\/tok-old$/)).not.toBeInTheDocument();
+  });
+
+  it('says so when the link cannot be created', async () => {
+    mockedCreateShareLink.mockRejectedValue(new ApiError(500, 'boom'));
+    renderProfile();
+    await screen.findByRole('button', { name: 'Create link' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create link' }));
+
+    expect(await screen.findByText(/Could not create a share link/)).toBeInTheDocument();
+  });
+
+  // A visitor is not the owner, and has nothing to share here.
+  it('never shows the share controls to a visitor', async () => {
+    localStorage.clear();
+    renderProfile();
+
+    await screen.findByRole('button', { name: /Cosmos/ });
+    expect(screen.queryByRole('button', { name: 'Create link' })).not.toBeInTheDocument();
+    expect(mockedGetShareLink).not.toHaveBeenCalled();
   });
 });

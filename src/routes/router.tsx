@@ -14,6 +14,7 @@ import { RequireAuth } from '../features/auth/RequireAuth';
 import { LibraryPage } from '../features/library/LibraryPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { ProfilePage } from '../features/profile/ProfilePage';
+import { SharedProfilePage } from '../features/profile/SharedProfilePage';
 import { FavoritesPage } from '../features/favorites/FavoritesPage';
 
 // Plain inline placeholders until Phases 2-6 add the remaining real features/* pages.
@@ -67,6 +68,11 @@ export const router = createBrowserRouter([
       { path: 'reset-password', element: <ResetPasswordPage /> },
       // Dev-only visual check for the LOS-76 design system, stripped from production builds.
       ...(import.meta.env.DEV ? [{ path: '__gallery', element: <ComponentGallery /> }] : []),
+      // The unlisted address (LOS-305). Above ':handle', and safe there for the
+      // same reason 'favorites' is: 's' is a reserved handle in the API, so
+      // nobody can hold the name this shadows. Listed nowhere -- the only thing
+      // that produces one of these URLs is the owner's own copy button.
+      { path: 's/:token', element: <SharedProfilePage /> },
       // The bare root path is the public profile: bookhunt.net/<handle>.
       // React Router ranks static segments above dynamic ones, so every route
       // above still wins — but the reserved-handle list in the API is what

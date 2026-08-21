@@ -43,6 +43,15 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   { method: 'get', path: '/users/search', auth: 'optional' },
   { method: 'get', path: '/users/favorites', auth: 'required' },
   { method: 'put', path: '/users/me', auth: 'required' },
+  // The unlisted share link (LOS-305). '/users/me/...' literals, beside the PUT
+  // above and well clear of ':handle'.
+  { method: 'get', path: '/users/me/share-link', auth: 'required' },
+  { method: 'post', path: '/users/me/share-link', auth: 'required' },
+  { method: 'delete', path: '/users/me/share-link', auth: 'required' },
+  // Public: holding the link is the authorisation, and forwarding a session
+  // would add nothing the API reads. Literals, so above ':handle'.
+  { method: 'get', path: '/users/by-token/:token', auth: 'public' },
+  { method: 'get', path: '/users/by-token/:token/library', auth: 'public' },
   // Last of the /users block, mirroring routes/users.ts: ':handle' would
   // otherwise swallow the two literals above it. Optional rather than public --
   // a later revision may want to know who is looking.

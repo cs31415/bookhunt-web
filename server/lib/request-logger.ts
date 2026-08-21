@@ -20,7 +20,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
     if (req.method === 'OPTIONS' || req.path === '/health') return;
 
     const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
-    let line = `[bff] ${req.method} ${req.originalUrl} ${res.statusCode} ${durationMs.toFixed(1)}ms`;
+    let line = `[bff] ${req.method} ${redactedUrl(req.originalUrl)} ${res.statusCode} ${durationMs.toFixed(1)}ms`;
 
     const body = redactedBody(req);
     if (req.method === 'POST' && body) line += ` body=${body}`;
@@ -29,6 +29,21 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
   });
 
   next();
+}
+
+/**
+ * An unlisted share token is a bearer credential, and this line is written to
+ * a log that outlives the request (LOS-305). SENSITIVE_FIELDS covers bodies;
+ * this one is in the path, so it is stripped before the URL is printed.
+ *
+ * The route stays legible -- what was called still reads, only the secret does
+ * not. Anything after the token, such as /library, is kept.
+ */
+function redactedUrl(url: string): string {
+  return url.replace(
+    /(\/users\/by-token\/)[^/?]+/,
+    (_match, prefix: string) => `${prefix}${REDACTED}`,
+  );
 }
 
 /**

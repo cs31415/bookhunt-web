@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
 import { Pagination } from '../../shared/components/Pagination/Pagination';
 import { TabBar } from '../../shared/components/TabBar/TabBar';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
-import { useDebouncedCallback } from '../../shared/hooks/useDebouncedCallback';
+import { useShelfParams, showsAuthors, PAGE_SIZE, TABS, SUB_TABS } from './useShelfParams';
+import type { FavoritesSub, ShelfParams } from './useShelfParams';
 import { PublicTick } from './PublicTick';
 import { VisibilityBar } from './VisibilityBar';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { useAuth } from '../auth/AuthContext';
 import { updateMe } from '../../api/users/update-me';
+import { createShareLink, deleteShareLink, getShareLink } from '../../api/users/share-link';
 import { useLibraryData } from '../library/hooks/useLibraryData';
 import { useEntryFlags } from '../library/hooks/useEntryFlags';
 import { useVisitorProfile } from './useProfile';
@@ -23,34 +25,6 @@ import { setUserFavorite } from '../../api/users/set-user-favorite';
 import { toast } from '../../shared/toast/toast-store';
 import styles from './ProfilePage.module.css';
 
-const PAGE_SIZE = 24;
-
-const TABS: { id: ProfileTab; label: string }[] = [
-  { id: 'library', label: 'Library' },
-  { id: 'reading', label: 'Currently reading' },
-  { id: 'favorites', label: 'Favourites' },
-];
-
-/**
- * Favourites hold two kinds of thing, so they carry a second row rather than a
- * fourth tab. Authors are public — a list of authors reads as taste, not as a
- * social graph (LOS-255) — which is why they live here and favourite *readers*
- * do not appear on this page at all (LOS-279).
- */
-export type FavoritesSub = 'books' | 'authors';
-
-const SUB_TABS: { id: FavoritesSub; label: string }[] = [
-  { id: 'books', label: 'Books' },
-  { id: 'authors', label: 'Authors' },
-];
-
-function asTab(value: string | null): ProfileTab {
-  return TABS.some((t) => t.id === value) ? (value as ProfileTab) : 'library';
-}
-
-function asSub(value: string | null): FavoritesSub {
-  return value === 'authors' ? 'authors' : 'books';
-}
 
 /**
  * The one home for a reader's public shelf, at the bare root path
@@ -68,119 +42,17 @@ export function ProfilePage() {
   const { handle = '' } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [page, setPage] = useState(1);
+  const shelf = useShelfParams();
 
-  const tab = asTab(searchParams.get('tab'));
-  const sub = asSub(searchParams.get('sub'));
-  const urlQuery = searchParams.get('q') ?? '';
-  const subject = searchParams.get('subject') ?? '';
   const isOwner = Boolean(user?.handle && user.handle.toLowerCase() === handle.toLowerCase());
-
-  // The box is driven by local state, not by the URL: setSearchParams lands a
-  // render later, so feeding it straight from the URL makes every keystroke
-  // start from a stale value. The same shape the library page uses.
-  const [q, setQ] = useState(urlQuery);
-  const [syncedQuery, setSyncedQuery] = useState(urlQuery);
-  if (urlQuery !== syncedQuery) {
-    setSyncedQuery(urlQuery);
-    if (urlQuery !== q) setQ(urlQuery);
-  }
-
-  /**
-   * Debounced, because for a visitor this is a request rather than an in-memory
-   * filter -- a request per keystroke would be several for one word.
-   *
-   * Replaces rather than pushes: a history entry per keystroke makes Back
-   * unusable. The query still reaches the URL, so a filtered shelf can be
-   * linked, which is the point of keeping it there at all.
-   */
-  const commitQuery = useDebouncedCallback((value: string) => {
-    const params = new URLSearchParams(searchParams);
-    if (value) params.set('q', value);
-    else params.delete('q');
-    setSearchParams(params, { replace: true });
-    setPage(1);
-  }, 300);
-
-  useEffect(() => {
-    if (q !== urlQuery) commitQuery(q);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-
-  /**
-   * Pushes where typing replaces: clicking a pill is one deliberate act, and
-   * Back undoing it is exactly what a reader expects. Clicking the same pill
-   * again clears it, the way the library's category pills already behave.
-   */
-  function selectSubject(next: string) {
-    const params = new URLSearchParams(searchParams);
-    if (next && next !== subject) params.set('subject', next);
-    else params.delete('subject');
-    setSearchParams(params);
-    setPage(1);
-  }
-
-  function selectTab(next: ProfileTab) {
-    const params = new URLSearchParams(searchParams);
-    if (next === 'library') params.delete('tab');
-    else params.set('tab', next);
-    // The sub-tab belongs to Favourites, so it leaves with it rather than
-    // lying in wait to reopen on Authors next time Favourites is picked.
-    if (next !== 'favorites') params.delete('sub');
-    setSearchParams(params, { replace: true });
-    setPage(1);
-  }
-
-  function selectSub(next: FavoritesSub) {
-    const params = new URLSearchParams(searchParams);
-    if (next === 'books') params.delete('sub');
-    else params.set('sub', next);
-    setSearchParams(params, { replace: true });
-    setPage(1);
-  }
-
-  const view = {
-    handle,
-    tab,
-    sub,
-    onSelectTab: selectTab,
-    onSelectSub: selectSub,
-    page,
-    onPage: setPage,
-    navigate,
-    q,
-    onQueryChange: setQ,
-    // The committed query, not what is being typed: the shelf answers the URL.
-    appliedQuery: urlQuery,
-    subject,
-    onSelectSubject: selectSubject,
-  };
+  const view = { ...shelf, handle, navigate };
 
   return isOwner ? <OwnerProfile {...view} /> : <VisitorProfileView {...view} />;
 }
 
-interface ViewProps {
+export interface ViewProps extends ShelfParams {
   handle: string;
-  tab: ProfileTab;
-  sub: FavoritesSub;
-  onSelectTab: (tab: ProfileTab) => void;
-  onSelectSub: (sub: FavoritesSub) => void;
-  page: number;
-  onPage: (page: number) => void;
   navigate: ReturnType<typeof useNavigate>;
-  /** What is in the box, which may be ahead of the shelf while typing. */
-  q: string;
-  onQueryChange: (value: string) => void;
-  /** What the shelf is actually filtered by. */
-  appliedQuery: string;
-  subject: string;
-  onSelectSubject: (subject: string) => void;
-}
-
-/** True when the section on screen is the authors list rather than a shelf. */
-function showsAuthors(tab: ProfileTab, sub: FavoritesSub): boolean {
-  return tab === 'favorites' && sub === 'authors';
 }
 
 /**
@@ -207,7 +79,7 @@ function matchesFilters(entry: LibraryEntry, query: string, subject: string): bo
  * The chip is shown rather than only reflected in the URL: a shelf that has
  * quietly dropped to 24 of 349 books needs to say why, and needs a way back.
  */
-function ShelfFilters({
+export function ShelfFilters({
   q,
   onQueryChange,
   subject,
@@ -463,13 +335,24 @@ function OwnerProfile({
 }
 
 /**
- * The switch that publishes the page, with the address it would have.
+ * Who can see this page, and the two addresses it can have.
  *
- * Saved on the spot rather than behind a Save button: it is one click with a
- * visible consequence, and pairing it with Save invites a reader to flip it,
- * walk away, and believe their library is public when it is not. Set before the
- * request and put back if the server refuses, so it never claims a state the
- * server denies.
+ * Three states, not two (LOS-305), and they are named rather than left to be
+ * inferred from a switch:
+ *
+ *   private       nobody but you
+ *   unlisted      anyone holding the share link
+ *   discoverable  findable in search and in people listings
+ *
+ * The old label here said "anyone with the link can see this page" for the
+ * discoverable switch, which is now precisely the sentence that describes the
+ * OTHER state. It says findable instead.
+ *
+ * The switch saves on the spot rather than behind a Save button: it is one
+ * click with a visible consequence, and pairing it with Save invites a reader
+ * to flip it, walk away, and believe their library is public when it is not.
+ * Set before the request and put back if the server refuses, so it never claims
+ * a state the server denies.
  */
 function PublicPageBar({ handle }: { handle: string }) {
   const { user, updateUser } = useAuth();
@@ -497,17 +380,155 @@ function PublicPageBar({ handle }: { handle: string }) {
             checked={isPublic}
             onChange={(event) => toggle(event.target.checked)}
           />
-          <span>Anyone with the link can see this page</span>
+          <span>List my page publicly, so anyone can find it</span>
         </label>
-        {/* Where the ticks are explained, next to where they are used. */}
-        <p className={styles.ownerHint}>Unticked books and authors stay off it.</p>
+        {/* Where the ticks are explained, next to where they are used. Said
+            once, because it is true of both addresses. */}
+        <p className={styles.ownerHint}>
+          Unticked books and authors stay off it, whichever address it is
+          reached by.
+        </p>
       </div>
       <CopyLink handle={handle} enabled={isPublic} />
+      <ShareLinkRow />
     </div>
   );
 }
 
-function Header({
+/**
+ * The unlisted address: a link that works for anyone holding it, and appears in
+ * no listing or search (LOS-305).
+ *
+ * Regenerate ships from the start rather than as a later addition. It is the
+ * only way to take back a link that has spread, so a feature that could hand
+ * one out without being able to withdraw it would be the wrong half to build
+ * first.
+ *
+ * Loaded once on mount. A reader who has never made one sees the offer rather
+ * than an empty box.
+ */
+function ShareLinkRow() {
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [confirmingRegenerate, setConfirmingRegenerate] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getShareLink()
+      .then(({ token: current }) => {
+        if (!cancelled) setToken(current);
+      })
+      .catch(() => {
+        // A share link nobody has asked for yet is indistinguishable from one
+        // that failed to load, so this stays quiet and offers to make one.
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function run(action: () => Promise<{ token: string | null }>, failure: string) {
+    setBusy(true);
+    try {
+      setToken((await action()).token);
+    } catch {
+      toast({ text: failure });
+    } finally {
+      setBusy(false);
+      setConfirmingRegenerate(false);
+    }
+  }
+
+  if (loading) return null;
+
+  if (!token) {
+    return (
+      <div className={styles.shareRow}>
+        <div>
+          <div className={styles.shareTitle}>Share without listing</div>
+          <p className={styles.ownerHint}>
+            A private link that works for anyone you send it to, and shows up in no search
+            or listing.
+          </p>
+        </div>
+        <button
+          type="button"
+          className={styles.copyButton}
+          disabled={busy}
+          onClick={() => run(createShareLink, 'Could not create a share link')}
+        >
+          {busy ? 'Creating…' : 'Create link'}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.shareRow}>
+      <div className={styles.shareLinkBlock}>
+        <div className={styles.shareTitle}>Your share link</div>
+        <CopyValue value={`${window.location.origin}/s/${token}`} />
+        {confirmingRegenerate ? (
+          <p className={styles.ownerHint} role="alert">
+            The link above stops working for everyone you have already sent it to.
+          </p>
+        ) : (
+          <p className={styles.ownerHint}>
+            Anyone holding this can see your page, even while it is not listed.
+          </p>
+        )}
+      </div>
+      <div className={styles.shareActions}>
+        {confirmingRegenerate ? (
+          <>
+            <button
+              type="button"
+              className={styles.copyButton}
+              disabled={busy}
+              onClick={() => run(createShareLink, 'Could not replace the share link')}
+            >
+              {busy ? 'Replacing…' : 'Replace it'}
+            </button>
+            <button
+              type="button"
+              className={styles.copyButton}
+              onClick={() => setConfirmingRegenerate(false)}
+            >
+              Keep it
+            </button>
+          </>
+        ) : (
+          <>
+            {/* Asks first: this is the one action here that cannot be undone,
+                and a misclick would silently break every link already sent. */}
+            <button
+              type="button"
+              className={styles.copyButton}
+              disabled={busy}
+              onClick={() => setConfirmingRegenerate(true)}
+            >
+              Replace link
+            </button>
+            <button
+              type="button"
+              className={styles.copyButton}
+              disabled={busy}
+              onClick={() => run(deleteShareLink, 'Could not turn off the share link')}
+            >
+              Turn off
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function Header({
   handle,
   displayName,
   joinedAt,
@@ -571,7 +592,7 @@ function FavoriteReader({ handle, initial }: { handle: string; initial: boolean 
  * sees, and the owner sees it as the public would — their private lists live on
  * /favorites (LOS-279).
  */
-function Tabs({
+export function Tabs({
   active,
   onSelect,
   sub,
@@ -598,7 +619,7 @@ function Tabs({
   );
 }
 
-function Grid({
+export function Grid({
   entries,
   navigate,
   onSelectSubject,
@@ -651,30 +672,46 @@ function Grid({
   );
 }
 
-function CopyLink({ handle, enabled }: { handle: string; enabled: boolean }) {
+/**
+ * An address on screen with a button to copy it.
+ *
+ * The value is always shown rather than hidden behind the button, because
+ * clipboard access can be refused and a reader needs to be able to read it
+ * either way. `copyText` differs from the display where one is a tidied form of
+ * the other — the public page shows bookhunt.net/ada but copies the https URL.
+ */
+function CopyValue({
+  value,
+  copyText,
+  enabled = true,
+  disabledReason,
+}: {
+  value: string;
+  copyText?: string;
+  enabled?: boolean;
+  disabledReason?: string;
+}) {
   const [copied, setCopied] = useState(false);
-  const url = `bookhunt.net/${handle}`;
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(`https://${url}`);
+      await navigator.clipboard.writeText(copyText ?? value);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard access can be refused. The address is on screen either way,
-      // which is why it is shown rather than hidden behind the button.
+      // Refused clipboard access. The address is on screen, so nothing is lost.
     }
   }
 
   return (
     <span className={styles.copyRow}>
-      <code className={styles.url}>{url}</code>
+      <code className={styles.url}>{value}</code>
       <button
         type="button"
         className={styles.copyButton}
         onClick={copy}
         disabled={!enabled}
-        title={enabled ? undefined : 'Your page is private, so this link would not work'}
+        title={enabled ? undefined : disabledReason}
       >
         {copied ? 'Copied' : 'Copy'}
       </button>
@@ -682,7 +719,20 @@ function CopyLink({ handle, enabled }: { handle: string; enabled: boolean }) {
   );
 }
 
-function NotFound({ handle }: { handle: string }) {
+function CopyLink({ handle, enabled }: { handle: string; enabled: boolean }) {
+  const url = `bookhunt.net/${handle}`;
+
+  return (
+    <CopyValue
+      value={url}
+      copyText={`https://${url}`}
+      enabled={enabled}
+      disabledReason="Your page is not listed, so this address would not work"
+    />
+  );
+}
+
+export function NotFound({ handle }: { handle: string }) {
   return (
     <div className={styles.page}>
       <h1 className={styles.name}>No such profile</h1>
