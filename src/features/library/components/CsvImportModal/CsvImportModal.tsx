@@ -14,6 +14,34 @@ export interface CsvImportModalProps {
   onClose: () => void;
 }
 
+/**
+ * The columns the parser documents, named once. Both the sample file below and
+ * the LLM prompt beside it are built from this, so the two cannot drift.
+ */
+const CSV_HEADER = 'title,author,publisher,isbn,status,format';
+
+const SAMPLE_CSV = [
+  CSV_HEADER,
+  'Dune,Frank Herbert,Ace,9780441013593,Finished,Paperback',
+  'Hong Kong,,Frommer’s,,New,Ebook',
+].join('\n');
+
+/**
+ * For a reader with no export to hand. `parse-csv.ts` accepts aliases, but
+ * someone copying this should get the canonical header, and the status word
+ * comes from the shared labels for the same reason.
+ *
+ * Every book is New because a photo of a shelf cannot tell what has been read.
+ */
+const PHOTO_PROMPT = [
+  'Read the book spines in this photo and give me a CSV file.',
+  '',
+  'Use this header exactly:',
+  CSV_HEADER,
+  '',
+  `One row per book. Fill in title and author from the spine. Leave publisher, isbn and format empty unless you can read them. Set status to ${LIBRARY_STATUS_LABELS.queued} for every book. Skip any spine you cannot read rather than guessing.`,
+].join('\n');
+
 /** Browsers report .csv as text/csv, application/vnd.ms-excel, or nothing at all. */
 function looksLikeCsv(file: File): boolean {
   return /\.csv$/i.test(file.name);
@@ -164,11 +192,7 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
             <div className={styles.formatLabel}>Expected format</div>
             {/* Kept copy-pasteable: the header is exactly what a file should
                 say, with no annotation a reader might carry into their own. */}
-            <pre className={styles.sample}>
-              {
-                'title,author,publisher,isbn,status,format\nDune,Frank Herbert,Ace,9780441013593,Finished,Paperback\nHong Kong,,Frommer’s,,New,Ebook'
-              }
-            </pre>
+            <pre className={styles.sample}>{SAMPLE_CSV}</pre>
             <p className={styles.formatHint}>
               {/* Listed from the shared labels, so this can't come to disagree
                   with what the parser takes or the shelves the app shows. */}
@@ -182,6 +206,28 @@ export function CsvImportModal({ session, onClose }: CsvImportModalProps) {
             <p className={styles.formatHint}>
               format can be ebook, audiobook, or a binding like paperback or hardcover. A
               Goodreads “Binding” column works as-is. Defaults to a physical book.
+            </p>
+          </div>
+
+          {/*
+            For the reader who has nothing to export. The instruction and the
+            prompt are separated the same way the format block separates its
+            hint from its sample: what to do, then the thing to copy.
+          */}
+          <div className={styles.format}>
+            <div className={styles.formatLabel}>No file to hand?</div>
+            <p className={styles.formatHint}>
+              You can generate this file by snapping a photo of your bookshelf and giving this
+              prompt to ChatGPT or another LLM:
+            </p>
+            {/* Copy-pasteable, like the sample above: nothing here is an
+                annotation a reader might carry into their own prompt. */}
+            <pre className={`${styles.sample} ${styles.prompt}`}>{PHOTO_PROMPT}</pre>
+            {/* The one part of this only the reader can get right, so it is
+                said plainly rather than left to be found out from a bad file. */}
+            <p className={styles.formatHint}>
+              Use a clear, in-focus photo with good lighting, where book titles and author names
+              are clearly visible. A blurred or dim shelf gives you a list of guesses.
             </p>
           </div>
 

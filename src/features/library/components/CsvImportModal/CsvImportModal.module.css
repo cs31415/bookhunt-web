@@ -170,3 +170,10 @@
   font-size: 0.8125rem;
   color: var(--ink-2);
 }
+
+/* The CSV sample is tabular and must not wrap -- a broken row stops looking
+   like a row. The prompt is prose, so it wraps rather than scrolling sideways
+   in a box the reader is meant to read before copying. */
+.prompt {
+  white-space: pre-wrap;
+}

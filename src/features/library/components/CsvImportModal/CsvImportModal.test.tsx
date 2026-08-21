@@ -165,7 +165,10 @@ describe('CsvImportModal', () => {
     const dialog = await openModal();
 
     expect(within(dialog).getByText('Drop a CSV of your books')).toBeInTheDocument();
-    expect(within(dialog).getByText(/title,author,publisher,isbn,status/)).toBeInTheDocument();
+    // Anchored, so it is the sample file rather than the shelf-photo prompt
+    // below it — the prompt quotes the same header, and an unanchored match
+    // now finds both (LOS-301).
+    expect(within(dialog).getByText(/^title,author,publisher,isbn,status/)).toBeInTheDocument();
   });
 
   // A reader shouldn't have to guess between "Finished" and "Read", or find out
@@ -178,6 +181,55 @@ describe('CsvImportModal', () => {
     expect(hint).toHaveTextContent(
       'status can be one of: New, Reading, Finished, Abandoned. Defaults to New.',
     );
+  });
+
+  // A reader with no export to hand would otherwise have to type the file
+  // themselves. A photo of a shelf and an LLM do the work (LOS-301).
+  it('offers a prompt for building the file from a shelf photo', async () => {
+    renderLibrary();
+    const dialog = await openModal();
+
+    expect(
+      within(dialog).getByText(/snapping a photo of your bookshelf/i),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/^Read the book spines in this photo/)).toBeInTheDocument();
+  });
+
+  // Both are built from one constant, so a reader copying the prompt gets the
+  // header the sample documents rather than a near-miss the parser only
+  // half-accepts.
+  it('quotes the same header in the prompt as in the sample', async () => {
+    renderLibrary();
+    const dialog = await openModal();
+
+    const header = 'title,author,publisher,isbn,status,format';
+    const samples = within(dialog)
+      .getAllByText((_, node) => node?.tagName === 'PRE')
+      .filter((node) => node.textContent?.includes(header));
+
+    expect(samples).toHaveLength(2);
+  });
+
+  // The status the prompt asks for is the shared label for `queued`, not a word
+  // typed into the prompt: a shelf photo cannot tell what has been read.
+  it('has the prompt mark every book New', async () => {
+    renderLibrary();
+    const dialog = await openModal();
+
+    expect(
+      within(dialog).getByText(/Set status to New for every book/),
+    ).toBeInTheDocument();
+  });
+
+  // The one part of this only the reader can get right, so it is said before
+  // the photo is taken rather than found out from a file full of guesses.
+  it('says what makes a photo usable', async () => {
+    renderLibrary();
+    const dialog = await openModal();
+
+    expect(
+      within(dialog).getByText(/clear, in-focus photo with good lighting/i),
+    ).toBeInTheDocument();
   });
 
   it('opens from the empty state too', async () => {
