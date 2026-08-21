@@ -301,3 +301,38 @@
   font-size: 0.8125rem;
   color: var(--muted);
 }
+
+/*
+ * The unlisted share link (LOS-305). Its own row under the public-page switch,
+ * because it is a second address rather than a detail of the first.
+ */
+.shareRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.shareLinkBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Lets a long token shrink the block rather than push the buttons off. */
+  min-width: 0;
+}
+
+.shareTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.shareActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

@@ -78,6 +78,32 @@ describe('the BFF request logger', () => {
     expect(logged()).not.toContain('not json at all');
   });
 
+  // A share token is a bearer credential, and this line goes to a log that
+  // outlives the request. It is in the path, not the body, so SENSITIVE_FIELDS
+  // does not reach it (LOS-305).
+  it('never logs an unlisted share token', async () => {
+    await request('/bff/users/by-token/9f8e7d6c-secret-token');
+
+    expect(logged()).not.toContain('9f8e7d6c-secret-token');
+    expect(logged()).toContain('/bff/users/by-token/[REDACTED]');
+  });
+
+  // The route has to stay readable: which endpoint was called is the whole
+  // point of the line, and only the secret should go.
+  it('keeps the rest of the path when it strips the token', async () => {
+    await request('/bff/users/by-token/9f8e7d6c-secret-token/library?tab=reading');
+
+    expect(logged()).not.toContain('9f8e7d6c-secret-token');
+    expect(logged()).toContain('/bff/users/by-token/[REDACTED]/library?tab=reading');
+  });
+
+  it('leaves every other path alone', async () => {
+    await request('/bff/users/ada/library');
+
+    expect(logged()).toContain('/bff/users/ada/library');
+    expect(logged()).not.toContain('[REDACTED]');
+  });
+
   it('stays quiet for the health check', async () => {
     // Mirrors the API skipping /api/health: a liveness probe every few seconds
     // would bury everything else.
