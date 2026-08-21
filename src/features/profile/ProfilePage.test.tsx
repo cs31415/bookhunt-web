@@ -474,3 +474,173 @@ describe('the Favourites sub-tabs', () => {
     expect(screen.queryByRole('tab', { name: 'People' })).not.toBeInTheDocument();
   });
 });
+
+describe('searching a profile (LOS-304)', () => {
+  it('asks the server rather than filtering the page in the browser', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search' }), 'sagan');
+
+    await waitFor(() =>
+      expect(mockedPublicLibrary).toHaveBeenCalledWith(
+        expect.objectContaining({ handle: 'ada', q: 'sagan' }),
+        expect.anything(),
+      ),
+    );
+  });
+
+  // So a filtered shelf can be linked, and Back behaves.
+  it('keeps the search in the query string', async () => {
+    const router = renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search' }), 'sagan');
+
+    await waitFor(() => expect(router.state.location.search).toContain('q=sagan'));
+  });
+
+  it('reads a search out of the url on arrival', async () => {
+    renderProfile('/ada?q=cosmos');
+
+    await screen.findByRole('button', { name: /Cosmos/ });
+    expect(mockedPublicLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ q: 'cosmos' }),
+      expect.anything(),
+    );
+    expect(screen.getByRole('textbox', { name: 'Search' })).toHaveValue('cosmos');
+  });
+
+  // A request per keystroke would be five for one word.
+  it('debounces rather than asking on every keystroke', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+    const before = mockedPublicLibrary.mock.calls.length;
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search' }), 'sagan');
+    await waitFor(() => expect(mockedPublicLibrary.mock.calls.length).toBeGreaterThan(before));
+
+    expect(mockedPublicLibrary.mock.calls.length - before).toBeLessThan(5);
+  });
+
+  it('carries the search alongside the tab rather than replacing it', async () => {
+    renderProfile('/ada?tab=reading&q=sagan');
+
+    await screen.findByRole('button', { name: /Cosmos/ });
+    expect(mockedPublicLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'reading', q: 'sagan' }),
+      expect.anything(),
+    );
+  });
+
+  it('does not offer the box on the authors list, which is not a shelf', async () => {
+    mockedPublicAuthors.mockResolvedValue({ authors: [] } as never);
+
+    renderProfile('/ada?tab=favorites&sub=authors');
+
+    await waitFor(() => expect(mockedPublicAuthors).toHaveBeenCalled());
+    expect(screen.queryByRole('textbox', { name: 'Search' })).not.toBeInTheDocument();
+  });
+});
+
+describe('category pills on the shelf (LOS-304)', () => {
+  const withSubjects = {
+    entries: [rawEntry(1, 'Cosmos', { subjects: ['Science', 'Astronomy', 'Essays', 'History'] })],
+    total: 1,
+    page: 1,
+    pageSize: 24,
+  };
+
+  it('says what a book is about, which the shelf did not before', async () => {
+    mockedPublicLibrary.mockResolvedValue(withSubjects as never);
+
+    renderProfile();
+
+    expect(await screen.findByRole('button', { name: 'Science' })).toBeInTheDocument();
+  });
+
+  // Fewer than the book page's ten: a shelf row has less space than a detail
+  // card, and three carry the sense.
+  it('shows three, not the whole list', async () => {
+    mockedPublicLibrary.mockResolvedValue(withSubjects as never);
+
+    renderProfile();
+
+    await screen.findByRole('button', { name: 'Science' });
+    expect(screen.getByRole('button', { name: 'Astronomy' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Essays' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'History' })).not.toBeInTheDocument();
+  });
+
+  it('filters the shelf to that category when a pill is clicked', async () => {
+    mockedPublicLibrary.mockResolvedValue(withSubjects as never);
+    const router = renderProfile();
+    await screen.findByRole('button', { name: 'Science' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Science' }));
+
+    await waitFor(() => expect(router.state.location.search).toContain('subject=Science'));
+    expect(mockedPublicLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: 'Science' }),
+      expect.anything(),
+    );
+  });
+
+  // A shelf that has quietly dropped to a fraction of itself has to say why,
+  // and offer the way back in the same place.
+  it('shows the filter as a chip that clears it', async () => {
+    mockedPublicLibrary.mockResolvedValue(withSubjects as never);
+    const router = renderProfile('/ada?subject=Science');
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear the Science filter' }));
+
+    await waitFor(() => expect(router.state.location.search).not.toContain('subject'));
+  });
+});
+
+describe('searching your own profile (LOS-304)', () => {
+  beforeEach(() => {
+    signInAsOwner();
+    mockedMyAuthors.mockResolvedValue({ authors: [] } as never);
+    mockedLibrary.mockResolvedValue({
+      entries: [
+        rawEntry(1, 'Cosmos', { subjects: ['Science'] }),
+        rawEntry(2, 'Dune', { author_name: 'Frank Herbert', subjects: ['Fiction'] }),
+      ] as never,
+      total: 2,
+      stats: { total: 2, by_status: { reading: 2 } },
+    });
+  });
+
+  // The owner already holds the whole shelf, so this really is the library
+  // being searched -- a request would ask for what is already in hand.
+  it('filters in memory without a second request', async () => {
+    renderProfile('/ada');
+    await screen.findByRole('button', { name: /Cosmos/ });
+    const calls = mockedLibrary.mock.calls.length;
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search' }), 'dune');
+
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /Cosmos/ })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: /Dune/ })).toBeInTheDocument();
+    expect(mockedLibrary.mock.calls.length).toBe(calls);
+    expect(mockedPublicLibrary).not.toHaveBeenCalled();
+  });
+
+  it('matches an author as well as a title, the way the server does', async () => {
+    renderProfile('/ada?q=herbert');
+
+    await screen.findByRole('button', { name: /Dune/ });
+    expect(screen.queryByRole('button', { name: /Cosmos/ })).not.toBeInTheDocument();
+  });
+
+  it('filters by category from the url', async () => {
+    renderProfile('/ada?subject=Fiction');
+
+    await screen.findByRole('button', { name: /Dune/ });
+    expect(screen.queryByRole('button', { name: /Cosmos/ })).not.toBeInTheDocument();
+  });
+});
