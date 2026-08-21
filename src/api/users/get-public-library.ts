@@ -7,6 +7,10 @@ export interface PublicLibraryParams {
   favorites?: boolean;
   page?: number;
   limit?: number;
+  /** Title or author (LOS-304). */
+  q?: string;
+  /** One category, as clicked on a pill. */
+  subject?: string;
 }
 
 /**
@@ -18,12 +22,16 @@ export interface PublicLibraryParams {
  * optional.
  */
 export function getPublicLibrary(
-  { handle, status, favorites, page = 1, limit = 24 }: PublicLibraryParams,
+  { handle, status, favorites, page = 1, limit = 24, q, subject }: PublicLibraryParams,
   signal?: AbortSignal,
 ): Promise<{ entries: RawLibraryEntry[]; total: number; page: number; pageSize: number }> {
   const query = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (status) query.set('status', status);
   if (favorites) query.set('favorites', 'true');
+  // Only when set: the API reads blank as absent anyway, but an empty q in the
+  // URL makes two identical requests look different.
+  if (q) query.set('q', q);
+  if (subject) query.set('subject', subject);
 
   return apiFetch(`/users/${encodeURIComponent(handle)}/library?${query}`, { signal });
 }

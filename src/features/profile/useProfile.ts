@@ -47,13 +47,24 @@ export interface VisitorProfile {
  * but the derivation cannot go stale, and it keeps an answer for the previous
  * tab from rendering for a moment under the new one.
  */
+export interface ProfileFilters {
+  /** Title or author (LOS-304). */
+  q: string;
+  /** One category, as clicked on a pill. */
+  subject: string;
+}
+
 export function useVisitorProfile(
   handle: string,
   tab: ProfileTab | null,
   page: number,
   pageSize: number,
+  filters: ProfileFilters = { q: '', subject: '' },
 ): VisitorProfile {
-  const key = `${handle}|${tab ?? 'none'}|${page}|${pageSize}`;
+  const { q, subject } = filters;
+  // The filters are in the key, so a changed search refetches and an answer to
+  // the previous one cannot render under it.
+  const key = `${handle}|${tab ?? 'none'}|${page}|${pageSize}|${q}|${subject}`;
   const [answer, setAnswer] = useState<Answer | null>(null);
 
   useEffect(() => {
@@ -66,7 +77,10 @@ export function useVisitorProfile(
       getProfile(handle, controller.signal),
       tab === null
         ? Promise.resolve(null)
-        : getPublicLibrary({ handle, ...TAB_QUERY[tab], page, limit: pageSize }, controller.signal),
+        : getPublicLibrary(
+            { handle, ...TAB_QUERY[tab], page, limit: pageSize, q, subject },
+            controller.signal,
+          ),
     ])
       .then(([profileResponse, libraryResponse]) =>
         setAnswer({
@@ -91,7 +105,7 @@ export function useVisitorProfile(
       });
 
     return () => controller.abort();
-  }, [key, handle, tab, page, pageSize]);
+  }, [key, handle, tab, page, pageSize, q, subject]);
 
   const current = answer?.key === key ? answer : null;
 

@@ -255,3 +255,49 @@
 .messageLink {
   color: var(--rust);
 }
+
+/* The search box over the shelf, and whatever it is currently narrowed by. */
+.filters {
+  margin-bottom: 18px;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/*
+ * The category currently filtering the shelf. Reads as a thing to dismiss
+ * rather than a label: a shelf that has dropped to 24 of 349 books has to say
+ * why, and offer the way back in the same place.
+ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--rust);
+  border-radius: 999px;
+  background: var(--paper-2);
+  color: var(--rust);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--surface);
+}
+
+.chipX {
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.matchCount {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}

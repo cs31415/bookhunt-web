@@ -32,7 +32,20 @@ export interface BookCardProps {
    * the rating row reads as it always has.
    */
   userRating?: number | null;
+  /**
+   * What the book is about, as pills under the card (LOS-304). Passed only
+   * where a shelf row has room to say so; every other caller renders as before.
+   *
+   * Capped at three, fewer than the ten SpecificationsCard shows: a shelf row
+   * has less space than a detail card, and three carry the sense.
+   */
+  subjects?: string[];
+  /** Makes the pills clickable. Without it they are plain labels. */
+  onSubjectClick?: (subject: string) => void;
 }
+
+/** A row of pills is as wide as the card; more than three wrap into a block. */
+const SUBJECT_LIMIT = 3;
 
 export function BookCard({
   book,
@@ -42,7 +55,10 @@ export function BookCard({
   action,
   overlay,
   userRating,
+  subjects,
+  onSubjectClick,
 }: BookCardProps) {
+  const pills = subjects?.slice(0, SUBJECT_LIMIT) ?? [];
 
   return (
     // Grouped and named after the book only when there is an action, so the
@@ -80,6 +96,29 @@ export function BookCard({
       {/* A sibling of the card button, laid over the cover by CSS: nesting it
           would put a button inside a button, which browsers disagree about. */}
       {overlay && <div className={styles.overlay}>{overlay}</div>}
+      {/* Outside the card button for the same reason `action` and `overlay`
+          are: a button nested in a button is invalid HTML. Plain spans when no
+          handler is given, so a pill is never a control that does nothing. */}
+      {pills.length > 0 && (
+        <div className={styles.subjects}>
+          {pills.map((subject) =>
+            onSubjectClick ? (
+              <button
+                key={subject}
+                type="button"
+                className={styles.subject}
+                onClick={() => onSubjectClick(subject)}
+              >
+                {subject}
+              </button>
+            ) : (
+              <span key={subject} className={styles.subject}>
+                {subject}
+              </span>
+            ),
+          )}
+        </div>
+      )}
       {action && <div className={styles.action}>{action}</div>}
     </div>
   );

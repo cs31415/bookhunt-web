@@ -133,3 +133,43 @@
   font-size: 0.6875rem;
   color: var(--ink-2);
 }
+
+/*
+ * What the book is about, under the card (LOS-304). A sibling of the card
+ * button, so a pill can be its own control without nesting one button in
+ * another.
+ *
+ * Wraps rather than scrolling: three short pills usually fit one line, and a
+ * long subject taking a second line reads better than a row that slides.
+ */
+.subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+/* Deliberately quieter than the detail page's pill: on a shelf these repeat
+   down every card, and at that density they should read as a label first. */
+.subject {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-2);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-align: left;
+  transition: all 0.14s ease;
+}
+
+button.subject {
+  cursor: pointer;
+}
+
+button.subject:hover {
+  border-color: var(--rust);
+  color: var(--rust);
+}

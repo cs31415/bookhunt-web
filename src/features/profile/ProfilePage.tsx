@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
 import { Pagination } from '../../shared/components/Pagination/Pagination';
 import { TabBar } from '../../shared/components/TabBar/TabBar';
+import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
+import { useDebouncedCallback } from '../../shared/hooks/useDebouncedCallback';
 import { PublicTick } from './PublicTick';
 import { VisibilityBar } from './VisibilityBar';
 import { buildBookHref } from '../../shared/lib/build-book-href';
@@ -71,7 +73,53 @@ export function ProfilePage() {
 
   const tab = asTab(searchParams.get('tab'));
   const sub = asSub(searchParams.get('sub'));
+  const urlQuery = searchParams.get('q') ?? '';
+  const subject = searchParams.get('subject') ?? '';
   const isOwner = Boolean(user?.handle && user.handle.toLowerCase() === handle.toLowerCase());
+
+  // The box is driven by local state, not by the URL: setSearchParams lands a
+  // render later, so feeding it straight from the URL makes every keystroke
+  // start from a stale value. The same shape the library page uses.
+  const [q, setQ] = useState(urlQuery);
+  const [syncedQuery, setSyncedQuery] = useState(urlQuery);
+  if (urlQuery !== syncedQuery) {
+    setSyncedQuery(urlQuery);
+    if (urlQuery !== q) setQ(urlQuery);
+  }
+
+  /**
+   * Debounced, because for a visitor this is a request rather than an in-memory
+   * filter -- a request per keystroke would be several for one word.
+   *
+   * Replaces rather than pushes: a history entry per keystroke makes Back
+   * unusable. The query still reaches the URL, so a filtered shelf can be
+   * linked, which is the point of keeping it there at all.
+   */
+  const commitQuery = useDebouncedCallback((value: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (value) params.set('q', value);
+    else params.delete('q');
+    setSearchParams(params, { replace: true });
+    setPage(1);
+  }, 300);
+
+  useEffect(() => {
+    if (q !== urlQuery) commitQuery(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  /**
+   * Pushes where typing replaces: clicking a pill is one deliberate act, and
+   * Back undoing it is exactly what a reader expects. Clicking the same pill
+   * again clears it, the way the library's category pills already behave.
+   */
+  function selectSubject(next: string) {
+    const params = new URLSearchParams(searchParams);
+    if (next && next !== subject) params.set('subject', next);
+    else params.delete('subject');
+    setSearchParams(params);
+    setPage(1);
+  }
 
   function selectTab(next: ProfileTab) {
     const params = new URLSearchParams(searchParams);
@@ -92,7 +140,22 @@ export function ProfilePage() {
     setPage(1);
   }
 
-  const view = { handle, tab, sub, onSelectTab: selectTab, onSelectSub: selectSub, page, onPage: setPage, navigate };
+  const view = {
+    handle,
+    tab,
+    sub,
+    onSelectTab: selectTab,
+    onSelectSub: selectSub,
+    page,
+    onPage: setPage,
+    navigate,
+    q,
+    onQueryChange: setQ,
+    // The committed query, not what is being typed: the shelf answers the URL.
+    appliedQuery: urlQuery,
+    subject,
+    onSelectSubject: selectSubject,
+  };
 
   return isOwner ? <OwnerProfile {...view} /> : <VisitorProfileView {...view} />;
 }
@@ -106,11 +169,90 @@ interface ViewProps {
   page: number;
   onPage: (page: number) => void;
   navigate: ReturnType<typeof useNavigate>;
+  /** What is in the box, which may be ahead of the shelf while typing. */
+  q: string;
+  onQueryChange: (value: string) => void;
+  /** What the shelf is actually filtered by. */
+  appliedQuery: string;
+  subject: string;
+  onSelectSubject: (subject: string) => void;
 }
 
 /** True when the section on screen is the authors list rather than a shelf. */
 function showsAuthors(tab: ProfileTab, sub: FavoritesSub): boolean {
   return tab === 'favorites' && sub === 'authors';
+}
+
+/**
+ * The owner's in-memory equivalent of what fn_get_public_library does for a
+ * visitor. Kept deliberately in step with it: title or author for the query,
+ * and a whole-value match for the category, so "Fiction" does not pull in
+ * "Science Fiction".
+ */
+function matchesFilters(entry: LibraryEntry, query: string, subject: string): boolean {
+  if (subject && !entry.subjects.some((s) => s.toLowerCase() === subject.toLowerCase())) {
+    return false;
+  }
+  if (!query) return true;
+  const needle = query.toLowerCase();
+  return (
+    entry.book.title.toLowerCase().includes(needle) ||
+    entry.book.authorName.toLowerCase().includes(needle)
+  );
+}
+
+/**
+ * The box over the shelf, and the category chip when one is picked.
+ *
+ * The chip is shown rather than only reflected in the URL: a shelf that has
+ * quietly dropped to 24 of 349 books needs to say why, and needs a way back.
+ */
+function ShelfFilters({
+  q,
+  onQueryChange,
+  subject,
+  onClearSubject,
+  matches,
+  filtered,
+}: {
+  q: string;
+  onQueryChange: (value: string) => void;
+  subject: string;
+  onClearSubject: () => void;
+  matches: number;
+  filtered: boolean;
+}) {
+  return (
+    <div className={styles.filters}>
+      <SearchBar
+        value={q}
+        onChange={onQueryChange}
+        placeholder="Search this shelf by title or author…"
+      />
+      {(subject || filtered) && (
+        <div className={styles.filterRow}>
+          {subject && (
+            <button
+              type="button"
+              className={styles.chip}
+              onClick={onClearSubject}
+              aria-label={`Clear the ${subject} filter`}
+            >
+              {subject}
+              <span aria-hidden="true" className={styles.chipX}>
+                ×
+              </span>
+            </button>
+          )}
+          {filtered && (
+            <span className={styles.matchCount} role="status">
+              {matches} {matches === 1 ? 'book' : 'books'}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function VisitorProfileView({
@@ -122,6 +264,11 @@ function VisitorProfileView({
   page,
   onPage,
   navigate,
+  q,
+  onQueryChange,
+  appliedQuery,
+  subject,
+  onSelectSubject,
 }: ViewProps) {
   const { profile, entries, total, loading, notFound, error } = useVisitorProfile(
     handle,
@@ -130,6 +277,9 @@ function VisitorProfileView({
     showsAuthors(tab, sub) ? null : tab,
     page,
     PAGE_SIZE,
+    // Filtered by the server, not in the browser: a visitor holds one page of
+    // 24, and searching 24 of 349 rows is not searching the shelf.
+    { q: appliedQuery, subject },
   );
 
   if (loading) return <Loader />;
@@ -161,7 +311,15 @@ function VisitorProfileView({
         <AuthorsTab handle={handle} owner={false} />
       ) : (
         <>
-          <Grid entries={entries} navigate={navigate} />
+          <ShelfFilters
+            q={q}
+            onQueryChange={onQueryChange}
+            subject={subject}
+            onClearSubject={() => onSelectSubject('')}
+            matches={total}
+            filtered={Boolean(appliedQuery || subject)}
+          />
+          <Grid entries={entries} navigate={navigate} onSelectSubject={onSelectSubject} />
           <Pagination page={page} pageCount={Math.ceil(total / PAGE_SIZE)} onChange={onPage} />
         </>
       )}
@@ -178,6 +336,11 @@ function OwnerProfile({
   page,
   onPage,
   navigate,
+  q,
+  onQueryChange,
+  appliedQuery,
+  subject,
+  onSelectSubject,
 }: ViewProps) {
   const { user } = useAuth();
   const { entries, total, loading } = useLibraryData();
@@ -196,10 +359,18 @@ function OwnerProfile({
     const withStaged = saved.map((entry) =>
       entry.book.id in staged ? { ...entry, isHidden: staged[entry.book.id] } : entry,
     );
-    if (tab === 'reading') return withStaged.filter((e) => e.status === 'reading');
-    if (tab === 'favorites') return withStaged.filter((e) => e.isFavorite);
-    return withStaged;
-  }, [saved, staged, tab]);
+    const byTab =
+      tab === 'reading'
+        ? withStaged.filter((e) => e.status === 'reading')
+        : tab === 'favorites'
+          ? withStaged.filter((e) => e.isFavorite)
+          : withStaged;
+
+    // Filtered here rather than by the server, unlike the visitor's shelf:
+    // useLibraryData already holds all 349 books, so this really is the whole
+    // library being searched and a request would ask for what is in hand.
+    return byTab.filter((entry) => matchesFilters(entry, appliedQuery, subject));
+  }, [saved, staged, tab, appliedQuery, subject]);
 
   // Compared against, so a tick moved back to what the shelf says stops
   // counting as a change rather than being saved as a no-op.
@@ -252,6 +423,14 @@ function OwnerProfile({
         <>
           {/* Show all reaches the whole tab rather than the page on screen:
               paging is not a filter, and 24 of 349 is not what "all" means. */}
+          <ShelfFilters
+            q={q}
+            onQueryChange={onQueryChange}
+            subject={subject}
+            onClearSubject={() => onSelectSubject('')}
+            matches={shown.length}
+            filtered={Boolean(appliedQuery || subject)}
+          />
           <VisibilityBar
             publicCount={shown.filter((entry) => !entry.isHidden).length}
             total={shown.length}
@@ -264,6 +443,7 @@ function OwnerProfile({
           <Grid
             entries={pageItems}
             navigate={navigate}
+            onSelectSubject={onSelectSubject}
             onToggleShown={(entry, shownNext) => stage([entry], !shownNext)}
           />
           <Pagination
@@ -421,10 +601,13 @@ function Tabs({
 function Grid({
   entries,
   navigate,
+  onSelectSubject,
   onToggleShown,
 }: {
   entries: LibraryEntry[];
   navigate: ReturnType<typeof useNavigate>;
+  /** Filters the shelf to that category, reusing what the search box builds. */
+  onSelectSubject?: (subject: string) => void;
   /** Owner only. Absent for a visitor, who gets no ticks at all. */
   onToggleShown?: (entry: LibraryEntry, shown: boolean) => void;
 }) {
@@ -445,6 +628,11 @@ function Grid({
           // Both scores, since the shelf is a reader's and the stars alone
           // were the catalog's (LOS-291).
           userRating={entry.userRating}
+          // What the row is about, which the shelf said nothing about before
+          // (LOS-304). Fewer than the book page's ten: a shelf row has less
+          // space than a detail card, and three carry the sense.
+          subjects={entry.subjects}
+          onSubjectClick={onSelectSubject}
           onClick={() => navigate(buildBookHref(entry.book))}
           // The same slot the library grid uses for its select box. A tick
           // means the book is on the public page; no separate badge says so
