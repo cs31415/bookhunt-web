@@ -336,3 +336,20 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/*
+ * The shelf while a newer answer is on its way (LOS-310). Recessive rather than
+ * absent: replacing the grid with a spinner unmounted the search box with it,
+ * which threw away focus mid-word. Pointer events stay on, because the rows
+ * shown are real results, just one query behind.
+ */
+.searching {
+  opacity: 0.55;
+  transition: opacity 0.12s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searching {
+    transition: none;
+  }
+}

@@ -797,3 +797,96 @@ describe('the unlisted share link (LOS-305)', () => {
     expect(mockedGetShareLink).not.toHaveBeenCalled();
   });
 });
+
+describe('profile search speed (LOS-310)', () => {
+  it('does not refetch the header when only the search changes', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+    const headerCalls = mockedProfile.mock.calls.length;
+    const shelfCalls = mockedPublicLibrary.mock.calls.length;
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search' }), 'sagan');
+
+    // The shelf is asked again; who this reader is cannot have changed.
+    await waitFor(() =>
+      expect(mockedPublicLibrary.mock.calls.length).toBeGreaterThan(shelfCalls),
+    );
+    expect(mockedProfile.mock.calls.length).toBe(headerCalls);
+  });
+
+  // Blanking the page unmounted the search box along with everything else,
+  // which threw away focus mid-word.
+  it('keeps the search box mounted and focused while a search is in flight', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    const box = screen.getByRole('textbox', { name: 'Search' });
+    box.focus();
+    await userEvent.type(box, 'sagan');
+
+    await waitFor(() =>
+      expect(mockedPublicLibrary).toHaveBeenCalledWith(
+        expect.objectContaining({ q: 'sagan' }),
+        expect.anything(),
+      ),
+    );
+
+    // Same node throughout: not merely present again, but never replaced.
+    expect(screen.getByRole('textbox', { name: 'Search' })).toBe(box);
+    expect(box).toHaveFocus();
+  });
+
+  it('keeps the previous results on screen rather than showing a spinner', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search' }), 'sagan');
+
+    // The shelf that was already there is still readable while the next lands.
+    expect(screen.getByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+  });
+
+  it('shows a spinner on the very first load, when there is nothing to show', async () => {
+    let release: (v: unknown) => void = () => {};
+    mockedPublicLibrary.mockReturnValue(new Promise((r) => (release = r)) as never);
+
+    renderProfile();
+
+    expect(await screen.findByRole('status', { name: /loading/i })).toBeInTheDocument();
+    release({ entries: [rawEntry(1, 'Cosmos')], total: 1, page: 1, pageSize: 24 });
+    expect(await screen.findByRole('button', { name: /Cosmos/ })).toBeInTheDocument();
+  });
+});
+
+describe('owner search is instant (LOS-310)', () => {
+  beforeEach(() => {
+    signInAsOwner();
+    mockedMyAuthors.mockResolvedValue({ authors: [] } as never);
+    mockedLibrary.mockResolvedValue({
+      entries: [
+        rawEntry(1, 'Cosmos'),
+        rawEntry(2, 'Dune', { author_name: 'Frank Herbert' }),
+      ] as never,
+      total: 2,
+      stats: { total: 2, by_status: { reading: 2 } },
+    });
+  });
+
+  // The books are already in memory, so waiting on the 300ms debounce made the
+  // profile slower than /library at the identical job.
+  it('filters before the debounced url write has happened', async () => {
+    const router = renderProfile('/ada');
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search' }), 'dune');
+
+    // Filtered already...
+    expect(screen.queryByRole('button', { name: /Cosmos/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Dune/ })).toBeInTheDocument();
+    // ...while the URL has not yet caught up.
+    expect(router.state.location.search).not.toContain('q=dune');
+
+    // It still gets there, so the shelf stays linkable.
+    await waitFor(() => expect(router.state.location.search).toContain('q=dune'));
+  });
+});

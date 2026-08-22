@@ -142,7 +142,7 @@ function VisitorProfileView({
   subject,
   onSelectSubject,
 }: ViewProps) {
-  const { profile, entries, total, loading, notFound, error } = useVisitorProfile(
+  const { profile, entries, total, loading, searching, notFound, error } = useVisitorProfile(
     handle,
     // Null skips the shelf request: AuthorsTab fetches its own list, and the
     // header still comes from the profile call.
@@ -191,7 +191,11 @@ function VisitorProfileView({
             matches={total}
             filtered={Boolean(appliedQuery || subject)}
           />
-          <Grid entries={entries} navigate={navigate} onSelectSubject={onSelectSubject} />
+          {/* Dimmed rather than replaced: the previous answer stays readable,
+              and the search box keeps focus because nothing unmounts. */}
+          <div className={searching ? styles.searching : undefined}>
+            <Grid entries={entries} navigate={navigate} onSelectSubject={onSelectSubject} />
+          </div>
           <Pagination page={page} pageCount={Math.ceil(total / PAGE_SIZE)} onChange={onPage} />
         </>
       )}
@@ -210,7 +214,6 @@ function OwnerProfile({
   navigate,
   q,
   onQueryChange,
-  appliedQuery,
   subject,
   onSelectSubject,
 }: ViewProps) {
@@ -239,10 +242,16 @@ function OwnerProfile({
           : withStaged;
 
     // Filtered here rather than by the server, unlike the visitor's shelf:
-    // useLibraryData already holds all 349 books, so this really is the whole
+    // useLibraryData already holds every book, so this really is the whole
     // library being searched and a request would ask for what is in hand.
-    return byTab.filter((entry) => matchesFilters(entry, appliedQuery, subject));
-  }, [saved, staged, tab, appliedQuery, subject]);
+    //
+    // Off `q`, what is typed, rather than `appliedQuery`, what the URL has
+    // caught up to. An in-memory filter costs nothing, so making it wait on the
+    // 300ms debounce only made the profile slower than /library at the same job
+    // (LOS-310). The debounced URL write stays -- that is for linking, not for
+    // filtering.
+    return byTab.filter((entry) => matchesFilters(entry, q, subject));
+  }, [saved, staged, tab, q, subject]);
 
   // Compared against, so a tick moved back to what the shelf says stops
   // counting as a change rather than being saved as a no-op.
@@ -301,7 +310,7 @@ function OwnerProfile({
             subject={subject}
             onClearSubject={() => onSelectSubject('')}
             matches={shown.length}
-            filtered={Boolean(appliedQuery || subject)}
+            filtered={Boolean(q || subject)}
           />
           <VisibilityBar
             publicCount={shown.filter((entry) => !entry.isHidden).length}
