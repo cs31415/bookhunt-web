@@ -468,9 +468,12 @@ function ShareLinkRow() {
         <button type="button" className={styles.copyButton} disabled={busy} onClick={toggle}>
           {busy ? (enabled ? 'Disabling…' : 'Enabling…') : enabled ? 'Disable' : 'Enable'}
         </button>
-        {/* Says what Enable would do, standing rather than waiting for a press.
-            Nothing under Disable: what that does is already its own name. */}
-        {!enabled && <p className={styles.shareHint}>Generate a new link.</p>}
+        {/* Says what the button would do, standing rather than waiting for a
+            press -- the switch alone does not say that enabling mints a fresh
+            link rather than bringing back the last one. */}
+        <p className={styles.shareHint}>
+          {enabled ? 'Remove the old link' : 'Generate a new link.'}
+        </p>
       </div>
     </div>
   );
