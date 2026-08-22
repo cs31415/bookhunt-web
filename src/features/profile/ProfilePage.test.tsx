@@ -724,7 +724,7 @@ describe('the unlisted share link (LOS-305)', () => {
     renderProfile();
 
     await screen.findByRole('button', { name: 'Enable' });
-    expect(screen.getByText('Generate a new link.')).toBeInTheDocument();
+    expect(screen.getByText('Generate a new share link')).toBeInTheDocument();
   });
 
   it('shows the address and turns into Disable once enabled', async () => {
@@ -747,9 +747,9 @@ describe('the unlisted share link (LOS-305)', () => {
 
     await screen.findByRole('button', { name: 'Disable' });
     expect(
-      screen.getByText('Permanently remove access to the old link'),
+      screen.getByText('Permanently remove access to this link'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Generate a new link.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Generate a new share link')).not.toBeInTheDocument();
   });
 
   it('shows an existing link on arrival', async () => {
