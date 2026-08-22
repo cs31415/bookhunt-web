@@ -158,7 +158,7 @@ function VisitorProfileView({
 
   // Its own state rather than the silent Discover fallback the `*` route uses:
   // a mistyped handle should say the profile does not exist.
-  if (notFound) return <NotFound handle={handle} />;
+  if (notFound) return <NotFound />;
   if (error || !profile) {
     return (
       <div className={styles.page}>
@@ -732,14 +732,19 @@ function CopyLink({ handle, enabled }: { handle: string; enabled: boolean }) {
   );
 }
 
-export function NotFound({ handle }: { handle: string }) {
+/**
+ * One answer for an unknown handle and for a private page alike. The API will
+ * not say which, and neither does this: a different message for each would turn
+ * the page into a way to test whether a handle is taken.
+ *
+ * The handle is no longer echoed back. It sat in the sentence only to confirm
+ * what was typed, and the address bar already does that.
+ */
+export function NotFound() {
   return (
     <div className={styles.page}>
-      <h1 className={styles.name}>No such profile</h1>
-      <p className={styles.message}>
-        Nobody here goes by <span className={styles.handle}>@{handle}</span>, or their page is
-        not public.
-      </p>
+      <h1 className={styles.name}>User not found or no public profile listed.</h1>
+      <p className={styles.message}>Are you sure you have the right user handle?</p>
       <p className={styles.message}>
         <Link to="/">Back to Discover</Link>
       </p>

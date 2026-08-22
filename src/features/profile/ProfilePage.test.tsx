@@ -159,7 +159,23 @@ describe('ProfilePage as a visitor', () => {
 
     renderProfile('/nobody');
 
-    expect(await screen.findByText('No such profile')).toBeInTheDocument();
+    expect(
+      await screen.findByText('User not found or no public profile listed.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Are you sure you have the right user handle?')).toBeInTheDocument();
+  });
+
+  // The two cases must read identically. A message that named the handle for
+  // one and not the other would say which, and the API deliberately will not.
+  it('gives an unknown handle and a private page the same answer', async () => {
+    mockedProfile.mockRejectedValue(new ApiError(404, 'No such profile'));
+    mockedPublicLibrary.mockRejectedValue(new ApiError(404, 'No such profile'));
+
+    renderProfile('/nobody');
+
+    await screen.findByText('User not found or no public profile listed.');
+    // The handle is not echoed back, so nothing on the page varies with it.
+    expect(screen.queryByText(/@nobody/)).not.toBeInTheDocument();
   });
 
   it('asks the API for the tab rather than filtering in the browser', async () => {
