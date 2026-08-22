@@ -380,14 +380,8 @@ function PublicPageBar({ handle }: { handle: string }) {
             checked={isPublic}
             onChange={(event) => toggle(event.target.checked)}
           />
-          <span>List my page publicly, so anyone can find it</span>
+          <span>List profile publicly</span>
         </label>
-        {/* Where the ticks are explained, next to where they are used. Said
-            once, because it is true of both addresses. */}
-        <p className={styles.ownerHint}>
-          Unticked books and authors stay off it, whichever address it is
-          reached by.
-        </p>
       </div>
       <CopyLink handle={handle} enabled={isPublic} />
       <ShareLinkRow />
@@ -470,15 +464,11 @@ function ShareLinkRow() {
   return (
     <div className={styles.shareRow}>
       <div className={styles.shareLinkBlock}>
-        <div className={styles.shareTitle}>Your share link</div>
+        <div className={styles.shareTitle}>Private share link</div>
         <CopyValue value={`${window.location.origin}/s/${token}`} />
-        {confirmingRegenerate ? (
+        {confirmingRegenerate && (
           <p className={styles.ownerHint} role="alert">
             The link above stops working for everyone you have already sent it to.
-          </p>
-        ) : (
-          <p className={styles.ownerHint}>
-            Anyone holding this can see your page, even while it is not listed.
           </p>
         )}
       </div>
@@ -489,9 +479,9 @@ function ShareLinkRow() {
               type="button"
               className={styles.copyButton}
               disabled={busy}
-              onClick={() => run(createShareLink, 'Could not replace the share link')}
+              onClick={() => run(createShareLink, 'Could not refresh the share link')}
             >
-              {busy ? 'Replacing…' : 'Replace it'}
+              {busy ? 'Refreshing…' : 'Refresh it'}
             </button>
             <button
               type="button"
@@ -511,7 +501,7 @@ function ShareLinkRow() {
               disabled={busy}
               onClick={() => setConfirmingRegenerate(true)}
             >
-              Replace link
+              Refresh link
             </button>
             <button
               type="button"
