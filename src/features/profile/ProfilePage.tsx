@@ -472,7 +472,7 @@ function ShareLinkRow() {
             press -- the switch alone does not say that enabling mints a fresh
             link rather than bringing back the last one. */}
         <p className={styles.shareHint}>
-          {enabled ? 'Remove the old link' : 'Generate a new link.'}
+          {enabled ? 'Permanently remove access to the old link' : 'Generate a new link.'}
         </p>
       </div>
     </div>
