@@ -99,7 +99,7 @@ export function ShelfFilters({
       <SearchBar
         value={q}
         onChange={onQueryChange}
-        placeholder="Search this shelf by title or author…"
+        placeholder="Search"
       />
       {(subject || filtered) && (
         <div className={styles.filterRow}>
@@ -392,7 +392,9 @@ function PublicPageBar({ handle }: { handle: string }) {
           <span>List profile publicly</span>
         </label>
       </div>
-      <CopyLink handle={handle} enabled={isPublic} />
+      {/* Only while the page is listed. An address that would 404 is not
+          worth showing, let alone copying. */}
+      {isPublic && <CopyLink handle={handle} />}
       <ShareLinkRow />
     </div>
   );
@@ -402,10 +404,14 @@ function PublicPageBar({ handle }: { handle: string }) {
  * The unlisted address: a link that works for anyone holding it, and appears in
  * no listing or search (LOS-305).
  *
- * Regenerate ships from the start rather than as a later addition. It is the
- * only way to take back a link that has spread, so a feature that could hand
- * one out without being able to withdraw it would be the wrong half to build
- * first.
+ * One switch, not three buttons. Enable mints a link, Disable throws it away,
+ * and the button reads whichever it would do next. There is no separate stored
+ * "off" state and none is needed: the token's presence *is* the state, so
+ * enabling writes one and disabling clears it.
+ *
+ * That also means Enable never revives an old link -- it always makes a fresh
+ * one, which is what the line under it says. Getting a new link while sharing
+ * is Disable then Enable, and the old one is dead the moment you disable.
  *
  * Loaded once on mount. A reader who has never made one sees the offer rather
  * than an empty box.
@@ -414,7 +420,6 @@ function ShareLinkRow() {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [confirmingRegenerate, setConfirmingRegenerate] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -434,94 +439,38 @@ function ShareLinkRow() {
     };
   }, []);
 
-  async function run(action: () => Promise<{ token: string | null }>, failure: string) {
+  async function toggle() {
+    const enabled = token !== null;
     setBusy(true);
     try {
-      setToken((await action()).token);
+      const result = enabled ? await deleteShareLink() : await createShareLink();
+      setToken(result.token);
     } catch {
-      toast({ text: failure });
+      toast({
+        text: enabled ? 'Could not disable the share link' : 'Could not create a share link',
+      });
     } finally {
       setBusy(false);
-      setConfirmingRegenerate(false);
     }
   }
 
   if (loading) return null;
 
-  if (!token) {
-    return (
-      <div className={styles.shareRow}>
-        <div>
-          <div className={styles.shareTitle}>Share without listing</div>
-          <p className={styles.ownerHint}>
-            A private link that works for anyone you send it to, and shows up in no search
-            or listing.
-          </p>
-        </div>
-        <button
-          type="button"
-          className={styles.copyButton}
-          disabled={busy}
-          onClick={() => run(createShareLink, 'Could not create a share link')}
-        >
-          {busy ? 'Creating…' : 'Create link'}
-        </button>
-      </div>
-    );
-  }
+  const enabled = token !== null;
 
   return (
     <div className={styles.shareRow}>
       <div className={styles.shareLinkBlock}>
         <div className={styles.shareTitle}>Private share link</div>
-        <CopyValue value={`${window.location.origin}/s/${token}`} />
-        {confirmingRegenerate && (
-          <p className={styles.ownerHint} role="alert">
-            The link above stops working for everyone you have already sent it to.
-          </p>
-        )}
+        {enabled && <CopyValue value={`${window.location.origin}/s/${token}`} />}
       </div>
-      <div className={styles.shareActions}>
-        {confirmingRegenerate ? (
-          <>
-            <button
-              type="button"
-              className={styles.copyButton}
-              disabled={busy}
-              onClick={() => run(createShareLink, 'Could not refresh the share link')}
-            >
-              {busy ? 'Refreshing…' : 'Refresh it'}
-            </button>
-            <button
-              type="button"
-              className={styles.copyButton}
-              onClick={() => setConfirmingRegenerate(false)}
-            >
-              Keep it
-            </button>
-          </>
-        ) : (
-          <>
-            {/* Asks first: this is the one action here that cannot be undone,
-                and a misclick would silently break every link already sent. */}
-            <button
-              type="button"
-              className={styles.copyButton}
-              disabled={busy}
-              onClick={() => setConfirmingRegenerate(true)}
-            >
-              Refresh link
-            </button>
-            <button
-              type="button"
-              className={styles.copyButton}
-              disabled={busy}
-              onClick={() => run(deleteShareLink, 'Could not turn off the share link')}
-            >
-              Turn off
-            </button>
-          </>
-        )}
+      <div className={styles.shareToggle}>
+        <button type="button" className={styles.copyButton} disabled={busy} onClick={toggle}>
+          {busy ? (enabled ? 'Disabling…' : 'Enabling…') : enabled ? 'Disable' : 'Enable'}
+        </button>
+        {/* Says what Enable would do, standing rather than waiting for a press.
+            Nothing under Disable: what that does is already its own name. */}
+        {!enabled && <p className={styles.shareHint}>Generate a new link.</p>}
       </div>
     </div>
   );
@@ -679,17 +628,7 @@ export function Grid({
  * either way. `copyText` differs from the display where one is a tidied form of
  * the other — the public page shows bookhunt.net/ada but copies the https URL.
  */
-function CopyValue({
-  value,
-  copyText,
-  enabled = true,
-  disabledReason,
-}: {
-  value: string;
-  copyText?: string;
-  enabled?: boolean;
-  disabledReason?: string;
-}) {
+function CopyValue({ value, copyText }: { value: string; copyText?: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -705,30 +644,17 @@ function CopyValue({
   return (
     <span className={styles.copyRow}>
       <code className={styles.url}>{value}</code>
-      <button
-        type="button"
-        className={styles.copyButton}
-        onClick={copy}
-        disabled={!enabled}
-        title={enabled ? undefined : disabledReason}
-      >
+      <button type="button" className={styles.copyButton} onClick={copy}>
         {copied ? 'Copied' : 'Copy'}
       </button>
     </span>
   );
 }
 
-function CopyLink({ handle, enabled }: { handle: string; enabled: boolean }) {
+function CopyLink({ handle }: { handle: string }) {
   const url = `bookhunt.net/${handle}`;
 
-  return (
-    <CopyValue
-      value={url}
-      copyText={`https://${url}`}
-      enabled={enabled}
-      disabledReason="Your page is not listed, so this address would not work"
-    />
-  );
+  return <CopyValue value={url} copyText={`https://${url}`} />;
 }
 
 /**

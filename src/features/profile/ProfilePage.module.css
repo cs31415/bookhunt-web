@@ -65,14 +65,6 @@
   cursor: pointer;
 }
 
-/* Indented to the label's text, so it reads as a note on the switch rather
-   than as a second line of the bar. */
-.ownerHint {
-  margin: 4px 0 0 28px;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
 /* Owner only: the count of what is public, and the one button that flips it. */
 .bulkRow {
   display: flex;
@@ -331,11 +323,6 @@
   color: var(--ink);
 }
 
-.shareActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 
 /*
  * The shelf while a newer answer is on its way (LOS-310). Recessive rather than
@@ -352,4 +339,24 @@
   .searching {
     transition: none;
   }
+}
+
+/*
+ * The share switch and the line under it (LOS-311). A column, so the hint
+ * sits under the button rather than beside it.
+ */
+.shareToggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+/* Right-aligned under the button it belongs to, so the two read as one
+   control rather than as a stray line in the row. */
+.shareHint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: right;
 }
