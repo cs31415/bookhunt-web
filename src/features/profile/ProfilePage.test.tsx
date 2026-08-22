@@ -384,13 +384,22 @@ describe('ProfilePage as the owner', () => {
     await waitFor(() => expect(swtch).not.toBeChecked());
   });
 
-  it('disables the copy button while the page is private', async () => {
+  // An address that would 404 is not worth showing, let alone copying.
+  it('hides the public address while the page is not listed', async () => {
     renderProfile();
 
     await screen.findByRole('button', { name: /Cosmos/ });
-    // The address is still shown: the reader should know what it would be.
-    expect(screen.getByText('bookhunt.net/ada')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Copy' })).toBeDisabled();
+    expect(screen.queryByText('bookhunt.net/ada')).not.toBeInTheDocument();
+  });
+
+  it('shows the public address once the page is listed', async () => {
+    mockedUpdateMe.mockResolvedValue({ user: { isDiscoverable: true } } as never);
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /List profile publicly/ }));
+
+    expect(await screen.findByText('bookhunt.net/ada')).toBeInTheDocument();
   });
 });
 
@@ -692,9 +701,7 @@ describe('the unlisted share link (LOS-305)', () => {
     });
   });
 
-  // The old label said "anyone with the link", which is now precisely what the
-  // OTHER state means. Naming them apart is the point of the copy change.
-  it('offers the discoverable switch to the owner', async () => {
+  it('says the switch makes the page findable, not merely linkable', async () => {
     renderProfile();
 
     await screen.findByRole('button', { name: /Cosmos/ });
@@ -703,20 +710,42 @@ describe('the unlisted share link (LOS-305)', () => {
     ).toBeInTheDocument();
   });
 
-  it('offers to create a link when there is none', async () => {
+  // One switch, reading whichever thing it would do next.
+  it('offers Enable when there is no link', async () => {
     renderProfile();
 
-    expect(await screen.findByRole('button', { name: 'Create link' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Enable' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument();
   });
 
-  it('shows the address once a link is made', async () => {
+  // Standing text, not a confirmation: it says what Enable would do before it
+  // is pressed (LOS-311).
+  it('says what Enable would do, before it is pressed', async () => {
+    renderProfile();
+
+    await screen.findByRole('button', { name: 'Enable' });
+    expect(screen.getByText('Generate a new link.')).toBeInTheDocument();
+  });
+
+  it('shows the address and turns into Disable once enabled', async () => {
     mockedCreateShareLink.mockResolvedValue({ token: 'tok-abc' });
     renderProfile();
-    await screen.findByRole('button', { name: 'Create link' });
+    await screen.findByRole('button', { name: 'Enable' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Create link' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Enable' }));
 
     expect(await screen.findByText(/\/s\/tok-abc$/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Disable' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enable' })).not.toBeInTheDocument();
+  });
+
+  // Disable says what it does in its own name; a line under it would repeat it.
+  it('drops the hint once the link is on', async () => {
+    mockedGetShareLink.mockResolvedValue({ token: 'tok-existing' });
+    renderProfile();
+
+    await screen.findByRole('button', { name: 'Disable' });
+    expect(screen.queryByText('Generate a new link.')).not.toBeInTheDocument();
   });
 
   it('shows an existing link on arrival', async () => {
@@ -726,65 +755,55 @@ describe('the unlisted share link (LOS-305)', () => {
     expect(await screen.findByText(/\/s\/tok-existing$/)).toBeInTheDocument();
   });
 
-  // The one action here that cannot be undone: a misclick would silently break
-  // every link already sent.
-  it('asks before replacing a link that may have spread', async () => {
-    mockedGetShareLink.mockResolvedValue({ token: 'tok-old' });
-    renderProfile();
-    await screen.findByText(/\/s\/tok-old$/);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Refresh link' }));
-
-    expect(await screen.findByText(/stops working for everyone/)).toBeInTheDocument();
-    expect(mockedCreateShareLink).not.toHaveBeenCalled();
-  });
-
-  it('replaces the link once confirmed, and shows the new one', async () => {
-    mockedGetShareLink.mockResolvedValue({ token: 'tok-old' });
-    mockedCreateShareLink.mockResolvedValue({ token: 'tok-new' });
-    renderProfile();
-    await screen.findByText(/\/s\/tok-old$/);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Refresh link' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Refresh it' }));
-
-    expect(await screen.findByText(/\/s\/tok-new$/)).toBeInTheDocument();
-    expect(screen.queryByText(/\/s\/tok-old$/)).not.toBeInTheDocument();
-  });
-
-  it('keeps the link when the reader backs out', async () => {
-    mockedGetShareLink.mockResolvedValue({ token: 'tok-old' });
-    renderProfile();
-    await screen.findByText(/\/s\/tok-old$/);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Refresh link' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Keep it' }));
-
-    expect(mockedCreateShareLink).not.toHaveBeenCalled();
-    expect(screen.getByText(/\/s\/tok-old$/)).toBeInTheDocument();
-  });
-
-  // Turning it off is what returns the page to private.
-  it('turns the link off and offers to make a new one', async () => {
+  it('throws the link away on Disable, and offers Enable again', async () => {
     mockedGetShareLink.mockResolvedValue({ token: 'tok-old' });
     mockedDeleteShareLink.mockResolvedValue({ token: null });
     renderProfile();
     await screen.findByText(/\/s\/tok-old$/);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Turn off' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Disable' }));
 
-    expect(await screen.findByRole('button', { name: 'Create link' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Enable' })).toBeInTheDocument();
+    expect(screen.queryByText(/\/s\/tok-old$/)).not.toBeInTheDocument();
+  });
+
+  // Enable mints a fresh token rather than reviving the one just discarded --
+  // which is why the hint says "a new link".
+  it('gives a different link after a disable and enable', async () => {
+    mockedGetShareLink.mockResolvedValue({ token: 'tok-old' });
+    mockedDeleteShareLink.mockResolvedValue({ token: null });
+    mockedCreateShareLink.mockResolvedValue({ token: 'tok-new' });
+    renderProfile();
+    await screen.findByText(/\/s\/tok-old$/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Disable' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Enable' }));
+
+    expect(await screen.findByText(/\/s\/tok-new$/)).toBeInTheDocument();
     expect(screen.queryByText(/\/s\/tok-old$/)).not.toBeInTheDocument();
   });
 
   it('says so when the link cannot be created', async () => {
     mockedCreateShareLink.mockRejectedValue(new ApiError(500, 'boom'));
     renderProfile();
-    await screen.findByRole('button', { name: 'Create link' });
+    await screen.findByRole('button', { name: 'Enable' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Create link' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Enable' }));
 
     expect(await screen.findByText(/Could not create a share link/)).toBeInTheDocument();
+  });
+
+  it('says so when the link cannot be disabled', async () => {
+    mockedGetShareLink.mockResolvedValue({ token: 'tok-old' });
+    mockedDeleteShareLink.mockRejectedValue(new ApiError(500, 'boom'));
+    renderProfile();
+    await screen.findByText(/\/s\/tok-old$/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Disable' }));
+
+    expect(await screen.findByText(/Could not disable the share link/)).toBeInTheDocument();
+    // The link is still there: a failed write must not look like a success.
+    expect(screen.getByText(/\/s\/tok-old$/)).toBeInTheDocument();
   });
 
   // A visitor is not the owner, and has nothing to share here.
@@ -793,7 +812,7 @@ describe('the unlisted share link (LOS-305)', () => {
     renderProfile();
 
     await screen.findByRole('button', { name: /Cosmos/ });
-    expect(screen.queryByRole('button', { name: 'Create link' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enable' })).not.toBeInTheDocument();
     expect(mockedGetShareLink).not.toHaveBeenCalled();
   });
 });
