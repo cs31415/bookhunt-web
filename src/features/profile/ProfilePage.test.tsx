@@ -362,7 +362,7 @@ describe('ProfilePage as the owner', () => {
     await screen.findByRole('button', { name: /Cosmos/ });
 
     await userEvent.click(
-      screen.getByRole('checkbox', { name: /List my page publicly/ }),
+      screen.getByRole('checkbox', { name: /List profile publicly/ }),
     );
 
     expect(mockedUpdateMe).toHaveBeenCalledWith({ isDiscoverable: true });
@@ -376,7 +376,7 @@ describe('ProfilePage as the owner', () => {
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
     const swtch = screen.getByRole('checkbox', {
-      name: /List my page publicly/,
+      name: /List profile publicly/,
     });
 
     await userEvent.click(swtch);
@@ -694,12 +694,12 @@ describe('the unlisted share link (LOS-305)', () => {
 
   // The old label said "anyone with the link", which is now precisely what the
   // OTHER state means. Naming them apart is the point of the copy change.
-  it('says the switch makes the page findable, not merely linkable', async () => {
+  it('offers the discoverable switch to the owner', async () => {
     renderProfile();
 
     await screen.findByRole('button', { name: /Cosmos/ });
     expect(
-      screen.getByRole('checkbox', { name: /List my page publicly, so anyone can find it/ }),
+      screen.getByRole('checkbox', { name: /List profile publicly/ }),
     ).toBeInTheDocument();
   });
 
@@ -733,7 +733,7 @@ describe('the unlisted share link (LOS-305)', () => {
     renderProfile();
     await screen.findByText(/\/s\/tok-old$/);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Replace link' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh link' }));
 
     expect(await screen.findByText(/stops working for everyone/)).toBeInTheDocument();
     expect(mockedCreateShareLink).not.toHaveBeenCalled();
@@ -745,8 +745,8 @@ describe('the unlisted share link (LOS-305)', () => {
     renderProfile();
     await screen.findByText(/\/s\/tok-old$/);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Replace link' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Replace it' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh link' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Refresh it' }));
 
     expect(await screen.findByText(/\/s\/tok-new$/)).toBeInTheDocument();
     expect(screen.queryByText(/\/s\/tok-old$/)).not.toBeInTheDocument();
@@ -757,7 +757,7 @@ describe('the unlisted share link (LOS-305)', () => {
     renderProfile();
     await screen.findByText(/\/s\/tok-old$/);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Replace link' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh link' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Keep it' }));
 
     expect(mockedCreateShareLink).not.toHaveBeenCalled();
