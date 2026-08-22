@@ -746,7 +746,9 @@ describe('the unlisted share link (LOS-305)', () => {
     renderProfile();
 
     await screen.findByRole('button', { name: 'Disable' });
-    expect(screen.getByText('Remove the old link')).toBeInTheDocument();
+    expect(
+      screen.getByText('Permanently remove access to the old link'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Generate a new link.')).not.toBeInTheDocument();
   });
 
