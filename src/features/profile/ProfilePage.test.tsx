@@ -739,12 +739,14 @@ describe('the unlisted share link (LOS-305)', () => {
     expect(screen.queryByRole('button', { name: 'Enable' })).not.toBeInTheDocument();
   });
 
-  // Disable says what it does in its own name; a line under it would repeat it.
-  it('drops the hint once the link is on', async () => {
+  // The line follows the button rather than belonging to one state, so each
+  // says what pressing it would do.
+  it('swaps the hint once the link is on', async () => {
     mockedGetShareLink.mockResolvedValue({ token: 'tok-existing' });
     renderProfile();
 
     await screen.findByRole('button', { name: 'Disable' });
+    expect(screen.getByText('Remove the old link')).toBeInTheDocument();
     expect(screen.queryByText('Generate a new link.')).not.toBeInTheDocument();
   });
 
