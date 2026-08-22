@@ -33,7 +33,7 @@ export function SharedProfilePage() {
   useNoIndex();
 
   const { tab, sub, page, q, appliedQuery, subject } = shelf;
-  const { profile, entries, total, loading, notFound, error } = useSharedProfile(
+  const { profile, entries, total, loading, searching, notFound, error } = useSharedProfile(
     token,
     showsAuthors(tab, sub) ? null : tab,
     page,
@@ -85,7 +85,11 @@ export function SharedProfilePage() {
             matches={total}
             filtered={Boolean(appliedQuery || subject)}
           />
-          <Grid entries={entries} navigate={navigate} onSelectSubject={shelf.onSelectSubject} />
+          {/* Dimmed rather than replaced, as on the public profile: the search
+              box keeps focus because nothing unmounts (LOS-310). */}
+          <div className={searching ? styles.searching : undefined}>
+            <Grid entries={entries} navigate={navigate} onSelectSubject={shelf.onSelectSubject} />
+          </div>
           <Pagination
             page={page}
             pageCount={Math.ceil(total / PAGE_SIZE)}
