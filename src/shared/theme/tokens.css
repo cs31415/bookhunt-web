@@ -52,6 +52,13 @@
   /* Plain grotesque for small UI chrome, where a display face turns to mush. */
   --ui-sans: var(--face-ui);
 
+  /*
+   * The wordmark's size, and with it the ceiling for a page title. Nothing on a
+   * page outranks the app's own name, so the book title, the author name and
+   * the wordmark all read this one value and move together.
+   */
+  --type-title: 1.1875rem;
+
   --r-sm: 4px;
   --r-md: 8px;
   --r-lg: 14px;
