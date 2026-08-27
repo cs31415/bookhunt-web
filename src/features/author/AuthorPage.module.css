@@ -39,7 +39,7 @@
 }
 
 .name {
-  font-size: clamp(30px, 4vw, 46px);
+  font-size: var(--type-title);
   margin-bottom: 16px;
 }
 

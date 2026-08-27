@@ -29,7 +29,8 @@
 
 .title {
   font-family: var(--serif);
-  font-weight: 600;
+  /* Same reason as the grid card: Futura's 600 is the system Bold. */
+  font-weight: 500;
   font-size: 0.9375rem;
   line-height: 1.2;
 }
