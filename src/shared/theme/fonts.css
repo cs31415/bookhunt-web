@@ -1,3 +1,9 @@
+/*
+ * Self-hosted faces. A face declared here costs nothing until a rule asks for
+ * it, so Cabin Sketch stays parked for a swap back in tokens.css. Futura and
+ * Times are not here: both come from the system.
+ */
+
 @font-face {
   font-family: 'Cabin Sketch';
   font-style: normal;

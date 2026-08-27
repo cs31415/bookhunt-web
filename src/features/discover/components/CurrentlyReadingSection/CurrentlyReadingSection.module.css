@@ -69,6 +69,7 @@
 .author {
   display: block;
   margin-top: 2px;
+  font-family: var(--prose);
   font-size: 0.75rem;
   color: var(--muted);
   overflow-wrap: break-word;

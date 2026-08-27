@@ -89,6 +89,7 @@
 }
 
 .meta {
+  font-family: var(--prose);
   font-size: 0.75rem;
   color: var(--muted);
 }

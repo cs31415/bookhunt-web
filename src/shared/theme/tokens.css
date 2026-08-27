@@ -26,12 +26,31 @@
   --c7: #8a8273;
   --c8: #4a5a4d;
 
-  --serif: 'Cabin Sketch', Georgia, 'Times New Roman', serif;
-  --sans: 'Cabin Sketch', Georgia, 'Times New Roman', serif;
-  --cover: 'Cabin Sketch', Georgia, 'Times New Roman', serif;
-  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  /* Plain grotesque for small UI chrome, where the sketch face turns to mush. */
-  --ui-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /*
+   * Type comes in two layers, so that trying a different face is a one-line
+   * edit. Layer one names the faces and is the only place in the app that
+   * spells a font out. Layer two says what each face is for; a rule elsewhere
+   * asks for a role, never for a face.
+   *
+   * To swap a face, change its stack here. To move a role onto another face,
+   * repoint the role below. Nothing else has to move.
+   */
+  --face-display: Futura, 'Futura PT', 'Century Gothic', 'Avenir Next', Avenir,
+    sans-serif;
+  --face-prose: 'Times New Roman', Times, Georgia, serif;
+  --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --face-ui: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+  /* Headings, titles, and the app's own voice. */
+  --serif: var(--face-display);
+  --sans: var(--face-display);
+  /* Drawn into the SVG cover, which cannot inherit. */
+  --cover: var(--face-display);
+  /* What the book says about itself: author names, blurbs, bios. */
+  --prose: var(--face-prose);
+  --mono: var(--face-mono);
+  /* Plain grotesque for small UI chrome, where a display face turns to mush. */
+  --ui-sans: var(--face-ui);
 
   --r-sm: 4px;
   --r-md: 8px;

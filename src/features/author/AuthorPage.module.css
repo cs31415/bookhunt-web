@@ -47,7 +47,7 @@
   font-size: 1.0625rem;
   line-height: 1.65;
   color: var(--ink);
-  font-family: var(--serif);
+  font-family: var(--prose);
 }
 
 /* The width belongs to the panel now, so the fade spans the same column the
