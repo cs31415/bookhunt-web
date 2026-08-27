@@ -85,7 +85,8 @@
 
 .title {
   font-family: var(--serif);
-  font-weight: 600;
+  /* Futura carries its own weight; 600 lands on the system Bold and shouts. */
+  font-weight: 500;
   font-size: 1.0312rem;
   margin-bottom: 3px;
   /*
