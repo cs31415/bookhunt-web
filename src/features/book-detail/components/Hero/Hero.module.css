@@ -87,6 +87,7 @@
 }
 
 .author {
+  font-family: var(--prose);
   font-size: 1.125rem;
   color: var(--ink-2);
   margin-bottom: 18px;
@@ -151,7 +152,7 @@
   font-size: 1.0625rem;
   line-height: 1.62;
   color: var(--ink);
-  font-family: var(--serif);
+  font-family: var(--prose);
   max-width: 580px;
 }
 

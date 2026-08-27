@@ -30,7 +30,7 @@
   background: none;
   border: none;
   padding: 0;
-  font-family: var(--serif);
+  font-family: var(--prose);
   font-size: 1.0625rem;
   font-weight: 600;
   color: var(--rust);
@@ -40,6 +40,7 @@
 }
 
 .bio {
+  font-family: var(--prose);
   font-size: 0.8438rem;
   color: var(--ink-2);
   line-height: 1.55;
