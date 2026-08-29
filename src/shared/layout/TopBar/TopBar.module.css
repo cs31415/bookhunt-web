@@ -53,7 +53,7 @@
 
 .wordmark {
   font-family: var(--serif);
-  font-size: var(--type-title);
+  font-size: var(--type-wordmark);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -66,7 +66,7 @@
 .navLink {
   text-decoration: none;
   color: rgba(255, 255, 255, 0.72);
-  font-size: 0.875rem;
+  font-size: var(--type-nav);
   font-weight: 500;
   padding: 6px 2px;
   position: relative;
@@ -121,7 +121,7 @@
 }
 
 .greeting {
-  font-size: 0.875rem;
+  font-size: var(--type-nav);
   font-weight: 500;
   color: #fff;
   white-space: nowrap;
@@ -130,7 +130,7 @@
 /* The only way in from the bar; the sign-in page carries the offer to
    register, so nothing sits beside this. */
 .signIn {
-  font-size: 0.875rem;
+  font-size: var(--type-nav);
   font-weight: 500;
   color: #fff;
   white-space: nowrap;

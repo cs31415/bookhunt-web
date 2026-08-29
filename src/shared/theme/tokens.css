@@ -62,11 +62,14 @@
   --ui-sans: var(--face-ui);
 
   /*
-   * The wordmark's size, and with it the ceiling for a page title. Nothing on a
-   * page outranks the app's own name, so the book title, the author name and
-   * the wordmark all read this one value and move together.
+   * The page-title size: the book title and the author name read it, so the two
+   * cannot drift apart. The wordmark sits half again above it, which is what
+   * keeps the app's own name ahead of anything on a page.
    */
   --type-title: 1.1875rem;
+  --type-wordmark: calc(var(--type-title) * 1.5);
+  /* Nav links, the greeting and the sign-in: one size, three places. */
+  --type-nav: 1.3125rem;
 
   --r-sm: 4px;
   --r-md: 8px;
