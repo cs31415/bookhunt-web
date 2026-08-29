@@ -111,6 +111,21 @@
   }
 }
 
+/*
+ * Portrait covers, halved. Held upright there is one narrow column to spend,
+ * and at the shared track width the shelf gave over most of it to two or three
+ * enormous covers.
+ *
+ * Gated on orientation, not width alone: 641-1024px also catches a small
+ * desktop window, which is landscape and has no such problem. Halving its
+ * tracks would leave a desktop reader with thumbnails.
+ */
+@media (max-width: 1024px) and (orientation: portrait) {
+  :root {
+    --book-grid-min: 3.375rem;
+  }
+}
+
 /* Applies only until the inline script in index.html stamps data-theme, and
    for a reader whose browser refused localStorage. The explicit blocks below
    are what a chosen theme uses. */
