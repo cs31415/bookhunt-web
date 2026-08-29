@@ -1,8 +1,50 @@
 /*
- * Self-hosted faces. A face declared here costs nothing until a rule asks for
- * it, so Cabin Sketch stays parked for a swap back in tokens.css. Futura and
- * Times are not here: both come from the system.
+ * Self-hosted faces, so the public site keeps its type on a machine that has
+ * neither Futura nor Times. A face declared here costs nothing until a rule
+ * asks for it, so Cabin Sketch stays parked for a swap back in tokens.css.
  */
+
+/*
+ * Jost, a Futura revival, carrying the display face for everyone. One variable
+ * file spans the 400, 500 and 600 the app asks for, which is smaller than the
+ * three static cuts it replaces.
+ */
+@font-face {
+  font-family: 'Jost';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('./fonts/jost-400-600.woff2') format('woff2');
+}
+
+/*
+ * Tinos, metric-compatible with Times New Roman, so a visitor who has Times
+ * and one who does not read the same line breaks. Italic and bold are here
+ * because RichText emits <em> and <strong> inside blurbs and bios.
+ */
+@font-face {
+  font-family: 'Tinos';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/tinos-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Tinos';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/tinos-400-italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Tinos';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/tinos-700.woff2') format('woff2');
+}
 
 @font-face {
   font-family: 'Cabin Sketch';

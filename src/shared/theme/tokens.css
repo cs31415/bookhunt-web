@@ -35,9 +35,18 @@
    * To swap a face, change its stack here. To move a role onto another face,
    * repoint the role below. Nothing else has to move.
    */
-  --face-display: Futura, 'Futura PT', 'Century Gothic', 'Avenir Next', Avenir,
-    sans-serif;
-  --face-prose: 'Times New Roman', Times, Georgia, serif;
+  /*
+   * Jost leads, not Futura. It is a Futura revival but not a metric match, so
+   * leaving the system face ahead of it would break macOS lines differently
+   * from everyone else's. One face is one layout.
+   *
+   * Times New Roman leads its own stack for the opposite reason: Tinos IS a
+   * metric match, so the lines are the same either way, and a visitor who
+   * already has Times never downloads the file.
+   */
+  --face-display: Jost, Futura, 'Futura PT', 'Century Gothic', 'Avenir Next',
+    Avenir, sans-serif;
+  --face-prose: 'Times New Roman', Times, Tinos, Georgia, serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --face-ui: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
