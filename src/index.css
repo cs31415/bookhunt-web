@@ -18,15 +18,15 @@ html {
   font-size: 16px;
 }
 
-/* Phone: +25%. */
+/* Phone: +19%. Was 20px, which read a shade large held in the hand. */
 @media (max-width: 640px) {
   html {
-    font-size: 20px;
+    font-size: 19px;
   }
 }
 
 /*
- * Tablet portrait: +50%.
+ * Tablet portrait: +37%. Was 24px, two steps too large on an upright iPad.
  *
  * Plain width, which also catches a phone held in landscape and a small desktop
  * window. Accepted: with only type scaling, being slightly large somewhere costs
@@ -34,7 +34,7 @@ html {
  */
 @media (min-width: 641px) and (max-width: 1024px) {
   html {
-    font-size: 24px;
+    font-size: 22px;
   }
 }
 
