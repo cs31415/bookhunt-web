@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 import { SearchBar } from '../SearchBar/SearchBar';
 import { searchUsers } from '../../../api/users/search-users';
@@ -37,6 +37,12 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   mockedSearch.mockReset();
   mockedSearch.mockResolvedValue({ users });
+});
+
+// Handed back deliberately. Fake timers left on outlive the file that turned
+// them on, and a later test waiting on a real one then waits forever (LOS-332).
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 async function type(input: HTMLElement, value: string) {

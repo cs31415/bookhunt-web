@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -318,13 +318,25 @@ describe('a visitor’s shelf grows a page at a time (LOS-345)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Load more' }));
     await waitFor(() => expect(releaseSecondPage).not.toBeNull());
 
-    await userEvent.type(screen.getByPlaceholderText(/Search/i), 'match');
-    await screen.findByText('All 1 book');
+    /*
+     * fireEvent.change rather than userEvent.type: this only needs the query
+     * committed once, and typing it character by character adds a delay per
+     * keystroke on top of the 300ms debounce underneath.
+     *
+     * The waits are generous for the same reason. What is being watched for sits
+     * behind that debounce and a request, which is comfortably past the default
+     * second under full-suite load -- and a timeout here reads as this test
+     * failing rather than as the wait being too short.
+     */
+    fireEvent.change(screen.getByPlaceholderText(/Search/i), { target: { value: 'match' } });
+    await screen.findByText('All 1 book', {}, { timeout: 5000 });
 
     releaseSecondPage!();
 
     // The stale page never joins the filtered shelf.
-    await waitFor(() => expect(screen.queryAllByText('Book 25')).toHaveLength(0));
+    await waitFor(() => expect(screen.queryAllByText('Book 25')).toHaveLength(0), {
+      timeout: 5000,
+    });
     expect(screen.getByText('All 1 book')).toBeInTheDocument();
   });
 });

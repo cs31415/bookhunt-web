@@ -47,11 +47,43 @@ function decodeEntities(text: string): string {
 }
 
 /**
- * Strips any residual/unsupported HTML tags (keeping their text content) and
- * decodes entities. The result is placed in a React text node, so it is inert.
+ * Characters that have no printed form, replaced by a space.
+ *
+ * U+FFFD is the one that prompted this (LOS-355). It is what a decoder writes
+ * where it found bytes it could not read, and some Google Books descriptions
+ * arrive with it already in them -- "Herg\uFFFD's classic comic book creation".
+ * The original letter is gone before we see it, upstream, so nothing here can
+ * recover it; the choice is only what to show in its place.
+ *
+ * A space, not a deletion. Deleting is tidier where the lost character was a
+ * letter ("Herg's") but joins two words where it was a space or a dash, and a
+ * run-together sentence is harder to read past than one odd gap. It is also
+ * what Google's own site does with these.
+ *
+ * The C0 and C1 control ranges go with it -- likewise unprintable, and likewise
+ * meaningless in prose. Tab and newline are deliberately not in the set:
+ * RichText reads those as structure before this runs.
+ *
+ * Whitespace on either side is taken with the run, so one space comes out
+ * whatever went in. Without that, a character lost next to a real space --
+ * "Herg\uFFFD (Georges Remi)" -- leaves two, which reads as a typo of its own.
+ * Deliberately narrower than collapsing whitespace everywhere: text with
+ * nothing wrong with it is not touched at all.
+ */
+// Control characters are the point of this pattern, not an accident in it.
+// eslint-disable-next-line no-control-regex
+const UNPRINTABLE = /\s*[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\uFFFD\uFFFE\uFFFF]+\s*/g;
+
+/**
+ * Strips any residual/unsupported HTML tags (keeping their text content),
+ * decodes entities, and drops anything with no printed form. The result is
+ * placed in a React text node, so it is inert.
+ *
+ * Cleaned after decoding, so an entity spelling of an unprintable character
+ * (`&#65533;`) is caught as well as a literal one.
  */
 function toText(raw: string): string {
-  return decodeEntities(raw.replace(/<[^>]*>/g, ''));
+  return decodeEntities(raw.replace(/<[^>]*>/g, '')).replace(UNPRINTABLE, ' ');
 }
 
 // Earliest match wins: bold/italic tags (with optional attributes) and their
