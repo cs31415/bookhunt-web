@@ -27,6 +27,25 @@
 }
 
 /*
+ * One character, drawn from whatever plain face the machine already has.
+ *
+ * Cabin Sketch builds its @ from 42 contours against 19.5 for an average
+ * letter, so below about 20px it collapses into a blot (LOS-335). unicode-range
+ * is what CSS provides for exactly this: the browser uses this face only for
+ * U+0040 and falls through to the display face for every other character, with
+ * no markup to keep in step.
+ *
+ * local() only, so nothing is downloaded. Where none of the three are installed
+ * the face simply fails to load and the @ falls back to Cabin Sketch's own --
+ * which is where it started, so there is nothing to lose.
+ */
+@font-face {
+  font-family: 'PlainAt';
+  src: local('Helvetica Neue'), local('Helvetica'), local('Arial');
+  unicode-range: U+0040;
+}
+
+/*
  * Tinos, standing in for Times New Roman in the prose, and metric-compatible
  * with it -- so a visitor who has Times and one who does not read the same line
  * breaks, and whoever has Times never downloads these at all.
