@@ -8,7 +8,7 @@ import { ToastHost } from '../../shared/toast/ToastHost';
 import { clearToasts } from '../../shared/toast/toast-store';
 import { ApiError } from '../../api/client';
 import { getProfile } from '../../api/users/get-profile';
-import { getPublicLibrary } from '../../api/users/get-public-library';
+import { getPublicLibrary, getPublicLibraryFacets } from '../../api/users/get-public-library';
 import { getLibrary } from '../../api/library/get-library';
 import {
   getMyFavoriteAuthors,
@@ -34,6 +34,10 @@ vi.mock('../../api/users/share-link');
 
 const mockedProfile = vi.mocked(getProfile);
 const mockedPublicLibrary = vi.mocked(getPublicLibrary);
+// The rail's values come from their own endpoint for a visitor. Stubbed empty
+// unless a test says otherwise: FilterGroup renders nothing for an empty facet,
+// so the rail simply does not appear and the shelf assertions are untouched.
+const mockedFacets = vi.mocked(getPublicLibraryFacets);
 const mockedLibrary = vi.mocked(getLibrary);
 const mockedMyAuthors = vi.mocked(getMyFavoriteAuthors);
 const mockedPublicAuthors = vi.mocked(getPublicFavoriteAuthors);
@@ -110,6 +114,8 @@ beforeEach(() => {
   clearToasts();
   mockedProfile.mockReset();
   mockedPublicLibrary.mockReset();
+  mockedFacets.mockReset();
+  mockedFacets.mockResolvedValue({ subject: [], mood: [], theme: [], status: [] });
   mockedLibrary.mockReset();
   mockedMyAuthors.mockReset();
   mockedPublicAuthors.mockReset();
@@ -911,5 +917,84 @@ describe('owner search is instant (LOS-310)', () => {
 
     // It still gets there, so the shelf stays linkable.
     await waitFor(() => expect(router.state.location.search).toContain('q=dune'));
+  });
+});
+
+describe('shelf facets (LOS-342)', () => {
+  /*
+   * beforeEach already serves a one-book shelf; this only widens the total, so
+   * the page on screen is plainly a slice of something larger. The profile and
+   * library mocks are left alone -- their shapes are set up there.
+   */
+  function shelfOfOne() {
+    mockedPublicLibrary.mockResolvedValue({
+      entries: [rawEntry(1, 'Cosmos', { subjects: ['Fiction'] })] as never,
+      total: 30,
+      page: 1,
+      pageSize: 24,
+    });
+  }
+
+  // The whole reason the facets have an endpoint of their own. A visitor holds
+  // one page; a rail derived from it would offer whatever landed on that page,
+  // and would change under the reader as they paged.
+  it('offers values no book on the page carries', async () => {
+    shelfOfOne();
+    mockedFacets.mockResolvedValue({
+      subject: ['Fiction', 'History'],
+      mood: ['Bleak'],
+      theme: [],
+      status: [],
+    });
+
+    renderProfile();
+
+    expect(await screen.findByRole('button', { name: 'History' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bleak' })).toBeInTheDocument();
+  });
+
+  it('drops a facet the shelf has nothing for, rather than heading an empty row', async () => {
+    shelfOfOne();
+    mockedFacets.mockResolvedValue({ subject: ['Fiction'], mood: [], theme: [], status: [] });
+
+    renderProfile();
+
+    expect(await screen.findByText('Category')).toBeInTheDocument();
+    expect(screen.queryByText('Mood')).not.toBeInTheDocument();
+    expect(screen.queryByText('Theme')).not.toBeInTheDocument();
+  });
+
+  it('asks the server for the mood, and keeps it in the url so a filtered shelf can be linked', async () => {
+    const user = userEvent.setup();
+    shelfOfOne();
+    mockedFacets.mockResolvedValue({ subject: [], mood: ['Bleak'], theme: [], status: [] });
+
+    renderProfile();
+
+    await user.click(await screen.findByRole('button', { name: 'Bleak' }));
+
+    await waitFor(() =>
+      expect(mockedPublicLibrary).toHaveBeenCalledWith(
+        expect.objectContaining({ mood: 'Bleak' }),
+        expect.anything(),
+      ),
+    );
+  });
+
+  // Status comes back from the endpoint, but the tabs above the shelf already
+  // are the status filter. Two controls for one job would come to disagree.
+  it('offers no Status group, since the tabs are that', async () => {
+    shelfOfOne();
+    mockedFacets.mockResolvedValue({
+      subject: ['Fiction'],
+      mood: [],
+      theme: [],
+      status: ['finished', 'reading'],
+    });
+
+    renderProfile();
+
+    expect(await screen.findByText('Category')).toBeInTheDocument();
+    expect(screen.queryByText('Status')).not.toBeInTheDocument();
   });
 });

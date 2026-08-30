@@ -5,12 +5,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SharedProfilePage } from './SharedProfilePage';
 import { AuthProvider } from '../auth/AuthContext';
 import { ApiError } from '../../api/client';
-import { getLibraryByToken, getProfileByToken } from '../../api/users/get-by-token';
+import { getLibraryByToken, getProfileByToken, getLibraryFacetsByToken } from '../../api/users/get-by-token';
 
 vi.mock('../../api/users/get-by-token');
 
 const mockedProfile = vi.mocked(getProfileByToken);
 const mockedLibrary = vi.mocked(getLibraryByToken);
+// The unlisted shelf's rail values, by token. Empty unless a test says
+// otherwise, so an empty rail renders nothing and the shelf assertions stand.
+const mockedFacets = vi.mocked(getLibraryFacetsByToken);
 
 const profile = {
   handle: 'ada',
@@ -53,6 +56,8 @@ function renderShared(path = '/s/tok-abc') {
 }
 
 beforeEach(() => {
+  mockedFacets.mockReset();
+  mockedFacets.mockResolvedValue({ subject: [], mood: [], theme: [], status: [] });
   localStorage.clear();
   mockedProfile.mockReset();
   mockedLibrary.mockReset();

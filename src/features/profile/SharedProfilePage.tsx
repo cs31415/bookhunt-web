@@ -6,6 +6,9 @@ import { Grid, Header, ShelfFilters, Tabs } from './ProfilePage';
 import { AuthorsTab } from './AuthorsTab';
 import { useShelfParams, showsAuthors, PAGE_SIZE } from './useShelfParams';
 import { useSharedProfile } from './useSharedProfile';
+import { useShelfFacets } from './useShelfFacets';
+import { ProfileFacets } from './components/ProfileFacets/ProfileFacets';
+import { FilterRail } from '../../shared/components/FilterRail/FilterRail';
 import styles from './ProfilePage.module.css';
 
 /**
@@ -32,14 +35,17 @@ export function SharedProfilePage() {
 
   useNoIndex();
 
-  const { tab, sub, page, q, appliedQuery, subject } = shelf;
+  const { tab, sub, page, q, appliedQuery, subject, mood, theme } = shelf;
   const { profile, entries, total, loading, searching, notFound, error } = useSharedProfile(
     token,
     showsAuthors(tab, sub) ? null : tab,
     page,
     PAGE_SIZE,
-    { q: appliedQuery, subject },
+    { q: appliedQuery, subject, mood, theme },
   );
+
+  // The token is the address here, so the facets come by token too.
+  const facets = useShelfFacets('token', token);
 
   if (loading) return <Loader />;
 
@@ -76,26 +82,41 @@ export function SharedProfilePage() {
         // list is public whenever the page is, and this page is a page.
         <AuthorsTab handle={profile.handle} owner={false} />
       ) : (
-        <>
-          <ShelfFilters
-            q={q}
-            onQueryChange={shelf.onQueryChange}
-            subject={subject}
-            onClearSubject={() => shelf.onSelectSubject('')}
-            matches={total}
-            filtered={Boolean(appliedQuery || subject)}
-          />
-          {/* Dimmed rather than replaced, as on the public profile: the search
-              box keeps focus because nothing unmounts (LOS-310). */}
-          <div className={searching ? styles.searching : undefined}>
-            <Grid entries={entries} navigate={navigate} onSelectSubject={shelf.onSelectSubject} />
+        <div className={styles.layout}>
+          <FilterRail label="Shelf filters" activeCount={shelf.activeFilterCount}>
+            <ProfileFacets
+              facets={facets}
+              subject={subject}
+              mood={mood}
+              theme={theme}
+              onSelectSubject={shelf.onSelectSubject}
+              onSelectMood={shelf.onSelectMood}
+              onSelectTheme={shelf.onSelectTheme}
+              onClearFilters={shelf.onClearFilters}
+            />
+          </FilterRail>
+
+          <div className={styles.results}>
+            <ShelfFilters
+              q={q}
+              onQueryChange={shelf.onQueryChange}
+              subject={subject}
+              onClearSubject={() => shelf.onSelectSubject('')}
+              matches={total}
+              filtered={Boolean(appliedQuery || subject || mood || theme)}
+            />
+            {/* Dimmed rather than replaced, as on the public profile: the search
+                box keeps focus because nothing unmounts (LOS-310). */}
+            <div className={searching ? styles.searching : undefined}>
+              <Grid entries={entries} navigate={navigate} onSelectSubject={shelf.onSelectSubject} />
+            </div>
+            <Pagination
+              page={page}
+              pageCount={Math.ceil(total / PAGE_SIZE)}
+              onChange={shelf.onPage}
+            />
           </div>
-          <Pagination
-            page={page}
-            pageCount={Math.ceil(total / PAGE_SIZE)}
-            onChange={shelf.onPage}
-          />
-        </>
+        </div>
       )}
     </div>
   );

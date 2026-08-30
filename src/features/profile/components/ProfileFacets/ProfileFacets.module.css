@@ -1,0 +1,22 @@
+/* FilterRail owns the column: its width, its stickiness and its landmark role.
+   What is left here is only what goes inside it. */
+.groups {
+  min-width: 0;
+}
+
+/* Matches the library rail's clear button, so the two rails offer the same
+   control in the same shape rather than two near-identical ones. */
+.clearButton {
+  padding: 6px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-2);
+  font-family: var(--ui-sans);
+  font-size: 0.8125rem;
+}
+
+.clearButton:hover {
+  border-color: var(--rust);
+  color: var(--rust);
+}
