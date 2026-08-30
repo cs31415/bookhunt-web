@@ -156,7 +156,27 @@ describe('BookDetailPage', () => {
     await screen.findByRole('heading', { name: 'Night Watch' });
 
     expect(await screen.findByText('Your rating')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Quotes, page references/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Your review of this book/)).toBeInTheDocument();
+  });
+
+  /*
+   * The hero used to carry a second, interactive rating beside the catalog's,
+   * so a reader saw two of their own scores on one screen and could not tell
+   * which counted (LOS-349). The notes section keeps it, since that is where
+   * they are already saying what they thought.
+   */
+  it('gives a reader one place to rate, not two', async () => {
+    // The fixture has no catalog rating, so this one supplies it: the point is
+    // that the two ratings no longer share a screen, which needs both present.
+    mockedGetBook.mockResolvedValue({ book: { ...rawBook, rating: 4.2 }, inLibrary: false });
+    renderBookDetailPage('night-watch');
+    await screen.findByRole('heading', { name: 'Night Watch' });
+    await screen.findByText('Your rating');
+
+    // The catalog's figure stays, and stays labelled as the catalog's.
+    expect(screen.getByText('Average rating')).toBeInTheDocument();
+    expect(screen.getByText('4.2')).toBeInTheDocument();
+    expect(screen.queryByText('My rating')).not.toBeInTheDocument();
   });
 
   it('navigates to search with the theme flag when a theme pill is clicked', async () => {
@@ -230,7 +250,7 @@ describe('BookDetailPage', () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });
 
-    const textarea = await screen.findByPlaceholderText(/Quotes, page references/);
+    const textarea = await screen.findByPlaceholderText(/Your review of this book/);
     fireEvent.change(textarea, { target: { value: 'A note' } });
 
     await vi.advanceTimersByTimeAsync(600);
