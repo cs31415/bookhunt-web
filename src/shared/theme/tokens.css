@@ -79,6 +79,12 @@
    * no one ratio to scale by -- but the trim itself stays one line.
    */
   --prose-trim: 0.0625rem;
+  /*
+   * The numeric rating beside the stars. Shown where there is room to spare,
+   * hidden on a phone, where the stars alone carry it and the digits are the
+   * same fact twice in a column a few characters wide.
+   */
+  --rating-value-display: inline;
 
   --r-sm: 4px;
   --r-md: 8px;
@@ -153,6 +159,19 @@
 @media (max-width: 640px) and (orientation: portrait) {
   :root {
     --book-grid-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/*
+ * The phone tier, mirroring the root rule in index.css: the shorter side, so
+ * the answer holds through a rotation. A media query cannot be given a name in
+ * plain CSS, which is why the condition is spelled out twice; keep the two in
+ * step.
+ */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 640px),
+  (pointer: coarse) and (orientation: landscape) and (max-height: 640px) {
+  :root {
+    --rating-value-display: none;
   }
 }
 

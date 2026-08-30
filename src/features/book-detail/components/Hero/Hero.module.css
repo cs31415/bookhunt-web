@@ -124,6 +124,14 @@
 }
 
 .ratingValue {
+  display: var(--rating-value-display);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* Same look, but it stays on a phone: it asks for something rather than
+   repeating what the stars already show. */
+.ratePrompt {
   font-size: 0.8125rem;
   color: var(--muted);
 }
