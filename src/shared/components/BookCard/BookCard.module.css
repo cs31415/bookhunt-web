@@ -108,7 +108,7 @@
 
 .meta {
   font-family: var(--prose);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem - var(--prose-trim));
   color: var(--muted);
   /* Author names run long too, and a surname is as unbreakable as a title word. */
   overflow-wrap: break-word;

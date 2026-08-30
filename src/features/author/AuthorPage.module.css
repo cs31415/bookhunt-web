@@ -44,7 +44,7 @@
 }
 
 .bio {
-  font-size: 1.0625rem;
+  font-size: calc(1.0625rem - var(--prose-trim));
   line-height: 1.65;
   color: var(--ink);
   font-family: var(--prose);

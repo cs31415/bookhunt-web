@@ -73,6 +73,12 @@
   --type-wordmark: var(--type-title);
   /* Nav links, the greeting and the sign-in: one size, three places. */
   --type-nav: 0.875rem;
+  /*
+   * Taken off every size set in the prose face. Times runs large beside Jost
+   * at the same nominal size, and the ten prose rules all differ, so there is
+   * no one ratio to scale by -- but the trim itself stays one line.
+   */
+  --prose-trim: 0.0625rem;
 
   --r-sm: 4px;
   --r-md: 8px;
