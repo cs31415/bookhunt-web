@@ -21,7 +21,8 @@ import { useCsvImportSession } from './hooks/useCsvImportSession';
 import { removeEntry } from '../../api/library/remove-entry';
 import { removeEntries, MAX_REMOVE_PER_REQUEST } from '../../api/library/remove-entries';
 import { exportLibrary } from '../../api/library/export-library';
-import { downloadJson, exportFilename } from '../../shared/lib/download-json';
+import { downloadBlob, exportFilename } from '../../shared/lib/download-json';
+import { buildExportZip } from './lib/export-zip';
 import { ApiError } from '../../api/client';
 import { toast } from '../../shared/toast/toast-store';
 import { filterEntries, sortByShelf, asFormat } from './lib/breakdowns';
@@ -180,10 +181,10 @@ export function LibraryPage() {
    * one response -- the API walks it server-side -- so there is no progress to
    * report, only a disabled button while it is in flight.
    */
-  async function exportJson() {
+  async function exportZip() {
     setExporting(true);
     try {
-      downloadJson(exportFilename(), await exportLibrary());
+      downloadBlob(exportFilename(), buildExportZip(await exportLibrary()));
     } catch (err) {
       // The rate limit is the one failure worth telling apart: it says to wait
       // rather than that something is broken.
@@ -324,7 +325,7 @@ export function LibraryPage() {
               <button
                 type="button"
                 className={styles.importButton}
-                onClick={exportJson}
+                onClick={exportZip}
                 disabled={exporting}
               >
                 {exporting ? 'Exporting…' : 'Export'}

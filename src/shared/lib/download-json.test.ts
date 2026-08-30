@@ -4,7 +4,7 @@ import { downloadJson, exportFilename } from './download-json';
 describe('exportFilename', () => {
   it('dates the file, so several backups can be told apart', () => {
     expect(exportFilename(new Date('2026-08-21T13:45:00Z'))).toBe(
-      'bookhunt-library-2026-08-21.json',
+      'bookhunt-library-2026-08-21.zip',
     );
   });
 });

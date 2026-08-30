@@ -11,6 +11,12 @@ export interface ExportedBook {
    * word (LOS-302).
    */
   status: string;
+  /**
+   * One word -- ebook, audiobook or physical -- rather than the two flags the
+   * shelf stores, because one word is what the CSV importer reads back
+   * (LOS-347).
+   */
+  format: 'ebook' | 'audiobook' | 'physical';
 }
 
 export interface LibraryExport {
