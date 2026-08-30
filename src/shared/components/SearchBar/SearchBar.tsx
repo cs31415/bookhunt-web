@@ -44,11 +44,22 @@ export function SearchBar({
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
+  /**
+   * Nothing to search for. Whitespace counts as nothing: a box holding two
+   * spaces is an empty box, not a search for spaces (LOS-356).
+   */
+  const empty = value.trim() === '';
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // In people mode Enter picks a reader; submitting would run a book search
     // for a string beginning with @, which is never what was meant.
     if (peopleMode) return;
+    // An empty search used to open the results page for nothing at all. Guarded
+    // here rather than in each caller, because this one function serves the
+    // button and the return key, and every search box in the app is this
+    // component.
+    if (empty) return;
     onSubmit?.(value);
   }
 
@@ -104,7 +115,11 @@ export function SearchBar({
         enterKeyHint="search"
       />
       {big && (
-        <button type="submit" className={styles.submit}>
+        // Disabled while there is nothing to search: a button that does nothing
+        // when pressed is worse than one that shows it will do nothing. The
+        // guard above is still the authority -- a form submits on the return key
+        // whatever the button says, and on a narrow screen the button is hidden.
+        <button type="submit" className={styles.submit} disabled={empty}>
           Search
         </button>
       )}

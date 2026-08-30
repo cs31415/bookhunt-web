@@ -31,6 +31,70 @@ describe('SearchBar', () => {
     expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
   });
 
+  /*
+   * An empty search used to open the results page for nothing at all (LOS-356).
+   * Guarded in the component rather than in each caller, since this one form
+   * serves the button and the return key, and every search box is a SearchBar.
+   */
+  describe('an empty box', () => {
+    it('does nothing on Enter', () => {
+      const onSubmit = vi.fn();
+      render(<SearchBar value="" onChange={() => {}} onSubmit={onSubmit} big />);
+
+      fireEvent.submit(screen.getByLabelText('Search'));
+
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    // A box holding two spaces is an empty box, not a search for spaces.
+    it('treats whitespace as empty', () => {
+      const onSubmit = vi.fn();
+      render(<SearchBar value="   " onChange={() => {}} onSubmit={onSubmit} big />);
+
+      fireEvent.submit(screen.getByLabelText('Search'));
+
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    // Shown, not discovered by pressing it.
+    it('disables the button', () => {
+      render(<SearchBar value="" onChange={() => {}} onSubmit={() => {}} big />);
+
+      expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled();
+    });
+
+    it('offers the button again as soon as there is something to search', () => {
+      render(<SearchBar value="d" onChange={() => {}} onSubmit={() => {}} big />);
+
+      expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled();
+    });
+
+    /*
+     * The guard is the authority, not the button. On a narrow screen the button
+     * is hidden and the return key is the only way to submit, so a disabled
+     * button alone would leave the empty search running there.
+     */
+    it('does nothing on Enter even where the button is not shown', () => {
+      const onSubmit = vi.fn();
+      render(<SearchBar value="" onChange={() => {}} onSubmit={onSubmit} />);
+
+      fireEvent.submit(screen.getByLabelText('Search'));
+
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('still submits a real query', () => {
+      const onSubmit = vi.fn();
+      render(<SearchBar value="  dune  " onChange={() => {}} onSubmit={onSubmit} big />);
+
+      fireEvent.submit(screen.getByLabelText('Search'));
+
+      // Passed as typed: trimming is this component's test for emptiness, not a
+      // change it makes to the reader's query.
+      expect(onSubmit).toHaveBeenCalledWith('  dune  ');
+    });
+  });
+
   it('omits the button entirely in the compact variant', () => {
     render(<SearchBar value="" onChange={() => {}} />);
 
