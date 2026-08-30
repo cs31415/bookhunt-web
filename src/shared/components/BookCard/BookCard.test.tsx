@@ -54,6 +54,21 @@ describe('BookCard subject pills (LOS-304)', () => {
     expect(screen.queryByRole('button', { name: 'Science' })).not.toBeInTheDocument();
   });
 
+  /*
+   * The cursor and the hover lift ride on the shared pill's `interactive` class
+   * (LOS-343), which the clickable branch adds and the label branch does not.
+   * This used to be a `button.subject` selector in the stylesheet; now that the
+   * choice is made in the markup, it is worth holding still -- a label that
+   * lifts under the pointer offers something it will not do.
+   */
+  it('marks only a clickable pill as interactive', () => {
+    const { rerender } = render(<BookCard book={book} subjects={['Science']} />);
+    expect(screen.getByText('Science').className).not.toMatch(/interactive/);
+
+    rerender(<BookCard book={book} subjects={['Science']} onSubjectClick={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Science' }).className).toMatch(/interactive/);
+  });
+
   // A button nested in a button is invalid HTML, and browsers disagree about
   // what to do with the click — the reason `action` and `overlay` are siblings.
   it('keeps the pills out of the card button', () => {

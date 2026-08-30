@@ -4,6 +4,7 @@ import type { LibraryStatus } from '../../types/library-status';
 import { Cover } from '../Cover/Cover';
 import { Stars } from '../Stars/Stars';
 import { CoverFold } from '../CoverFold/CoverFold';
+import pillStyles from '../../styles/pill.module.css';
 import styles from './BookCard.module.css';
 
 export interface BookCardProps {
@@ -106,7 +107,7 @@ export function BookCard({
               <button
                 key={subject}
                 type="button"
-                className={styles.subject}
+                className={`${styles.subject} ${pillStyles.interactive}`}
                 onClick={() => onSubjectClick(subject)}
               >
                 {subject}

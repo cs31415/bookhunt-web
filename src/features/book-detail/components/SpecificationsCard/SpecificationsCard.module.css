@@ -36,22 +36,7 @@
 }
 
 .pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 11px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--paper-2);
-  color: var(--ink-2);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.14s ease;
-}
-
-.pill:hover {
-  border-color: var(--rust);
-  color: var(--rust);
+  composes: pill interactive from '../../../../shared/styles/pill.module.css';
 }
 
 .mono {
