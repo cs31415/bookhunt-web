@@ -1,11 +1,8 @@
-import { useEffect, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
+import { useDismissable } from '../../lib/use-dismissable';
 import styles from './Modal.module.css';
-
-// `select` is included so per-row candidate dropdowns participate in the trap.
-const FOCUSABLE =
-  'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export interface ModalProps {
   /** Small label above the title. */
@@ -18,45 +15,15 @@ export interface ModalProps {
 }
 
 /**
- * The app's only modal primitive. There's no dialog library here, so portal,
- * dismissal, and focus handling are all local; the dismissal effect mirrors
- * ActionMenu's.
+ * The app's only modal primitive. There's no dialog library here, so the portal
+ * is local and the dismissal rules come from useDismissable, which the filter
+ * drawer shares -- the two are the same problem wearing different clothes.
  */
 export function Modal({ eyebrow, title, onClose, children, footer }: ModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
-  // Return focus to whatever opened the modal.
-  useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null;
-    cardRef.current?.focus();
-    return () => opener?.focus?.();
-  }, []);
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        onClose();
-        return;
-      }
-      if (event.key !== 'Tab' || !cardRef.current) return;
-
-      const items = Array.from(cardRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
-      if (items.length === 0) return;
-      const first = items[0];
-      const last = items[items.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  useDismissable(cardRef, onClose);
 
   return createPortal(
     <div className={styles.backdrop} onClick={onClose}>

@@ -9,8 +9,8 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 232px 1fr;
-  gap: 38px;
+  grid-template-columns: var(--rail-width) 1fr;
+  gap: var(--layout-gap);
   align-items: start;
 }
 

@@ -128,6 +128,15 @@
    * phone fitting three ~110px columns of 20px text, about five characters to a
    * line, with long words breaking mid-syllable.
    */
+  /*
+   * The filter rail's column. It was these same two numbers in
+   * LibraryPage.module.css and again in SearchPage.module.css -- the library
+   * one carrying a comment saying the search page had to match. Now it does,
+   * because there is only one of them.
+   */
+  --rail-width: 232px;
+  --layout-gap: 38px;
+
   --book-grid-min: 6.75rem;
   --book-grid-gap: 26px;
   /*
