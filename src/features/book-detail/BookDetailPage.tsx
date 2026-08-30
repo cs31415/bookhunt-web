@@ -233,7 +233,6 @@ export function BookDetailPage() {
         onToggleLibrary={handleToggleLibrary}
         onRemoveFromLibrary={() => setConfirmingRemove(true)}
         onStatusChange={handleStatusChange}
-        onRate={handleRate}
         onToggleFavorite={handleToggleFavorite}
         onOpenAuthor={() => navigate(`/authors/${book.authorSlug}`)}
         onThemeClick={(theme) => navigate(`/search?q=${encodeURIComponent(theme)}&theme=true`)}

@@ -39,7 +39,7 @@ export function NotesTab({ userRating, initialNotes, inLibrary, onRatingChange, 
         className={styles.textarea}
         value={notes}
         onChange={(event) => handleChange(event.target.value)}
-        placeholder="Quotes, page references, what it changed your mind about…"
+        placeholder="Your review of this book. The good, the bad, the ugly…"
       />
       {!inLibrary && (
         <p className={styles.hint}>

@@ -21,7 +21,6 @@ export interface HeroProps {
   /** Offered as its own button once the book is in the library. */
   onRemoveFromLibrary?: () => void;
   onStatusChange: (status: LibraryStatus) => void;
-  onRate: (rating: number) => void;
   onToggleFavorite: (next: boolean) => void;
   onOpenAuthor: () => void;
   onThemeClick: (theme: string) => void;
@@ -38,7 +37,6 @@ export function Hero({
   onToggleLibrary,
   onRemoveFromLibrary,
   onStatusChange,
-  onRate,
   onToggleFavorite,
   onOpenAuthor,
   onThemeClick,
@@ -139,8 +137,15 @@ export function Hero({
           </button>
         </div>
 
-        <div className={styles.ratings}>
-          {book.rating != null && (
+        {/*
+          The catalog's figure alone. A reader's own score used to sit beside it
+          here as well as under My notes, which showed one person two of their
+          own ratings on one screen and left it unclear which one counted
+          (LOS-349). The notes section is the one that keeps it, since that is
+          where a reader is already saying what they thought.
+        */}
+        {book.rating != null && (
+          <div className={styles.ratings}>
             <div className={styles.ratingGroup}>
               <span className={styles.eyebrow}>Average rating</span>
               <div className={styles.ratingRow}>
@@ -148,19 +153,8 @@ export function Hero({
                 <span className={styles.ratingValue}>{book.rating.toFixed(1)}</span>
               </div>
             </div>
-          )}
-          <div className={styles.ratingGroup}>
-            <span className={`${styles.eyebrow} ${styles.eyebrowRust}`}>My rating</span>
-            <div className={styles.ratingRow}>
-              <Stars value={libraryEntry?.userRating ?? 0} mode="interactive" onChange={onRate} />
-              {libraryEntry?.userRating ? (
-                <span className={styles.ratingValue}>{libraryEntry.userRating.toFixed(1)}</span>
-              ) : (
-                <span className={styles.ratePrompt}>Rate it</span>
-              )}
-            </div>
           </div>
-        </div>
+        )}
 
         {meta && <div className={styles.meta}>{meta}</div>}
         {/*
