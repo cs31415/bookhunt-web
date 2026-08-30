@@ -84,6 +84,27 @@
   border-color: var(--rust);
 }
 
+/*
+ * The wrapper draws the edge, so the wrapper lifts. The bare input inside it
+ * gives up the global field lift, which would otherwise draw a square shadow
+ * inside this rounded one (LOS-351).
+ */
+.prefixedInput:hover {
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .prefixed:hover {
+    box-shadow: var(--shadow-hover);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .prefixed {
+    transition: box-shadow 0.14s ease;
+  }
+}
+
 .prefix {
   padding: 10px 0 10px 12px;
   color: var(--muted);

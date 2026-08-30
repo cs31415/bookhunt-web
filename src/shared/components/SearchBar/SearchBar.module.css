@@ -15,6 +15,27 @@
   box-shadow: var(--shadow-1);
 }
 
+/*
+ * The wrapper draws the edge, so the wrapper lifts. The bare input inside it
+ * gives up the global field lift, which would otherwise draw a square shadow
+ * inside this rounded one (LOS-351).
+ */
+.input:hover {
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .wrap:hover {
+    box-shadow: var(--shadow-hover);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wrap {
+    transition: box-shadow 0.14s ease;
+  }
+}
+
 .icon {
   width: 15px;
   height: 15px;
