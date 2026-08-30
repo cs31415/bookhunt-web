@@ -104,6 +104,13 @@ select {
  * A box you can type in says so under the pointer (LOS-343). Guarded on
  * `hover: hover` because a touch screen holds :hover on the last thing tapped,
  * which would leave one field raised until another was touched.
+ *
+ * This is the right rule only for a field that draws its own edge. Where a
+ * wrapper carries the border and the input inside it is bare -- the search bar,
+ * the two @-prefixed handle fields, the related-book picker -- the input is a
+ * square, edgeless box sitting inside a rounded one, and a shadow on it reads as
+ * a rectangle drawn inside the control (LOS-351). Those four opt out in their
+ * own stylesheets, where the wrapper takes the lift instead, and each says so.
  */
 @media (hover: hover) {
   input:hover,
