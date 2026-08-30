@@ -18,42 +18,46 @@ html {
   font-size: 16px;
 }
 
-/* Phone: +19%. Was 20px, which read a shade large held in the hand. */
-@media (max-width: 640px) {
+/*
+ * Below, the root is keyed on the device rather than on the viewport width.
+ *
+ * Width alone cannot tell a device from its rotation: an iPhone is 393px wide
+ * upright and 852px on its side, so a width bucket made the same phone read
+ * larger held sideways -- same eyes, same distance, less vertical room. An iPad
+ * jumped 22px to 30px on rotation for the same reason.
+ *
+ * So each tier tests the device's SHORTER side: width when upright, height when
+ * on its side. That is the same physical edge either way up, which is what makes
+ * these sizes hold still through a rotation. Every tier is gated on
+ * pointer: coarse, so a desktop window is 16px whatever its shape -- resizing a
+ * window should no more change the type than turning a tablet over does.
+ *
+ * The grid rules in tokens.css do still key on orientation, and should: how many
+ * covers fit across is a question about available width, which rotation
+ * genuinely changes. How large the text should be is not.
+ */
+
+/* Phone, either way up: +19%. Short side up to 640px. */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 640px),
+  (pointer: coarse) and (orientation: landscape) and (max-height: 640px) {
   html {
     font-size: 19px;
   }
 }
 
 /*
- * Tablet portrait: +37%. Was 24px, two steps too large on an upright iPad.
+ * Tablet, either way up: +37%. Short side 641px to 1024px, which spans every
+ * iPad from the mini's 744 to the 12.9-inch's 1024.
  *
- * Plain width, which also catches a phone held in landscape and a small desktop
- * window. Accepted: with only type scaling, being slightly large somewhere costs
- * far less than being too small on the device this was asked about.
- */
-@media (min-width: 641px) and (max-width: 1024px) {
-  html {
-    font-size: 22px;
-  }
-}
-
-/*
- * Tablet landscape: a further 25% on top of that, so 30px.
- *
- * Its own rule rather than sharing the one above, because a landscape iPad is
- * further from the reader's eyes than the same device held upright, and 1366px
- * of width can carry the larger type without the layout suffering for it.
- *
- * pointer: coarse is doing the real work here. These widths — 1180px on an Air,
- * 1366px on the 12.9-inch — overlap ordinary laptops, so width alone would set
- * 30px type for most desktop users. A tablet's primary input is touch, a
- * laptop's is a mouse or trackpad; same test the pills use to decide whether a
+ * pointer: coarse is doing real work here: a laptop window of the same shape
+ * lands in the same band. A tablet's primary input is touch, a laptop's is a
+ * mouse or trackpad -- the same test the pills use to decide whether a
  * hover-only control can exist at all.
  */
-@media (min-width: 1025px) and (max-width: 1366px) and (pointer: coarse) {
+@media (pointer: coarse) and (orientation: portrait) and (min-width: 641px) and (max-width: 1024px),
+  (pointer: coarse) and (orientation: landscape) and (min-height: 641px) and (max-height: 1024px) {
   html {
-    font-size: 30px;
+    font-size: 22px;
   }
 }
 
