@@ -15,6 +15,28 @@
   color: var(--ink);
 }
 
+/* The same rail-and-results grid as the library and search pages, off the same
+   tokens, so a shelf filters the same way wherever it is. */
+.layout {
+  display: grid;
+  grid-template-columns: var(--rail-width) 1fr;
+  gap: var(--layout-gap);
+  align-items: start;
+  margin-top: 18px;
+}
+
+.results {
+  min-width: 0;
+}
+
+/* One column below the rail's breakpoint, so the Filters trigger sits above
+   the shelf rather than inside a 232px track. */
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .meta {
   font-size: var(--type-heading);
   color: var(--muted);

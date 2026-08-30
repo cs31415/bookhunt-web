@@ -47,11 +47,19 @@ export interface ShelfParams {
   /** What the shelf is actually filtered by — the committed query. */
   appliedQuery: string;
   subject: string;
+  mood: string;
+  theme: string;
   onSelectTab: (tab: ProfileTab) => void;
   onSelectSub: (sub: FavoritesSub) => void;
   onPage: (page: number) => void;
   onQueryChange: (value: string) => void;
   onSelectSubject: (subject: string) => void;
+  onSelectMood: (mood: string) => void;
+  onSelectTheme: (theme: string) => void;
+  /** Drops every facet at once, leaving the tab and the search box alone. */
+  onClearFilters: () => void;
+  /** How many facets are set, for the collapsed rail's trigger. */
+  activeFilterCount: number;
 }
 
 /**
@@ -70,6 +78,8 @@ export function useShelfParams(): ShelfParams {
   const sub = asSub(searchParams.get('sub'));
   const urlQuery = searchParams.get('q') ?? '';
   const subject = searchParams.get('subject') ?? '';
+  const mood = searchParams.get('mood') ?? '';
+  const theme = searchParams.get('theme') ?? '';
 
   // The box is driven by local state, not by the URL: setSearchParams lands a
   // render later, so feeding it straight from the URL makes every keystroke
@@ -106,11 +116,21 @@ export function useShelfParams(): ShelfParams {
    * Pushes where typing replaces: clicking a pill is one deliberate act, and
    * Back undoing it is exactly what a reader expects. Clicking the same pill
    * again clears it, the way the library's category pills already behave.
+   *
+   * One function for all three facets rather than three copies of it: they
+   * differ only in which parameter they write.
    */
-  function onSelectSubject(next: string) {
+  function selectFacet(name: string, current: string, next: string) {
     const params = new URLSearchParams(searchParams);
-    if (next && next !== subject) params.set('subject', next);
-    else params.delete('subject');
+    if (next && next !== current) params.set(name, next);
+    else params.delete(name);
+    setSearchParams(params);
+    setPage(1);
+  }
+
+  function onClearFilters() {
+    const params = new URLSearchParams(searchParams);
+    for (const name of ['subject', 'mood', 'theme']) params.delete(name);
     setSearchParams(params);
     setPage(1);
   }
@@ -141,10 +161,16 @@ export function useShelfParams(): ShelfParams {
     q,
     appliedQuery: urlQuery,
     subject,
+    mood,
+    theme,
     onSelectTab,
     onSelectSub,
     onPage: setPage,
     onQueryChange: setQ,
-    onSelectSubject,
+    onSelectSubject: (next: string) => selectFacet('subject', subject, next),
+    onSelectMood: (next: string) => selectFacet('mood', mood, next),
+    onSelectTheme: (next: string) => selectFacet('theme', theme, next),
+    onClearFilters,
+    activeFilterCount: [subject, mood, theme].filter(Boolean).length,
   };
 }

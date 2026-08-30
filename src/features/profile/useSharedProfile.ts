@@ -19,7 +19,7 @@ export function useSharedProfile(
   tab: ProfileTab | null,
   page: number,
   pageSize: number,
-  filters: ProfileFilters = { q: '', subject: '' },
+  filters: ProfileFilters = { q: '', subject: '', mood: '', theme: '' },
 ): SharedProfile {
   return useShelf('token', token, tab, page, pageSize, filters);
 }

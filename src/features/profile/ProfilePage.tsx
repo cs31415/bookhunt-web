@@ -15,8 +15,12 @@ import { useAuth } from '../auth/AuthContext';
 import { updateMe } from '../../api/users/update-me';
 import { createShareLink, deleteShareLink, getShareLink } from '../../api/users/share-link';
 import { useLibraryData } from '../library/hooks/useLibraryData';
+import { topCategories, topMoods, topThemes } from '../library/lib/breakdowns';
 import { useEntryFlags } from '../library/hooks/useEntryFlags';
 import { useVisitorProfile } from './useProfile';
+import { useShelfFacets } from './useShelfFacets';
+import { ProfileFacets } from './components/ProfileFacets/ProfileFacets';
+import { FilterRail } from '../../shared/components/FilterRail/FilterRail';
 import type { ProfileTab } from './useProfile';
 import type { LibraryEntry } from '../../normalize/library';
 import { AuthorsTab } from './AuthorsTab';
@@ -61,10 +65,18 @@ export interface ViewProps extends ShelfParams {
  * and a whole-value match for the category, so "Fiction" does not pull in
  * "Science Fiction".
  */
-function matchesFilters(entry: LibraryEntry, query: string, subject: string): boolean {
+function matchesFilters(
+  entry: LibraryEntry,
+  query: string,
+  subject: string,
+  mood: string,
+  theme: string,
+): boolean {
   if (subject && !entry.subjects.some((s) => s.toLowerCase() === subject.toLowerCase())) {
     return false;
   }
+  if (mood && !entry.moods.some((m) => m.toLowerCase() === mood.toLowerCase())) return false;
+  if (theme && !entry.themes.some((t) => t.toLowerCase() === theme.toLowerCase())) return false;
   if (!query) return true;
   const needle = query.toLowerCase();
   return (
@@ -141,6 +153,12 @@ function VisitorProfileView({
   appliedQuery,
   subject,
   onSelectSubject,
+  mood,
+  onSelectMood,
+  theme,
+  onSelectTheme,
+  onClearFilters,
+  activeFilterCount,
 }: ViewProps) {
   const { profile, entries, total, loading, searching, notFound, error } = useVisitorProfile(
     handle,
@@ -151,8 +169,10 @@ function VisitorProfileView({
     PAGE_SIZE,
     // Filtered by the server, not in the browser: a visitor holds one page of
     // 24, and searching 24 of 349 rows is not searching the shelf.
-    { q: appliedQuery, subject },
+    { q: appliedQuery, subject, mood, theme },
   );
+
+  const facets = useShelfFacets('handle', handle);
 
   if (loading) return <Loader />;
 
@@ -182,22 +202,37 @@ function VisitorProfileView({
       {showsAuthors(tab, sub) ? (
         <AuthorsTab handle={handle} owner={false} />
       ) : (
-        <>
-          <ShelfFilters
-            q={q}
-            onQueryChange={onQueryChange}
-            subject={subject}
-            onClearSubject={() => onSelectSubject('')}
-            matches={total}
-            filtered={Boolean(appliedQuery || subject)}
-          />
-          {/* Dimmed rather than replaced: the previous answer stays readable,
-              and the search box keeps focus because nothing unmounts. */}
-          <div className={searching ? styles.searching : undefined}>
-            <Grid entries={entries} navigate={navigate} onSelectSubject={onSelectSubject} />
+        <div className={styles.layout}>
+          <FilterRail label="Shelf filters" activeCount={activeFilterCount}>
+            <ProfileFacets
+              facets={facets}
+              subject={subject}
+              mood={mood}
+              theme={theme}
+              onSelectSubject={onSelectSubject}
+              onSelectMood={onSelectMood}
+              onSelectTheme={onSelectTheme}
+              onClearFilters={onClearFilters}
+            />
+          </FilterRail>
+
+          <div className={styles.results}>
+            <ShelfFilters
+              q={q}
+              onQueryChange={onQueryChange}
+              subject={subject}
+              onClearSubject={() => onSelectSubject('')}
+              matches={total}
+              filtered={Boolean(appliedQuery || subject || mood || theme)}
+            />
+            {/* Dimmed rather than replaced: the previous answer stays readable,
+                and the search box keeps focus because nothing unmounts. */}
+            <div className={searching ? styles.searching : undefined}>
+              <Grid entries={entries} navigate={navigate} onSelectSubject={onSelectSubject} />
+            </div>
+            <Pagination page={page} pageCount={Math.ceil(total / PAGE_SIZE)} onChange={onPage} />
           </div>
-          <Pagination page={page} pageCount={Math.ceil(total / PAGE_SIZE)} onChange={onPage} />
-        </>
+        </div>
       )}
     </div>
   );
@@ -216,6 +251,12 @@ function OwnerProfile({
   onQueryChange,
   subject,
   onSelectSubject,
+  mood,
+  onSelectMood,
+  theme,
+  onSelectTheme,
+  onClearFilters,
+  activeFilterCount,
 }: ViewProps) {
   const { user } = useAuth();
   const { entries, total, loading } = useLibraryData();
@@ -227,6 +268,25 @@ function OwnerProfile({
 
   // What the server last said, as the ticks would be without the staging.
   const saved = useMemo(() => flags.apply(entries), [entries, flags]);
+
+  /*
+   * Derived, not fetched. useLibraryData holds every entry, so the values are
+   * already here -- and they are the same helpers the library rail uses, so
+   * the owner's two shelves offer the same pills. A visitor cannot do this,
+   * which is why useShelfFacets exists for that side.
+   *
+   * From `saved` rather than the filtered list: a rail that dropped its own
+   * options as you used them would strand you on a filter you could not undo.
+   */
+  const facets = useMemo(
+    () => ({
+      subject: topCategories(saved),
+      mood: topMoods(saved),
+      theme: topThemes(saved),
+      status: [],
+    }),
+    [saved],
+  );
 
   // Filtered here rather than by the server: useLibraryData already holds the
   // whole shelf, which is what the owner's /library page works from too.
@@ -250,8 +310,8 @@ function OwnerProfile({
     // 300ms debounce only made the profile slower than /library at the same job
     // (LOS-310). The debounced URL write stays -- that is for linking, not for
     // filtering.
-    return byTab.filter((entry) => matchesFilters(entry, q, subject));
-  }, [saved, staged, tab, q, subject]);
+    return byTab.filter((entry) => matchesFilters(entry, q, subject, mood, theme));
+  }, [saved, staged, tab, q, subject, mood, theme]);
 
   // Compared against, so a tick moved back to what the shelf says stops
   // counting as a change rather than being saved as a no-op.
@@ -301,7 +361,21 @@ function OwnerProfile({
       {showsAuthors(tab, sub) ? (
         <AuthorsTab handle={handle} owner />
       ) : (
-        <>
+        <div className={styles.layout}>
+          <FilterRail label="Shelf filters" activeCount={activeFilterCount}>
+            <ProfileFacets
+              facets={facets}
+              subject={subject}
+              mood={mood}
+              theme={theme}
+              onSelectSubject={onSelectSubject}
+              onSelectMood={onSelectMood}
+              onSelectTheme={onSelectTheme}
+              onClearFilters={onClearFilters}
+            />
+          </FilterRail>
+
+          <div className={styles.results}>
           {/* Show all reaches the whole tab rather than the page on screen:
               paging is not a filter, and 24 of 349 is not what "all" means. */}
           <ShelfFilters
@@ -310,7 +384,7 @@ function OwnerProfile({
             subject={subject}
             onClearSubject={() => onSelectSubject('')}
             matches={shown.length}
-            filtered={Boolean(q || subject)}
+            filtered={Boolean(q || subject || mood || theme)}
           />
           <VisibilityBar
             publicCount={shown.filter((entry) => !entry.isHidden).length}
@@ -332,7 +406,8 @@ function OwnerProfile({
             pageCount={Math.ceil(shown.length / PAGE_SIZE)}
             onChange={onPage}
           />
-        </>
+          </div>
+        </div>
       )}
 
       {/* Last, not first (LOS-281). It is the state of the page and the link to

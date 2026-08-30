@@ -13,6 +13,9 @@ export interface ProfileFilters {
   q: string;
   /** One category, as clicked on a pill. */
   subject: string;
+  /** One mood, and one theme, filtered server-side like the two above. */
+  mood: string;
+  theme: string;
 }
 
 /** The API filters each tab answers with. */
@@ -83,9 +86,9 @@ export function useShelf(
   tab: ProfileTab | null,
   page: number,
   pageSize: number,
-  filters: ProfileFilters = { q: '', subject: '' },
+  filters: ProfileFilters = { q: '', subject: '', mood: '', theme: '' },
 ): ShelfView {
-  const { q, subject } = filters;
+  const { q, subject, mood, theme } = filters;
   const [header, setHeader] = useState<Header | null>(null);
   const [shelf, setShelf] = useState<Shelf | null>(null);
 
@@ -113,7 +116,7 @@ export function useShelf(
     return () => controller.abort();
   }, [kind, id]);
 
-  const key = `${kind}|${id}|${tab ?? 'none'}|${page}|${pageSize}|${q}|${subject}`;
+  const key = `${kind}|${id}|${tab ?? 'none'}|${page}|${pageSize}|${q}|${subject}|${mood}|${theme}`;
 
   useEffect(() => {
     // A null tab means the section on screen is not a shelf -- favourite
@@ -121,7 +124,7 @@ export function useShelf(
     if (tab === null) return;
 
     const controller = new AbortController();
-    const args = { ...TAB_QUERY[tab], page, limit: pageSize, q, subject };
+    const args = { ...TAB_QUERY[tab], page, limit: pageSize, q, subject, mood, theme };
 
     const request =
       kind === 'handle'
@@ -150,7 +153,7 @@ export function useShelf(
       });
 
     return () => controller.abort();
-  }, [key, kind, id, tab, page, pageSize, q, subject]);
+  }, [key, kind, id, tab, page, pageSize, q, subject, mood, theme]);
 
   // Only the current profile's answer may be shown. Within it, an answer for an
   // earlier query is kept on screen until the newer one lands.

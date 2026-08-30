@@ -22,7 +22,7 @@ export function useVisitorProfile(
   tab: ProfileTab | null,
   page: number,
   pageSize: number,
-  filters: ProfileFilters = { q: '', subject: '' },
+  filters: ProfileFilters = { q: '', subject: '', mood: '', theme: '' },
 ): VisitorProfile {
   return useShelf('handle', handle, tab, page, pageSize, filters);
 }
