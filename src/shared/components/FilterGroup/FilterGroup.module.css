@@ -17,26 +17,22 @@
 }
 
 .pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 11px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--paper-2);
-  color: var(--ink-2);
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.14s ease;
+  composes: pill interactive from '../../styles/pill.module.css';
 }
 
-.pill:hover {
-  border-color: var(--rust);
-  color: var(--rust);
-}
-
-.pill.active {
+/*
+ * The :hover is spelled out rather than left to the resting rule, and needs to
+ * be: the composed hover is `.interactive:hover`, two classes deep like
+ * `.pill.active`, and CSS Modules emits the shared file's rules more than once
+ * when several stylesheets compose from it -- some copies after this one. At
+ * equal specificity the last copy would win and paint rust text on a rust
+ * ground. Three classes deep settles it wherever the copies land.
+ *
+ * The lift itself is not overridden, so an active pill still rises with the
+ * rest; it is only the colour the pointer has nothing left to say with.
+ */
+.pill.active,
+.pill.active:hover {
   background: var(--rust);
   border-color: var(--rust);
   color: #fff;

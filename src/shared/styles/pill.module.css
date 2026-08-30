@@ -1,0 +1,60 @@
+/*
+ * The one pill.
+ *
+ * FilterGroup, SpecificationsCard and ExampleQueryPills each carried their own
+ * copy of this block -- identical but for a `white-space` -- so the hover they
+ * also shared had to be changed in three places, and had begun to drift
+ * (LOS-343). Hero and BookCard compose the same base and override only the
+ * geometry they mean to differ on.
+ *
+ * Composed with CSS Modules' `composes`, which emits this file's rules before
+ * the composing file's, so a site's overrides win at equal specificity.
+ */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/*
+ * Split from the shape, because a pill is not always a control. BookCard renders
+ * a plain span when it has no click handler, and a label that lights up under
+ * the pointer promises something it will not do.
+ */
+.interactive {
+  cursor: pointer;
+}
+
+/*
+ * The lift is guarded on `hover: hover`, not on pointer width. A touch screen
+ * holds :hover on the last thing tapped, so an unguarded shadow would leave the
+ * pill you pressed raised until you pressed another one.
+ */
+@media (hover: hover) {
+  .interactive:hover {
+    border-color: var(--rust);
+    color: var(--rust);
+    box-shadow: var(--shadow-hover);
+  }
+}
+
+/*
+ * Motion is opt-in rather than opt-out, as it is for the filter drawer: a reader
+ * who has asked for less gets the shadow without the fade to it.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .pill {
+    transition:
+      border-color 0.14s ease,
+      color 0.14s ease,
+      background 0.14s ease,
+      box-shadow 0.14s ease;
+  }
+}

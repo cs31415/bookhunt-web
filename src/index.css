@@ -100,6 +100,27 @@ select {
   font-family: var(--field);
 }
 
+/*
+ * A box you can type in says so under the pointer (LOS-343). Guarded on
+ * `hover: hover` because a touch screen holds :hover on the last thing tapped,
+ * which would leave one field raised until another was touched.
+ */
+@media (hover: hover) {
+  input:hover,
+  textarea:hover,
+  select:hover {
+    box-shadow: var(--shadow-hover);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  input,
+  textarea,
+  select {
+    transition: box-shadow 0.14s ease;
+  }
+}
+
 .fade-up {
   animation: fade-up 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }

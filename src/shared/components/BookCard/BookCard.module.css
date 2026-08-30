@@ -157,24 +157,9 @@
 /* Deliberately quieter than the detail page's pill: on a shelf these repeat
    down every card, and at that density they should read as a label first. */
 .subject {
-  display: inline-flex;
-  align-items: center;
+  composes: pill from '../../styles/pill.module.css';
   padding: 1px 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--paper-2);
   color: var(--muted);
   font-size: 0.6875rem;
-  font-weight: 500;
   text-align: left;
-  transition: all 0.14s ease;
-}
-
-button.subject {
-  cursor: pointer;
-}
-
-button.subject:hover {
-  border-color: var(--rust);
-  color: var(--rust);
 }

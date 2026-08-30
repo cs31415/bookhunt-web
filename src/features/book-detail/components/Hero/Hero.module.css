@@ -181,24 +181,15 @@
   margin-top: 10px;
 }
 
+/* Larger and set in the serif: the detail page shows one book, so its subjects
+   can read as prose rather than as the labels a shelf needs. */
 .pill {
-  display: inline-flex;
-  align-items: center;
+  composes: pill interactive from '../../../../shared/styles/pill.module.css';
   padding: 5px 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--paper-2);
-  color: var(--ink-2);
   font-family: var(--serif);
   font-size: 0.8438rem;
+  font-weight: 400;
   text-transform: capitalize;
-  cursor: pointer;
-  transition: all 0.14s ease;
-}
-
-.pill:hover {
-  border-color: var(--rust);
-  color: var(--rust);
 }
 
 .skeletonPill {
