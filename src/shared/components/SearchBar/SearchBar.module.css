@@ -86,8 +86,15 @@
   cursor: pointer;
 }
 
-.submit:hover {
+.submit:hover:not(:disabled) {
   background: var(--rust-deep);
+}
+
+/* Nothing typed yet is the resting state of an empty box, not an error, so it
+   recedes rather than shouting (LOS-356). */
+.submit:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 /*
