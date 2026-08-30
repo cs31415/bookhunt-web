@@ -273,37 +273,66 @@ describe('TopBar mobile menu', () => {
 describe('TopBar theme toggle', () => {
   const themeButton = () => screen.getByRole('button', { name: /^Theme:/ });
 
+  // The stub in test/setup.ts reports a light machine, so 'system' resolves to
+  // light and the button offers the mode the reader is not in.
   it('starts on System, which is what a reader who has never chosen is on', () => {
     renderAt('/');
 
-    expect(themeButton()).toHaveAccessibleName('Theme: System. Switch to Light.');
+    expect(themeButton()).toHaveAccessibleName('Theme: System. Switch to Dark.');
   });
 
   // Under a pointer the icon is already in view, so the tooltip only has to
-  // settle which of the three it is.
+  // name the state that is on -- which the two icons cannot, since 'system' is
+  // a state without one.
   it('names just the current theme in the tooltip', () => {
     renderAt('/');
     expect(themeButton()).toHaveAttribute('title', 'System');
 
     fireEvent.click(themeButton());
-    expect(themeButton()).toHaveAttribute('title', 'Light');
+    expect(themeButton()).toHaveAttribute('title', 'Dark');
   });
 
-  // Three states, so the label has to say which one is on: the icon can show a
-  // sun, but not that a moon and a half-disc are also in the cycle.
-  it('cycles Light, Dark, System and round again', () => {
+  it('switches between Light and Dark, and does not pass through System', () => {
     renderAt('/');
+
+    fireEvent.click(themeButton());
+    expect(themeButton()).toHaveAccessibleName('Theme: Dark. Switch to Light.');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
 
     fireEvent.click(themeButton());
     expect(themeButton()).toHaveAccessibleName('Theme: Light. Switch to Dark.');
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
 
     fireEvent.click(themeButton());
-    expect(themeButton()).toHaveAccessibleName('Theme: Dark. Switch to System.');
-    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    expect(themeButton()).toHaveAccessibleName('Theme: Dark. Switch to Light.');
+  });
 
-    fireEvent.click(themeButton());
-    expect(themeButton()).toHaveAccessibleName('Theme: System. Switch to Light.');
+  // A reader on a dark machine has never chosen either, and the button has to
+  // offer them the other mode rather than the one they are already looking at.
+  it('offers Light to a reader whose machine is dark', () => {
+    const stub = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('dark'),
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+
+    try {
+      renderAt('/');
+
+      expect(themeButton()).toHaveAccessibleName('Theme: System. Switch to Light.');
+
+      fireEvent.click(themeButton());
+      expect(themeButton()).toHaveAccessibleName('Theme: Light. Switch to Dark.');
+      expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    } finally {
+      window.matchMedia = stub;
+    }
   });
 
   it('holds the choice in this browser, so a reload does not undo it', () => {
@@ -311,7 +340,7 @@ describe('TopBar theme toggle', () => {
 
     fireEvent.click(themeButton());
 
-    expect(localStorage.getItem('bookhunt_theme')).toBe('light');
+    expect(localStorage.getItem('bookhunt_theme')).toBe('dark');
   });
 
   it('carries a signed-in reader’s choice to their account', async () => {
@@ -320,7 +349,7 @@ describe('TopBar theme toggle', () => {
 
     fireEvent.click(themeButton());
 
-    await waitFor(() => expect(mockedUpdateMe).toHaveBeenCalledWith({ preferences: { theme: 'light' } }));
+    await waitFor(() => expect(mockedUpdateMe).toHaveBeenCalledWith({ preferences: { theme: 'dark' } }));
   });
 
   it('writes nothing for a reader with no account to write to', () => {
@@ -341,8 +370,8 @@ describe('TopBar theme toggle', () => {
     fireEvent.click(themeButton());
 
     await waitFor(() => expect(mockedUpdateMe).toHaveBeenCalled());
-    expect(themeButton()).toHaveAccessibleName('Theme: Light. Switch to Dark.');
-    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    expect(themeButton()).toHaveAccessibleName('Theme: Dark. Switch to Light.');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
   });
 
   // What carries a choice to a second browser, and what brings it back when a
@@ -359,7 +388,7 @@ describe('TopBar theme toggle', () => {
     );
     renderAt('/');
 
-    await waitFor(() => expect(themeButton()).toHaveAccessibleName('Theme: Dark. Switch to System.'));
+    await waitFor(() => expect(themeButton()).toHaveAccessibleName('Theme: Dark. Switch to Light.'));
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
   });
 

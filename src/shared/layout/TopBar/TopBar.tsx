@@ -2,49 +2,49 @@ import { useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/AuthContext';
 import { useThemeChoice } from '../../theme/ThemeContext';
-import type { ThemeChoice } from '../../theme/theme';
-import { BackArrowIcon, LogoMark, MenuIcon, MoonIcon, SunIcon, SystemThemeIcon, UserIcon } from '../icons';
+import type { ResolvedTheme, ThemeChoice } from '../../theme/theme';
+import { BackArrowIcon, LogoMark, MenuIcon, MoonIcon, SunIcon, UserIcon } from '../icons';
 import { useNavItems } from '../nav-items';
 import { useDismissOnOutside } from '../use-dismiss-on-outside';
 import styles from './TopBar.module.css';
 
 /**
- * Three states, not two. "System" means keep following the machine, which a
- * light/dark switch cannot say -- and collapsing it would freeze a reader to
- * whichever mode their machine happens to be in today.
- *
- * So the button cycles rather than toggles, in the order a reader would reach
- * for: an explicit choice first, the deferral last.
+ * The two modes the button switches between. 'system' is not among them: it is
+ * where a reader who has never chosen starts, not a stop on the way round.
  */
-const THEME_CYCLE: { choice: ThemeChoice; label: string; Icon: typeof SunIcon }[] = [
-  { choice: 'light', label: 'Light', Icon: SunIcon },
-  { choice: 'dark', label: 'Dark', Icon: MoonIcon },
-  { choice: 'system', label: 'System', Icon: SystemThemeIcon },
-];
+const MODES: Record<ResolvedTheme, { label: string; Icon: typeof SunIcon }> = {
+  light: { label: 'Light', Icon: SunIcon },
+  dark: { label: 'Dark', Icon: MoonIcon },
+};
+
+const CHOICE_LABELS: Record<ThemeChoice, string> = {
+  light: 'Light',
+  dark: 'Dark',
+  system: 'System',
+};
 
 function ThemeToggle() {
-  const { choice, setChoice } = useThemeChoice();
+  const { choice, resolved, setChoice } = useThemeChoice();
 
-  const index = Math.max(
-    THEME_CYCLE.findIndex((state) => state.choice === choice),
-    0,
-  );
-  const current = THEME_CYCLE[index];
-  const next = THEME_CYCLE[(index + 1) % THEME_CYCLE.length];
-  const { Icon } = current;
+  // The icon shows where a click takes you, not where you are, so it points at
+  // the mode you are not in. Under 'system' that is read from the resolved
+  // theme: the first click turns the machine's answer into an explicit choice,
+  // and the picture means something from then on.
+  const next = resolved === 'dark' ? 'light' : 'dark';
+  const { Icon, label: nextLabel } = MODES[next];
 
   return (
     <button
       type="button"
       className={styles.themeToggle}
-      // Both halves said aloud: an icon can show which state is on, but not
-      // that there is a third, nor which one a click will bring.
-      aria-label={`Theme: ${current.label}. Switch to ${next.label}.`}
+      // Both halves said aloud, because an inverted icon cannot say which mode
+      // is on -- and under 'system' the state has a name the two icons lack.
+      aria-label={`Theme: ${CHOICE_LABELS[choice]}. Switch to ${nextLabel}.`}
       // The tooltip names only the state that is on. It appears under a
       // pointer, which has the icon in view and the next click a moment away,
       // so the rest is answered faster by trying it than by reading it.
-      title={current.label}
-      onClick={() => setChoice(next.choice)}
+      title={CHOICE_LABELS[choice]}
+      onClick={() => setChoice(next)}
     >
       <Icon className={styles.themeIcon} />
     </button>
