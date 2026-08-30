@@ -1,5 +1,5 @@
 /**
- * Hands the browser a JSON file to save.
+ * Hands the browser a file to save.
  *
  * A Blob and an object URL rather than a `data:` URI: a library of a few
  * hundred books runs to hundreds of kilobytes, and browsers cap how long a URL
@@ -10,10 +10,7 @@
  * Its own function so the page that calls it can be tested without asserting on
  * anchors and object URLs.
  */
-export function downloadJson(filename: string, data: unknown): void {
-  // Indented: the file is something a reader may open and read, not only feed
-  // back to the importer.
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+export function downloadBlob(filename: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
 
   const anchor = document.createElement('a');
@@ -27,7 +24,14 @@ export function downloadJson(filename: string, data: unknown): void {
   URL.revokeObjectURL(url);
 }
 
+/** The JSON case, which is the same thing with the Blob made for you. */
+export function downloadJson(filename: string, data: unknown): void {
+  // Indented: the file is something a reader may open and read, not only feed
+  // back to the importer.
+  downloadBlob(filename, new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+}
+
 /** Dated, so a reader keeping several backups can tell them apart. */
 export function exportFilename(now: Date = new Date()): string {
-  return `bookhunt-library-${now.toISOString().slice(0, 10)}.json`;
+  return `bookhunt-library-${now.toISOString().slice(0, 10)}.zip`;
 }

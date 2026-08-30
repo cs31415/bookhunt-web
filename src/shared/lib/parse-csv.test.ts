@@ -232,6 +232,35 @@ describe('parseCsv', () => {
       expect(warning).toBeNull();
     });
 
+    /*
+     * The stored words, which is what our own export writes. Only "queued"
+     * differs from its label; without it a file BookHunt produced warned on the
+     * way back in, and every New book claimed to be unreadable (LOS-347).
+     */
+    it.each([
+      ['queued', 'queued'],
+      ['reading', 'reading'],
+      ['finished', 'finished'],
+      ['abandoned', 'abandoned'],
+    ])('reads our own exported word %s as %s', (word, status) => {
+      const { rows, warning } = parseCsv(`title,status\nDune,${word}`);
+
+      expect(rows[0].status).toBe(status);
+      expect(warning).toBeNull();
+    });
+
+    // Still narrow past our own two names for a state: a guess at another
+    // service's vocabulary would file books under a status nobody chose.
+    it.each(['read', 'currently-reading', 'did-not-finish', 'to-read'])(
+      'still refuses another service’s word %s',
+      (word) => {
+        const { rows, warning } = parseCsv(`title,status\nDune,${word}`);
+
+        expect(rows[0].status).toBeNull();
+        expect(warning).toContain('Didn’t recognise the status'.replace('’', "'"));
+      },
+    );
+
     it('matches the value regardless of case or surrounding space', () => {
       const { rows } = parseCsv('title,status\nDune,  FINISHED  \nUbik,reading');
 

@@ -7,7 +7,7 @@ import { removeEntry } from '../../api/library/remove-entry';
 import { removeEntries } from '../../api/library/remove-entries';
 import { setEbook } from '../../api/library/set-ebook';
 import { exportLibrary } from '../../api/library/export-library';
-import { downloadJson } from '../../shared/lib/download-json';
+import { downloadBlob } from '../../shared/lib/download-json';
 import { ApiError } from '../../api/client';
 import { ToastHost } from '../../shared/toast/ToastHost';
 import { clearToasts } from '../../shared/toast/toast-store';
@@ -21,7 +21,7 @@ vi.mock('../../api/library/set-ebook');
 vi.mock('../../api/library/export-library');
 vi.mock('../../shared/lib/download-json', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../shared/lib/download-json')>()),
-  downloadJson: vi.fn(),
+  downloadBlob: vi.fn(),
 }));
 
 const mockedGetLibrary = vi.mocked(getLibrary);
@@ -29,7 +29,7 @@ const mockedRemoveEntry = vi.mocked(removeEntry);
 const mockedRemoveEntries = vi.mocked(removeEntries);
 const mockedSetEbook = vi.mocked(setEbook);
 const mockedExport = vi.mocked(exportLibrary);
-const mockedDownload = vi.mocked(downloadJson);
+const mockedDownload = vi.mocked(downloadBlob);
 
 let idSeq = 1;
 
@@ -629,7 +629,7 @@ describe('LibraryPage', () => {
       favorites: { books: [], authors: [], users: [] },
     };
 
-    it('hands the reader the file the API answers with', async () => {
+    it('hands the reader a dated zip', async () => {
       mockedExport.mockResolvedValue(emptyExport);
       mockLibrary([dune], { reading: 1 });
       renderLibrary();
@@ -638,9 +638,12 @@ describe('LibraryPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Export' }));
 
       await waitFor(() => expect(mockedDownload).toHaveBeenCalled());
-      const [filename, data] = mockedDownload.mock.calls[0];
-      expect(filename).toMatch(/^bookhunt-library-\d{4}-\d{2}-\d{2}\.json$/);
-      expect(data).toBe(emptyExport);
+      const [filename, blob] = mockedDownload.mock.calls[0];
+      expect(filename).toMatch(/^bookhunt-library-\d{4}-\d{2}-\d{2}\.zip$/);
+      // What is in it is export-zip's business, and tested there. This only
+      // asks that the page handed over a zip at all.
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.type).toBe('application/zip');
     });
 
     // A library of a few hundred books is not instant, and a second click

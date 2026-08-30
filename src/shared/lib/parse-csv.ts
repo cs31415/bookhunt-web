@@ -126,12 +126,21 @@ function normalizeToken(value: string): string {
  * shelf, and a hand-written vocabulary would drift the first time a label
  * changed. So "New" means queued, not some fifth state.
  *
- * Deliberately narrow: another service's spelling of these ("read",
+ * The stored word is taken as well as the label, which in practice means
+ * "queued" alongside "New" -- the other three spell the same either way. That
+ * is what our own export writes, so without it a file BookHunt produced warns
+ * on the way back in (LOS-347). Not a widening: these are this app's two names
+ * for one state, not another service's vocabulary.
+ *
+ * Still deliberately narrow beyond that: another service's spelling ("read",
  * "currently-reading", "did-not-finish") is not accepted, and lands in the
  * warning below rather than being guessed at.
  */
 const STATUS_BY_LABEL = new Map<string, LibraryStatus>(
-  ALL_LIBRARY_STATUSES.map((status) => [normalizeToken(LIBRARY_STATUS_LABELS[status]), status]),
+  ALL_LIBRARY_STATUSES.flatMap((status) => [
+    [normalizeToken(LIBRARY_STATUS_LABELS[status]), status] as [string, LibraryStatus],
+    [normalizeToken(status), status] as [string, LibraryStatus],
+  ]),
 );
 
 /**
