@@ -1,17 +1,10 @@
 .page {
   padding-top: 12px;
-
-  /*
-   * The rail's width and the gap beside it, as custom properties so the header
-   * can line its search field up with the results column without either file
-   * hardcoding the other's number. Inherited: LibraryHeader renders inside .page.
-   */
-  --rail-width: 232px;
-  --layout-gap: 38px;
 }
 
-/* Same rail-and-results grid as SearchPage.module.css, so filtering your own
-   shelf and filtering search results look like one page. */
+/* --rail-width and --layout-gap are theme tokens, so this grid and the search
+   page's are the same grid rather than two that agree by hand. LibraryHeader
+   reads them too, to line its search field up with the results column. */
 .layout {
   display: grid;
   grid-template-columns: var(--rail-width) 1fr;
