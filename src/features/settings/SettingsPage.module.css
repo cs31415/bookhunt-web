@@ -89,13 +89,18 @@
  * gives up the global field lift, which would otherwise draw a square shadow
  * inside this rounded one (LOS-351).
  */
+.prefixedInput,
 .prefixedInput:hover {
   box-shadow: none;
 }
 
+.prefixed {
+  box-shadow: var(--shadow-hover);
+}
+
 @media (hover: hover) {
   .prefixed:hover {
-    box-shadow: var(--shadow-hover);
+    border-color: var(--muted);
   }
 }
 

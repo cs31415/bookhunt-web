@@ -33,15 +33,27 @@
 }
 
 /*
- * The lift is guarded on `hover: hover`, not on pointer width. A touch screen
- * holds :hover on the last thing tapped, so an unguarded shadow would leave the
- * pill you pressed raised until you pressed another one.
+ * The shadow sits at rest, on every device (LOS-354).
+ *
+ * It used to be the hover response, guarded on `hover: hover` -- which meant a
+ * touch screen, having no hover, never saw it at all, and the thing it was
+ * meant to say (this is a control) went unsaid on the devices where a control
+ * is hardest to spot. Always-on says it everywhere, and safely: what the guard
+ * avoided was :hover sticking to the last thing tapped, and a shadow that never
+ * turns off has no state to stick.
+ */
+.interactive {
+  box-shadow: var(--shadow-hover);
+}
+
+/*
+ * Hover has its own answer now, since the shadow is no longer free to be one:
+ * the pill goes rust, which it already did alongside the shadow.
  */
 @media (hover: hover) {
   .interactive:hover {
     border-color: var(--rust);
     color: var(--rust);
-    box-shadow: var(--shadow-hover);
   }
 }
 

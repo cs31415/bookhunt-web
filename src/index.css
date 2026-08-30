@@ -112,11 +112,22 @@ select {
  * a rectangle drawn inside the control (LOS-351). Those four opt out in their
  * own stylesheets, where the wrapper takes the lift instead, and each says so.
  */
+input,
+textarea,
+select {
+  box-shadow: var(--shadow-hover);
+}
+
+/*
+ * Hover firms the edge rather than adding a shadow, which is now always there
+ * (LOS-354). Deliberately not a movement: a box you are about to click into
+ * should not step aside as the pointer arrives.
+ */
 @media (hover: hover) {
   input:hover,
   textarea:hover,
   select:hover {
-    box-shadow: var(--shadow-hover);
+    border-color: var(--muted);
   }
 }
 
