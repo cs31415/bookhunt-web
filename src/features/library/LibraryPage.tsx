@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
-import { Pagination } from '../../shared/components/Pagination/Pagination';
+import { LoadMore } from '../../shared/components/LoadMore/LoadMore';
 import { ALL_LIBRARY_STATUSES } from '../../shared/types/library-status';
 import type { LibraryStatus } from '../../shared/types/library-status';
 import type { LibraryEntry } from '../../normalize/library';
@@ -56,7 +56,9 @@ export function LibraryPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { entries, total, loading, error, reload } = useLibraryData();
-  const [page, setPage] = useState(1);
+  // How many of the filtered shelf are on screen. Grows rather than moving, so
+  // what you have already scrolled past stays where you left it.
+  const [shownCount, setShownCount] = useState(PAGE_SIZE);
   const [csvOpen, setCsvOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const selection = useLibrarySelection();
@@ -116,12 +118,14 @@ export function LibraryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  // Reset to the first page whenever the active filter changes.
+  // Back to one slice whenever the active filter changes: a new shelf is a new
+  // shelf, and carrying a scrolled-open count into it would open it part-way
+  // down for no reason the reader gave.
   const filterKey = `${status ?? ''}|${category ?? ''}|${mood ?? ''}|${theme ?? ''}|${q}|${favorite}|${format ?? ''}`;
   const [syncedKey, setSyncedKey] = useState(filterKey);
   if (filterKey !== syncedKey) {
     setSyncedKey(filterKey);
-    setPage(1);
+    setShownCount(PAGE_SIZE);
   }
 
   function updateParams(changes: Record<string, string | null>) {
@@ -209,12 +213,10 @@ export function LibraryPage() {
       ),
     [shownEntries, status, category, mood, theme, q, favorite, format],
   );
-  const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
-  // Clamped rather than clipped: removing the last few books on the final page
-  // would otherwise leave `page` past the end and the grid blank, with the only
-  // way back being a filter change.
-  const safePage = Math.min(page, Math.max(pageCount, 1));
-  const pageItems = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  // No clamping needed where a page number needed it: slice past the end
+  // returns what is there, so removing the last few books shortens the shelf
+  // rather than leaving the reader on a page that no longer exists.
+  const pageItems = sorted.slice(0, shownCount);
 
   /**
    * Removes in chunks, because the endpoint caps a request at 20 ids and a
@@ -417,7 +419,11 @@ export function LibraryPage() {
             </div>
           )}
 
-          <Pagination page={safePage} pageCount={pageCount} onChange={setPage} />
+          <LoadMore
+            shown={pageItems.length}
+            total={sorted.length}
+            onMore={() => setShownCount((n) => n + PAGE_SIZE)}
+          />
         </div>
       </div>
       {modals}

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
 import { Pagination } from '../../shared/components/Pagination/Pagination';
+import { LoadMore } from '../../shared/components/LoadMore/LoadMore';
 import { TabBar } from '../../shared/components/TabBar/TabBar';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
 import { useShelfParams, showsAuthors, PAGE_SIZE, TABS, SUB_TABS } from './useShelfParams';
@@ -244,8 +245,8 @@ function OwnerProfile({
   sub,
   onSelectTab,
   onSelectSub,
-  page,
-  onPage,
+  shownCount,
+  onMore,
   navigate,
   q,
   onQueryChange,
@@ -347,7 +348,7 @@ function OwnerProfile({
 
   if (loading) return <Loader />;
 
-  const pageItems = shown.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageItems = shown.slice(0, shownCount);
 
   return (
     <div className={styles.page}>
@@ -401,11 +402,7 @@ function OwnerProfile({
             onSelectSubject={onSelectSubject}
             onToggleShown={(entry, shownNext) => stage([entry], !shownNext)}
           />
-          <Pagination
-            page={page}
-            pageCount={Math.ceil(shown.length / PAGE_SIZE)}
-            onChange={onPage}
-          />
+          <LoadMore shown={pageItems.length} total={shown.length} onMore={onMore} />
           </div>
         </div>
       )}

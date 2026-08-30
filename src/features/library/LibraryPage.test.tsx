@@ -218,14 +218,39 @@ describe('LibraryPage', () => {
     expect(screen.queryByRole('button', { name: /Sapiens/ })).not.toBeInTheDocument();
   });
 
-  it('shows pagination controls when results exceed the page size', async () => {
+  it('offers more when the shelf is longer than one slice', async () => {
     const many = Array.from({ length: 61 }, () => makeRaw({ status: 'queued' }));
     mockLibrary(many, { queued: 61 });
     renderLibrary();
 
     await screen.findByText('Your library');
-    expect(screen.getByRole('navigation', { name: 'Pagination' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Page 2' })).toBeInTheDocument();
+    expect(screen.getByText('60 of 61 books')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Load more' })).toBeInTheDocument();
+  });
+
+  // Grows the slice rather than moving a window over it, so what the reader has
+  // already scrolled past stays where they left it.
+  it('keeps the books already shown when more are asked for', async () => {
+    const many = Array.from({ length: 61 }, () => makeRaw({ status: 'queued' }));
+    mockLibrary(many, { queued: 61 });
+    renderLibrary();
+
+    await screen.findByText('Your library');
+    fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+
+    expect(screen.getByText('All 61 books')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
+  });
+
+  // The count is the whole shelf, not the slice: a reader who cannot see the
+  // grid has only this line to tell them how far through it they are.
+  it('says nothing about slices when the shelf fits in one', async () => {
+    mockLibrary([makeRaw({ status: 'queued' })], { queued: 1 });
+    renderLibrary();
+
+    await screen.findByText('Your library');
+    expect(screen.getByText('All 1 book')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
   });
 
   it('shows the empty state for a library with no books', async () => {
