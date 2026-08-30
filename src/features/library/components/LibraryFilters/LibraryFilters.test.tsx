@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/react';
+import { FilterRail } from '../../../../shared/components/FilterRail/FilterRail';
 import { LibraryFilters } from './LibraryFilters';
 import type { LibraryEntry } from '../../../../normalize/library';
 import type { LibraryStatus } from '../../../../shared/types/library-status';
@@ -38,24 +39,28 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
 function renderRail(entries: LibraryEntry[], props: Partial<Parameters<typeof LibraryFilters>[0]> = {}) {
   const onSelectCategory = vi.fn();
   const onSelectStatus = vi.fn();
+  // Rendered inside the rail, which is how the page composes them: FilterRail
+  // owns the landmark and its label, and these tests scope by that label.
   render(
-    <LibraryFilters
-      entries={entries}
-      status={null}
-      category={null}
-      mood={null}
-      theme={null}
-      favorite={false}
-      format={null}
-      onToggleFavorite={vi.fn()}
-      onSelectFormat={vi.fn()}
-      onSelectStatus={onSelectStatus}
-      onSelectCategory={onSelectCategory}
-      onSelectMood={vi.fn()}
-      onSelectTheme={vi.fn()}
-      onClearFilters={vi.fn()}
-      {...props}
-    />,
+    <FilterRail label="Library filters">
+      <LibraryFilters
+        entries={entries}
+        status={null}
+        category={null}
+        mood={null}
+        theme={null}
+        favorite={false}
+        format={null}
+        onToggleFavorite={vi.fn()}
+        onSelectFormat={vi.fn()}
+        onSelectStatus={onSelectStatus}
+        onSelectCategory={onSelectCategory}
+        onSelectMood={vi.fn()}
+        onSelectTheme={vi.fn()}
+        onClearFilters={vi.fn()}
+        {...props}
+      />
+    </FilterRail>,
   );
   return { onSelectCategory, onSelectStatus, rail: screen.getByLabelText('Library filters') };
 }

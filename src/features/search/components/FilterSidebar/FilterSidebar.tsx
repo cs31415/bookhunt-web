@@ -32,7 +32,7 @@ export function FilterSidebar({
     parsed.inLibraryOnly || Boolean(parsed.status) || Boolean(parsed.subject) || Boolean(parsed.mood);
 
   return (
-    <aside className={styles.rail}>
+    <div className={styles.groups}>
       {/* A real switch rather than a click-handling label: `disabled` then blocks
           both pointer and keyboard activation, and screen readers announce the
           on/off state and why it's unavailable. */}
@@ -75,6 +75,6 @@ export function FilterSidebar({
           Clear filters
         </button>
       )}
-    </aside>
+    </div>
   );
 }

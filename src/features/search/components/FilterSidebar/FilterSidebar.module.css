@@ -1,10 +1,7 @@
-.rail {
-  position: sticky;
-  top: 88px;
-  max-height: calc(100vh - 108px);
-  overflow-y: auto;
-  padding-right: 8px;
-  margin-right: -8px;
+/* FilterRail owns the column now -- its width, its stickiness and its landmark
+   role. What is left here is only what goes inside it. */
+.groups {
+  min-width: 0;
 }
 
 .toggleRow {

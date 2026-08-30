@@ -73,7 +73,7 @@ export function LibraryFilters({
   const hasActiveFilters = Boolean(status || category || mood || theme || favorite || format);
 
   return (
-    <aside className={styles.rail} aria-label="Library filters">
+    <div className={styles.groups}>
       {/* First, and its own single-pill group: it narrows alongside a shelf
           rather than competing with one, and a reader looking for favourites
           should not have to scroll past four facets to find them. Hidden
@@ -124,6 +124,6 @@ export function LibraryFilters({
           Clear filters
         </button>
       )}
-    </aside>
+    </div>
   );
 }

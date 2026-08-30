@@ -1,12 +1,29 @@
-/* The column, on a screen wide enough to spare it. Width and gap come from the
-   grid the page sets up; this only has to sit in the first track. */
+/*
+ * The column, on a screen wide enough to spare it. Width and gap come from the
+ * grid the page sets up; this only has to sit in the first track.
+ *
+ * min-width: 0 because a grid item defaults to auto, and one long unbroken
+ * category name would otherwise widen the whole 232px track rather than wrap
+ * inside it.
+ *
+ * Sticky, with its own scroll: the facets stay reachable while the results
+ * scroll past. Came from the search rail, which had it; the library rail did
+ * not, and there is no reason the two should differ.
+ */
 .rail {
   min-width: 0;
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 108px);
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-right: -8px;
 }
 
 /* --- Below DRAWER_MAX_WIDTH: a trigger and a pane ----------------------- */
 
 .trigger {
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 8px;
