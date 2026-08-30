@@ -47,6 +47,59 @@ describe('RichText', () => {
     expect(container.textContent).toBe('Safe alert(1)  text');
   });
 
+  /*
+   * Some Google Books descriptions arrive with U+FFFD already in them, where a
+   * decoder upstream met bytes it could not read (LOS-355). The lost letter is
+   * unrecoverable by the time we see it; the only question is what to show.
+   */
+  describe('unprintable characters', () => {
+    it('shows a space where a character could not be decoded', () => {
+      const { container } = render(<RichText text={"Herg\uFFFD's classic comic"} />);
+
+      expect(container.textContent).toBe("Herg 's classic comic");
+      expect(container.textContent).not.toContain('\uFFFD');
+    });
+
+    it('collapses a run of them into one space, not several', () => {
+      const { container } = render(<RichText text={'a\uFFFD\uFFFD\uFFFDb'} />);
+
+      expect(container.textContent).toBe('a b');
+    });
+
+    // A character lost beside a real space would otherwise leave two.
+    it('leaves one space where the lost character sat next to one', () => {
+      const { container } = render(<RichText text={'Herg\uFFFD (Georges Remi)'} />);
+
+      expect(container.textContent).toBe('Herg (Georges Remi)');
+    });
+
+    it('drops control characters, which have no printed form either', () => {
+      const { container } = render(<RichText text={'a\u0000b\u001Fc\u007Fd'} />);
+
+      expect(container.textContent).toBe('a b c d');
+    });
+
+    // Caught after decoding, so the entity spelling is covered too.
+    it('catches an entity spelling of one', () => {
+      const { container } = render(<RichText text={'Herg&#65533;s'} />);
+
+      expect(container.textContent).toBe('Herg s');
+    });
+
+    // These carry structure, and RichText reads them before this runs.
+    it('leaves newlines and tabs alone', () => {
+      const { container } = render(<RichText text={'one\n\ntwo'} />);
+
+      expect(container.querySelectorAll('p')).toHaveLength(2);
+    });
+
+    it('leaves ordinary accented prose untouched', () => {
+      const { container } = render(<RichText text={'Hergé wrote Tintin — café, naïve, £5'} />);
+
+      expect(container.textContent).toBe('Hergé wrote Tintin — café, naïve, £5');
+    });
+  });
+
   it('applies the className to the wrapper', () => {
     const { container } = render(<RichText className="blurb" text="Hello" />);
     expect(container.firstElementChild).toHaveClass('blurb');

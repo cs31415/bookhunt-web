@@ -236,11 +236,18 @@ describe('LibraryPage', () => {
     renderLibrary();
 
     await screen.findByText('Your library');
-    fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+    // fireEvent, not userEvent: this page renders sixty cards, and userEvent's
+    // pointer simulation over that many nodes is slow enough to time out under
+    // full-suite load. The press itself is all this test needs.
+    fireEvent.click(await screen.findByRole('button', { name: 'Load more' }));
 
-    expect(screen.getByText('All 61 books')).toBeInTheDocument();
+    expect(await screen.findByText('All 61 books')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
-  });
+    // A minute past the default: growing the slice renders sixty-one cards,
+    // each drawing a procedural cover, and under full-suite load that has taken
+    // past the five seconds vitest allows a test by default. The failure that
+    // produced read as this assertion breaking, which it never was (LOS-332).
+  }, 20000);
 
   // The count is the whole shelf, not the slice: a reader who cannot see the
   // grid has only this line to tell them how far through it they are.
