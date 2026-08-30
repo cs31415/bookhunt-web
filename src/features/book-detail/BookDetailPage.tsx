@@ -251,7 +251,12 @@ export function BookDetailPage() {
       <div className={styles.body}>
         <div className={styles.main}>
           <h2 className={styles.sectionHeading}>My notes</h2>
+          {/* Keyed on the book, so a different book is a different box. That
+              is what lets NotesTab own its text outright: nothing syncs the
+              prop back into it, so a reload cannot overwrite an edit in
+              progress (LOS-353). */}
           <NotesTab
+            key={book.id}
             userRating={libraryEntry?.userRating ?? 0}
             initialNotes={libraryEntry?.notes ?? ''}
             onRatingChange={handleRate}

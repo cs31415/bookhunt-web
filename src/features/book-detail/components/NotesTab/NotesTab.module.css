@@ -40,3 +40,41 @@
   border-color: var(--rust);
 }
 
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* Matches the profile page's Save: the same act, so the same button. */
+.saveButton {
+  padding: 8px 20px;
+  border: 1px solid var(--rust);
+  border-radius: var(--r-md);
+  background: var(--rust);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8438rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Nothing to write is the resting state here, not an error, so it recedes
+   rather than shouting. */
+.saveButton:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .saveButton:hover:not(:disabled) {
+    box-shadow: var(--shadow-hover);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .saveButton {
+    transition: opacity 0.14s ease, box-shadow 0.14s ease;
+  }
+}

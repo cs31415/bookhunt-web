@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getBook } from '../../../api/books/get-book';
 import { getAuthor } from '../../../api/authors/get-author';
 import { getBooksByIds } from '../../../api/books/get-books-by-ids';
@@ -39,6 +39,17 @@ export function useBookDetailData(
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
+  /**
+   * Which book the page last scrolled to the top for.
+   *
+   * Arriving at a book should start at the top; reloading the one already on
+   * screen should not move the reader at all. The two shared a line, so saving
+   * a note -- which reloads -- threw the page back to the top mid-edit
+   * (LOS-353).
+   */
+  const scrolledFor = useRef<string | null>(null);
+  const address = `${slug}|${authorSlug ?? ''}|${pid ?? ''}`;
+
   useEffect(() => {
     let cancelled = false;
 
@@ -46,7 +57,10 @@ export function useBookDetailData(
       setLoading(true);
       setError(null);
       setNotFound(false);
-      window.scrollTo(0, 0);
+      if (scrolledFor.current !== address) {
+        scrolledFor.current = address;
+        window.scrollTo(0, 0);
+      }
 
       let bookResult: BookDetailResult;
       try {
@@ -100,7 +114,7 @@ export function useBookDetailData(
     return () => {
       cancelled = true;
     };
-  }, [slug, authorSlug, pid, reloadToken]);
+  }, [slug, authorSlug, pid, reloadToken, address]);
 
   return {
     detail,

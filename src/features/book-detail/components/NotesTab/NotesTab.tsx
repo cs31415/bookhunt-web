@@ -1,57 +1,53 @@
 import { useState } from 'react';
 import { Stars } from '../../../../shared/components/Stars/Stars';
-import { useDebouncedCallback } from '../../../../shared/hooks/useDebouncedCallback';
 import styles from './NotesTab.module.css';
 
 export interface NotesTabProps {
   userRating: number;
   initialNotes: string;
   onRatingChange: (rating: number) => void;
-  /**
-   * May be async. The promise is awaited so "saved" can mean the write landed
-   * rather than that one was started (LOS-352).
-   */
+  /** May be async. Awaited, so Save can report what actually happened. */
   onSaveNotes: (notes: string) => void | Promise<void>;
 }
 
+/**
+ * A reader's notes on one book, saved when they say so.
+ *
+ * Saving used to be debounced on every keystroke, which meant the page reloaded
+ * mid-sentence: the reload scrolls to the top and hands back the text as the
+ * server has it, so the caret jumped and anything typed since the last debounce
+ * was overwritten (LOS-353). A button fires once, when the reader has stopped.
+ *
+ * Mounted with `key={book.id}` by the page above, so a different book is a
+ * different component. That is what keeps the box the sole owner of its text --
+ * there is no syncing back from the prop to clobber an edit in progress.
+ */
 export function NotesTab({ userRating, initialNotes, onRatingChange, onSaveNotes }: NotesTabProps) {
   const [notes, setNotes] = useState(initialNotes);
+  /** The text as last written. What is in the box is compared against it. */
+  const [savedNotes, setSavedNotes] = useState(initialNotes);
+  const [saving, setSaving] = useState(false);
   /**
-   * Whether what is in the box has been written, and so whether there is
-   * anything to say about it.
-   *
-   * Starts false even for notes that arrived saved from the server: the word is
-   * feedback on an act of typing, and a reader opening a book they annotated
-   * last month is not owed a report on it.
+   * Set by a save that landed, and only that. Notes arriving already saved from
+   * the server do not set it: the word reports an act, and a reader opening a
+   * book they annotated last month is not owed a report on it.
    */
-  const [saved, setSaved] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
 
-  const [syncedInitial, setSyncedInitial] = useState(initialNotes);
-  if (initialNotes !== syncedInitial) {
-    setSyncedInitial(initialNotes);
-    setNotes(initialNotes);
-    // A different book, so the last book's report does not carry over.
-    setSaved(false);
-  }
+  const dirty = notes !== savedNotes;
 
-  /**
-   * Awaited rather than fired and forgotten, so "saved" is a fact rather than a
-   * hope. A failed write leaves it unsaid instead of claiming a save that did
-   * not happen -- the note is still in the box, and the next keystroke tries
-   * again.
-   */
-  const debouncedSave = useDebouncedCallback((value: string) => {
-    void Promise.resolve(onSaveNotes(value))
-      .then(() => setSaved(true))
-      .catch(() => setSaved(false));
-  }, 500);
-
-  function handleChange(value: string) {
-    setNotes(value);
-    // Typing makes it unsaved again, so the word cannot linger over an edit
-    // that has not been written yet.
-    setSaved(false);
-    debouncedSave(value);
+  async function save() {
+    setSaving(true);
+    try {
+      await onSaveNotes(notes);
+      setSavedNotes(notes);
+      setJustSaved(true);
+    } catch {
+      // Left unsaid. The note is still in the box and Save is still there, so
+      // the reader can try again -- which is more use than a message.
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -63,17 +59,33 @@ export function NotesTab({ userRating, initialNotes, onRatingChange, onSaveNotes
         </div>
         <span className={styles.charCount}>
           {notes.length} chars
-          {/* Only once something is written, and only while there is something
-              to have written: an empty box has nothing to report. */}
-          {saved && notes.length > 0 && ' · saved'}
+          {/* Only after a save that landed, and only while it still describes
+              what is in the box. */}
+          {justSaved && !dirty && notes.length > 0 && ' · saved'}
         </span>
       </div>
       <textarea
         className={styles.textarea}
         value={notes}
-        onChange={(event) => handleChange(event.target.value)}
+        onChange={(event) => {
+          setNotes(event.target.value);
+          // The report no longer describes what is in the box.
+          setJustSaved(false);
+        }}
         placeholder="Your review of this book. The good, the bad, the ugly…"
       />
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={styles.saveButton}
+          onClick={save}
+          // Nothing to write, or already writing. Both would be a request that
+          // changed nothing.
+          disabled={!dirty || saving}
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
     </div>
   );
 }
