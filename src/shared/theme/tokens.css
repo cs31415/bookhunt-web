@@ -46,6 +46,7 @@
   --face-prose: 'Times New Roman', Times, Tinos, Georgia, serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --face-ui: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --face-field: Outfit, 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
   /* Headings, titles, and the app's own voice. */
   --serif: var(--face-display);
@@ -61,10 +62,13 @@
    * Text boxes, which are that same case. The sketch face draws its @ with 42
    * contours against 19.5 for an average letter, and at the 14px of a search
    * field that is mush -- nothing wrong with the glyph, just a display face
-   * asked to do UI work. The other common choice here is a system-UI stack, so
-   * typed text matches the OS; that is a one-line change.
+   * asked to do UI work.
+   *
+   * Outfit rather than the system grotesque, so a field looks chosen instead of
+   * defaulted. Its x-height is 0.46em against Helvetica's 0.52, so the same px
+   * size reads about a tenth smaller here than it used to.
    */
-  --field: var(--face-ui);
+  --field: var(--face-field);
 
   /*
    * The page-title size: the book title and the author name read it, so the two

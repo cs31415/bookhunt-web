@@ -4,6 +4,20 @@
  */
 
 /*
+ * Outfit, carrying the text boxes. A geometric sans rather than the system
+ * grotesque: it draws its @ with 5 contours where the sketch face uses 42, so
+ * it survives a 14px field. One variable file spans the 400-500 a text box
+ * asks for.
+ */
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('./fonts/outfit-400-500.woff2') format('woff2');
+}
+
+/*
  * Tinos, metric-compatible with Times New Roman, so a visitor who has Times
  * and one who does not read the same line breaks. Italic and bold are here
  * because RichText emits <em> and <strong> inside blurbs and bios.
