@@ -46,7 +46,7 @@
   --face-prose: 'Times New Roman', Times, Tinos, Georgia, serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --face-ui: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --face-field: Outfit, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --face-field: 'Special Elite', 'Courier New', Courier, monospace;
 
   /* Headings, titles, and the app's own voice. */
   --serif: var(--face-display);
@@ -64,9 +64,10 @@
    * field that is mush -- nothing wrong with the glyph, just a display face
    * asked to do UI work.
    *
-   * Outfit rather than the system grotesque, so a field looks chosen instead of
-   * defaulted. Its x-height is 0.46em against Helvetica's 0.52, so the same px
-   * size reads about a tenth smaller here than it used to.
+   * Special Elite rather than the system grotesque, so a field looks chosen
+   * instead of defaulted. Its x-height measures 0.52em from the outline, level
+   * with the display face -- note that the font's own OS/2 table claims 0.26,
+   * which is wrong, and believing it would predict unreadably small text.
    */
   --field: var(--face-field);
 
