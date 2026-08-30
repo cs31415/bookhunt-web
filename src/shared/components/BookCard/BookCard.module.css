@@ -123,6 +123,7 @@
 }
 
 .ratingValue {
+  display: var(--rating-value-display);
   font-size: 0.75rem;
   color: var(--muted);
 }

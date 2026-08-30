@@ -153,9 +153,11 @@ export function Hero({
             <span className={`${styles.eyebrow} ${styles.eyebrowRust}`}>My rating</span>
             <div className={styles.ratingRow}>
               <Stars value={libraryEntry?.userRating ?? 0} mode="interactive" onChange={onRate} />
-              <span className={styles.ratingValue}>
-                {libraryEntry?.userRating ? libraryEntry.userRating.toFixed(1) : 'Rate it'}
-              </span>
+              {libraryEntry?.userRating ? (
+                <span className={styles.ratingValue}>{libraryEntry.userRating.toFixed(1)}</span>
+              ) : (
+                <span className={styles.ratePrompt}>Rate it</span>
+              )}
             </div>
           </div>
         </div>

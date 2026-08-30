@@ -115,6 +115,7 @@
 }
 
 .ratingValue {
+  display: var(--rating-value-display);
   font-size: 0.7188rem;
   color: var(--faint);
 }
