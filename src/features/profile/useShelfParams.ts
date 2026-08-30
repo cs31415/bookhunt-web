@@ -42,6 +42,8 @@ export interface ShelfParams {
   tab: ProfileTab;
   sub: FavoritesSub;
   page: number;
+  /** How many of the shelf are on screen, for the view that holds all of it. */
+  shownCount: number;
   /** What is in the box, which may be ahead of the shelf while typing. */
   q: string;
   /** What the shelf is actually filtered by — the committed query. */
@@ -52,6 +54,8 @@ export interface ShelfParams {
   onSelectTab: (tab: ProfileTab) => void;
   onSelectSub: (sub: FavoritesSub) => void;
   onPage: (page: number) => void;
+  /** Grows the slice by one page. */
+  onMore: () => void;
   onQueryChange: (value: string) => void;
   onSelectSubject: (subject: string) => void;
   onSelectMood: (mood: string) => void;
@@ -72,7 +76,22 @@ export interface ShelfParams {
  */
 export function useShelfParams(): ShelfParams {
   const [searchParams, setSearchParams] = useSearchParams();
+  /**
+   * Two slices of the same shelf, because the two profile views hold their books
+   * differently. The owner has the whole shelf in the browser and grows a count;
+   * a visitor is served one page at a time and still asks by number.
+   *
+   * `page` and `onPage` go when the visitor's shelf learns to append (LOS-345
+   * part 2). Until then both reset together, so a filter change means the same
+   * thing on either view.
+   */
   const [page, setPage] = useState(1);
+  const [shownCount, setShownCount] = useState(PAGE_SIZE);
+
+  function resetSlice() {
+    setPage(1);
+    setShownCount(PAGE_SIZE);
+  }
 
   const tab = asTab(searchParams.get('tab'));
   const sub = asSub(searchParams.get('sub'));
@@ -104,7 +123,7 @@ export function useShelfParams(): ShelfParams {
     if (value) params.set('q', value);
     else params.delete('q');
     setSearchParams(params, { replace: true });
-    setPage(1);
+    resetSlice();
   }, 300);
 
   useEffect(() => {
@@ -125,14 +144,14 @@ export function useShelfParams(): ShelfParams {
     if (next && next !== current) params.set(name, next);
     else params.delete(name);
     setSearchParams(params);
-    setPage(1);
+    resetSlice();
   }
 
   function onClearFilters() {
     const params = new URLSearchParams(searchParams);
     for (const name of ['subject', 'mood', 'theme']) params.delete(name);
     setSearchParams(params);
-    setPage(1);
+    resetSlice();
   }
 
   function onSelectTab(next: ProfileTab) {
@@ -143,7 +162,7 @@ export function useShelfParams(): ShelfParams {
     // lying in wait to reopen on Authors next time Favourites is picked.
     if (next !== 'favorites') params.delete('sub');
     setSearchParams(params, { replace: true });
-    setPage(1);
+    resetSlice();
   }
 
   function onSelectSub(next: FavoritesSub) {
@@ -151,13 +170,14 @@ export function useShelfParams(): ShelfParams {
     if (next === 'books') params.delete('sub');
     else params.set('sub', next);
     setSearchParams(params, { replace: true });
-    setPage(1);
+    resetSlice();
   }
 
   return {
     tab,
     sub,
     page,
+    shownCount,
     q,
     appliedQuery: urlQuery,
     subject,
@@ -166,6 +186,7 @@ export function useShelfParams(): ShelfParams {
     onSelectTab,
     onSelectSub,
     onPage: setPage,
+    onMore: () => setShownCount((n) => n + PAGE_SIZE),
     onQueryChange: setQ,
     onSelectSubject: (next: string) => selectFacet('subject', subject, next),
     onSelectMood: (next: string) => selectFacet('mood', mood, next),

@@ -1,0 +1,52 @@
+.foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+/* The mono face and size the page numbers used: this replaces them in the same
+   spot, and reads as the same kind of marginal note about where you are. */
+.count {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.button {
+  min-height: 36px;
+  padding: 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .button:hover:not(:disabled) {
+    border-color: var(--line-2);
+    color: var(--ink);
+    box-shadow: var(--shadow-hover);
+  }
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .button {
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+}

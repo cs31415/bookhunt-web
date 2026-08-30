@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
-import { Pagination } from '../../shared/components/Pagination/Pagination';
+import { LoadMore } from '../../shared/components/LoadMore/LoadMore';
 import { TabBar } from '../../shared/components/TabBar/TabBar';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { useAuth } from '../auth/AuthContext';
@@ -39,7 +39,8 @@ function asTab(value: string | null): FavoritesTab {
  */
 export function FavoritesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [page, setPage] = useState(1);
+  // Grows rather than moves, like the library this page is a view of.
+  const [shownCount, setShownCount] = useState(PAGE_SIZE);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { entries, loading } = useLibraryData();
@@ -53,10 +54,10 @@ export function FavoritesPage() {
     if (next === 'books') params.delete('tab');
     else params.set('tab', next);
     setSearchParams(params, { replace: true });
-    setPage(1);
+    setShownCount(PAGE_SIZE);
   }
 
-  const pageItems = favorites.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageItems = favorites.slice(0, shownCount);
 
   return (
     <div className={styles.page}>
@@ -90,10 +91,10 @@ export function FavoritesPage() {
               />
             ))}
           </div>
-          <Pagination
-            page={page}
-            pageCount={Math.ceil(favorites.length / PAGE_SIZE)}
-            onChange={setPage}
+          <LoadMore
+            shown={pageItems.length}
+            total={favorites.length}
+            onMore={() => setShownCount((n) => n + PAGE_SIZE)}
           />
         </>
       )}
