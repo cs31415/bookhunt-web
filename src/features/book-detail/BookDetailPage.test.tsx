@@ -245,15 +245,15 @@ describe('BookDetailPage', () => {
     );
   });
 
+  // Saved on the button now, not on a debounce: typing wrote mid-sentence and
+  // the reload that followed threw the reader back to the top (LOS-353).
   it('adds the book to the library before saving a note (AC12), in order', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });
 
     const textarea = await screen.findByPlaceholderText(/Your review of this book/);
     fireEvent.change(textarea, { target: { value: 'A note' } });
-
-    await vi.advanceTimersByTimeAsync(600);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(mockedUpdateEntry).toHaveBeenCalledWith(95, { notes: 'A note' }));
     const addOrder = mockedAddToLibrary.mock.invocationCallOrder[0];
