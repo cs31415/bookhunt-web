@@ -42,7 +42,13 @@
    * metric-compatible, so the lines are the same either way, and a visitor who
    * already has Times never downloads a file.
    */
-  --face-display: 'Cabin Sketch', Georgia, 'Times New Roman', serif;
+  /*
+   * 'PlainAt' first, covering U+0040 alone: every other character falls through
+   * to Cabin Sketch. Putting it on the face rather than on a handle class means
+   * every @ the app draws in its own voice is legible, not only the ones a rule
+   * remembered to ask for (LOS-348).
+   */
+  --face-display: 'PlainAt', 'Cabin Sketch', Georgia, 'Times New Roman', serif;
   --face-prose: 'Times New Roman', Times, Tinos, Georgia, serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --face-ui: 'Helvetica Neue', Helvetica, Arial, sans-serif;

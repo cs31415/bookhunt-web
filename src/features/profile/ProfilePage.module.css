@@ -43,8 +43,17 @@
   margin: 0;
 }
 
+/*
+ * The reader's own voice, like the name above it -- shared with PeopleTab's
+ * rows, which is the other place a handle is read rather than searched.
+ *
+ * The @ is legible here because --face-display draws that one character from a
+ * plain face (LOS-348). Messages and HandleSearch keep --mono deliberately:
+ * both set a handle at 12-14px, and small UI chrome is where this face turns to
+ * mush -- the same reason the text boxes left it.
+ */
 .handle {
-  font-family: var(--mono);
+  font-family: var(--serif);
   color: var(--ink-2);
 }
 
