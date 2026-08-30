@@ -9,6 +9,7 @@ import type { LibraryEntry } from '../../normalize/library';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { LibraryHeader } from './components/LibraryHeader/LibraryHeader';
 import { LibraryFilters } from './components/LibraryFilters/LibraryFilters';
+import { FilterRail } from '../../shared/components/FilterRail/FilterRail';
 import { LibraryEmptyState } from './components/LibraryEmptyState/LibraryEmptyState';
 import { CsvImportModal } from './components/CsvImportModal/CsvImportModal';
 import { LibraryCardMenu } from './components/LibraryCardMenu/LibraryCardMenu';
@@ -80,6 +81,12 @@ export function LibraryPage() {
   const favorite = searchParams.get('favorite') === 'true';
   const format = asFormat(searchParams.get('format'));
   const flags = useEntryFlags();
+  // What the trigger reports when the rail has folded into a drawer. The search
+  // box is not counted: it lives in the header, in plain sight, whatever the
+  // width.
+  const activeFilterCount = [status, category, mood, theme, format].filter(Boolean).length +
+    (favorite ? 1 : 0);
+
   const urlQuery = searchParams.get('q') ?? '';
 
   // The input is driven by local state, not by the URL. setSearchParams lands a
@@ -276,27 +283,29 @@ export function LibraryPage() {
       />
 
       <div className={styles.layout}>
-        <LibraryFilters
-          // shownEntries, not entries: the rail's favourite count has to see
-          // optimistic toggles, or un-favouriting the last book empties the
-          // grid while the pill still claims one. The Format counts need it for
-          // the same reason; the tag facets read the same prop and are
-          // unaffected, since an override only touches the three flags.
-          entries={shownEntries}
-          status={status}
-          category={category}
-          mood={mood}
-          theme={theme}
-          favorite={favorite}
-          format={format}
-          onToggleFavorite={toggleFavoriteFilter}
-          onSelectFormat={selectFormat}
-          onSelectStatus={selectStatus}
-          onSelectCategory={selectCategory}
-          onSelectMood={selectMood}
-          onSelectTheme={selectTheme}
-          onClearFilters={clearFilters}
-        />
+        <FilterRail label="Library filters" activeCount={activeFilterCount}>
+          <LibraryFilters
+            // shownEntries, not entries: the rail's favourite count has to see
+            // optimistic toggles, or un-favouriting the last book empties the
+            // grid while the pill still claims one. The Format counts need it for
+            // the same reason; the tag facets read the same prop and are
+            // unaffected, since an override only touches the three flags.
+            entries={shownEntries}
+            status={status}
+            category={category}
+            mood={mood}
+            theme={theme}
+            favorite={favorite}
+            format={format}
+            onToggleFavorite={toggleFavoriteFilter}
+            onSelectFormat={selectFormat}
+            onSelectStatus={selectStatus}
+            onSelectCategory={selectCategory}
+            onSelectMood={selectMood}
+            onSelectTheme={selectTheme}
+            onClearFilters={clearFilters}
+          />
+        </FilterRail>
 
         <div className={styles.results}>
           {/* Above the grid, not in the header: it selects from whatever the

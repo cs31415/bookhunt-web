@@ -40,6 +40,17 @@
   margin-left: calc(var(--rail-width) + var(--layout-gap));
 }
 
+/*
+ * Below the rail's breakpoint there is no rail, so there is nothing to clear:
+ * the indent above would push the field 270px to the right of a column that no
+ * longer exists.
+ */
+@media (max-width: 860px) {
+  .search {
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 560px) {
   .header {
     flex-direction: column;

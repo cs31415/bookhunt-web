@@ -3,9 +3,9 @@
    categories, moods, themes — and a sticky one that long needs its own
    scrollbar to stay reachable, which is a second scrollbar on a page that only
    ever needed one. */
-.rail {
-  /* A grid item defaults to min-width:auto, so one long unbroken category name
-     would widen the whole 232px track rather than wrap inside it. */
+/* FilterRail owns the column now -- its width, its stickiness and its landmark
+   role. What is left here is only what goes inside it. */
+.groups {
   min-width: 0;
 }
 

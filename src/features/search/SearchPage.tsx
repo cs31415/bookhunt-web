@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
 import { SaveSearchButton } from '../../shared/components/SaveSearchButton/SaveSearchButton';
 import { FilterSidebar } from './components/FilterSidebar/FilterSidebar';
+import { FilterRail } from '../../shared/components/FilterRail/FilterRail';
 import { ResultsGrid } from './components/ResultsGrid/ResultsGrid';
 import { AiInterpretationBanner } from './components/AiInterpretationBanner/AiInterpretationBanner';
 import { useSearchResults } from './hooks/useSearchResults';
@@ -82,6 +83,12 @@ export function SearchPage() {
   }, [isAuthenticated, searchParams]);
 
   const parsed = parseSearchParams(effectiveParams);
+
+  // What the trigger reports once the rail has folded into a drawer. The query
+  // box is not counted: it sits above the results at every width.
+  const activeFilterCount =
+    [parsed.status, parsed.subject, parsed.mood].filter(Boolean).length +
+    (parsed.inLibraryOnly ? 1 : 0);
   const { libraryResults, libraryLoading, results, loading, error, availableCategories, availableMoods } =
     useSearchResults(effectiveParams, isAuthenticated);
   const [queryInput, setQueryInput] = useState(parsed.q);
@@ -126,17 +133,19 @@ export function SearchPage() {
       </div>
 
       <div className={styles.layout}>
-        <FilterSidebar
-          parsed={parsed}
-          availableCategories={availableCategories}
-          availableMoods={availableMoods}
-          canFilterByLibrary={isAuthenticated}
-          onToggleInLibraryOnly={() => update({ inLibraryOnly: parsed.inLibraryOnly ? null : 'true' })}
-          onSelectCategory={(subject) => update({ subject: parsed.subject === subject ? null : subject })}
-          onSelectMood={(mood) => update({ mood: parsed.mood === mood ? null : mood })}
-          onSelectStatus={(status: LibraryStatus) => update({ status: parsed.status === status ? null : status })}
-          onClearFilters={() => update({ status: null, inLibraryOnly: null, subject: null, mood: null })}
-        />
+        <FilterRail label="Search filters" activeCount={activeFilterCount}>
+          <FilterSidebar
+            parsed={parsed}
+            availableCategories={availableCategories}
+            availableMoods={availableMoods}
+            canFilterByLibrary={isAuthenticated}
+            onToggleInLibraryOnly={() => update({ inLibraryOnly: parsed.inLibraryOnly ? null : 'true' })}
+            onSelectCategory={(subject) => update({ subject: parsed.subject === subject ? null : subject })}
+            onSelectMood={(mood) => update({ mood: parsed.mood === mood ? null : mood })}
+            onSelectStatus={(status: LibraryStatus) => update({ status: parsed.status === status ? null : status })}
+            onClearFilters={() => update({ status: null, inLibraryOnly: null, subject: null, mood: null })}
+          />
+        </FilterRail>
 
         <div className={styles.results}>
           <div className={styles.resultsHeader}>
