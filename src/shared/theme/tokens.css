@@ -38,12 +38,13 @@
   /*
    * Cabin Sketch is self-hosted, so it holds on any machine.
    *
-   * Outfit replaces Times in the prose. Its x-height is 0.460em against Times's
-   * 0.459, so nothing shifts in apparent size -- but it has no italic, so an
-   * <em> in a blurb is a synthesized oblique rather than a drawn face.
+   * Libre Baskerville carries the prose, and brings a drawn italic back with it.
+   * Its x-height is 0.530em against Outfit's 0.460, and its lowercase sets 19%
+   * wider, so a blurb reads larger and wraps sooner than it did. --prose-trim
+   * below is the lever if that runs long.
    */
   --face-display: 'Cabin Sketch', Georgia, 'Times New Roman', serif;
-  --face-prose: Outfit, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --face-prose: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --face-ui: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --face-field: 'Special Elite', 'Courier New', Courier, monospace;

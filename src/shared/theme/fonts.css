@@ -27,19 +27,36 @@
 }
 
 /*
- * Outfit, carrying the prose. One variable file spans the 400 of body text, the
- * 600 on the sidebar author link, and the 700 RichText emits for <strong>.
+ * Libre Baskerville, carrying the prose. Google serves no plain Baskerville --
+ * that one is a macOS system face -- and this is the self-hostable equivalent.
  *
- * No italic is declared because Outfit has none -- no ital axis, and Google
- * serves no italic file. An <em> in a blurb gets a browser-synthesized oblique,
- * a mechanical slant of the upright rather than a drawn italic.
+ * Three real cuts, including a drawn italic at -15 degrees. That italic is the
+ * point: RichText emits <em> inside blurbs and bios, and the previous face had
+ * none, so emphasis was a synthesized slant. 400 and 700 only, so the sidebar
+ * author link's 600 resolves to the 700.
  */
 @font-face {
-  font-family: 'Outfit';
+  font-family: 'Libre Baskerville';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 400;
   font-display: swap;
-  src: url('./fonts/outfit-400-700.woff2') format('woff2');
+  src: url('./fonts/libre-baskerville-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/libre-baskerville-400-italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/libre-baskerville-700.woff2') format('woff2');
 }
 
 /*
