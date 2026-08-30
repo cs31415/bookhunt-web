@@ -16,7 +16,7 @@
 }
 
 .meta {
-  font-size: 0.875rem;
+  font-size: var(--type-heading);
   color: var(--muted);
   margin: 0;
 }

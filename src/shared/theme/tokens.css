@@ -84,6 +84,12 @@
   /* Nav links, the greeting and the sign-in: one size, three places. */
   --type-nav: 0.875rem;
   /*
+   * The heading that names what a page is showing: "Results for ..." on
+   * search, the handle-and-count line on a profile. A token rather than two
+   * numbers that happen to agree, so they stay level.
+   */
+  --type-heading: 1.4375rem;
+  /*
    * Taken off every size set in the prose face. The ten prose rules all carry
    * different sizes, so there is no one ratio to scale by -- but the trim
    * itself stays one line.

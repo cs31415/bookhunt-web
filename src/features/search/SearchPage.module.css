@@ -24,7 +24,7 @@
 }
 
 .heading {
-  font-size: 1.4375rem;
+  font-size: var(--type-heading);
 }
 
 .highlight {
