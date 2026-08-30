@@ -10,9 +10,9 @@
   border-radius: 999px;
 }
 
+/* No shadow of its own: .wrap carries the field shadow at both sizes now. */
 .big {
   padding: 6px 6px 6px 22px;
-  box-shadow: var(--shadow-1);
 }
 
 /*
@@ -20,13 +20,18 @@
  * gives up the global field lift, which would otherwise draw a square shadow
  * inside this rounded one (LOS-351).
  */
+.input,
 .input:hover {
   box-shadow: none;
 }
 
+.wrap {
+  box-shadow: var(--shadow-hover);
+}
+
 @media (hover: hover) {
   .wrap:hover {
-    box-shadow: var(--shadow-hover);
+    border-color: var(--muted);
   }
 }
 

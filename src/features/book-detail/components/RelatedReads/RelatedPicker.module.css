@@ -39,13 +39,18 @@
  * gives up the global field lift, which would otherwise draw a square shadow
  * inside this rounded one (LOS-351).
  */
+.input,
 .input:hover {
   box-shadow: none;
 }
 
+.searchWrap {
+  box-shadow: var(--shadow-hover);
+}
+
 @media (hover: hover) {
   .searchWrap:hover {
-    box-shadow: var(--shadow-hover);
+    border-color: var(--muted);
   }
 }
 

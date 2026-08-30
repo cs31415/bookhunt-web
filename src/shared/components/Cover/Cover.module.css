@@ -2,7 +2,7 @@
   position: relative;
   border-radius: 3px 5px 5px 3px;
   overflow: hidden;
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--shadow-hover);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -10,9 +10,13 @@
 }
 
 /*
- * A cover already reads as a physical object, so it lifts further rather than
- * from flat: --shadow-hover-strong is a step above the --shadow-2 it rests at,
- * where the flat-control value would read as a drop.
+ * A cover rests at --shadow-hover rather than --shadow-2: it should read as an
+ * object on every device, and on a touch screen there is no hover to reveal it
+ * later, so whatever a cover is going to have has to be there from the start
+ * (LOS-354). --shadow-2 alone was too faint to see.
+ *
+ * It lifts further rather than from flat, so the hover step is a step above
+ * where it rests, where the flat-control value would read as a drop.
  *
  * Every cover, not only one carrying its own onClick. In the grid the click
  * belongs to the card button around the cover, so keying this on the cover's own
@@ -21,16 +25,23 @@
  * On .cover rather than on a wrapper: the shadow spreads from the artwork's own
  * edge, and CoverFold -- absolutely positioned in the wrapper, painted after --
  * still sits over it rather than being cut across by it.
+ *
+ * On hover it actually rises: deeper shadow and a real 3px of travel. With the
+ * shadow always on, a heavier shadow alone would be a change of degree; lifting
+ * the thing off the page is a change of kind, which is what a hover should be.
  */
 @media (hover: hover) {
   .cover:hover {
     box-shadow: var(--shadow-hover-strong);
+    transform: translateY(-3px);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .cover {
-    transition: box-shadow 0.18s ease;
+    transition:
+      box-shadow 0.18s ease,
+      transform 0.18s ease;
   }
 }
 
