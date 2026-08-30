@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BookCard } from '../../shared/components/BookCard/BookCard';
 import { Loader } from '../../shared/components/Loader/Loader';
-import { Pagination } from '../../shared/components/Pagination/Pagination';
 import { LoadMore } from '../../shared/components/LoadMore/LoadMore';
 import { TabBar } from '../../shared/components/TabBar/TabBar';
 import { SearchBar } from '../../shared/components/SearchBar/SearchBar';
@@ -146,8 +145,6 @@ function VisitorProfileView({
   sub,
   onSelectTab,
   onSelectSub,
-  page,
-  onPage,
   navigate,
   q,
   onQueryChange,
@@ -161,17 +158,17 @@ function VisitorProfileView({
   onClearFilters,
   activeFilterCount,
 }: ViewProps) {
-  const { profile, entries, total, loading, searching, notFound, error } = useVisitorProfile(
-    handle,
-    // Null skips the shelf request: AuthorsTab fetches its own list, and the
-    // header still comes from the profile call.
-    showsAuthors(tab, sub) ? null : tab,
-    page,
-    PAGE_SIZE,
-    // Filtered by the server, not in the browser: a visitor holds one page of
-    // 24, and searching 24 of 349 rows is not searching the shelf.
-    { q: appliedQuery, subject, mood, theme },
-  );
+  const { profile, entries, total, loading, searching, notFound, error, loadingMore, onMore } =
+    useVisitorProfile(
+      handle,
+      // Null skips the shelf request: AuthorsTab fetches its own list, and the
+      // header still comes from the profile call.
+      showsAuthors(tab, sub) ? null : tab,
+      PAGE_SIZE,
+      // Filtered by the server, not in the browser: a visitor holds only what
+      // has been fetched, and searching that is not searching the shelf.
+      { q: appliedQuery, subject, mood, theme },
+    );
 
   const facets = useShelfFacets('handle', handle);
 
@@ -231,7 +228,7 @@ function VisitorProfileView({
             <div className={searching ? styles.searching : undefined}>
               <Grid entries={entries} navigate={navigate} onSelectSubject={onSelectSubject} />
             </div>
-            <Pagination page={page} pageCount={Math.ceil(total / PAGE_SIZE)} onChange={onPage} />
+            <LoadMore shown={entries.length} total={total} onMore={onMore} busy={loadingMore} />
           </div>
         </div>
       )}

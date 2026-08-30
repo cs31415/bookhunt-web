@@ -218,6 +218,112 @@ describe('ProfilePage as a visitor', () => {
   });
 });
 
+/*
+ * A visitor's shelf is served a page at a time, so growing it is a fetch rather
+ * than a wider slice (LOS-345). The pages have to stack up: replacing them, as
+ * this hook used to, would have made "load more" mean "show a different 24".
+ */
+describe('a visitor’s shelf grows a page at a time (LOS-345)', () => {
+  /** A shelf of `total` books, served in pages of 24, as the API would. */
+  function mockPagedShelf(total: number) {
+    mockedPublicLibrary.mockImplementation(async ({ page = 1, limit = 24 }) => {
+      const start = (page - 1) * limit;
+      return {
+        entries: Array.from({ length: Math.max(0, Math.min(limit, total - start)) }, (_, i) =>
+          rawEntry(start + i + 1, `Book ${start + i + 1}`),
+        ) as never,
+        total,
+        page,
+        pageSize: limit,
+      };
+    });
+  }
+
+  it('keeps the first page on screen when the second arrives', async () => {
+    mockPagedShelf(30);
+    renderProfile();
+
+    await screen.findByText('Ada Reader');
+    expect(await screen.findByText('24 of 30 books')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Load more' }));
+
+    expect(await screen.findByText('All 30 books')).toBeInTheDocument();
+    // The first page is still there: this is one shelf getting longer, not a
+    // window moving down it.
+    // getAllByText: a book with no cover art draws its title into the
+    // procedural cover as well, so each one appears twice.
+    expect(screen.getAllByText('Book 1').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Book 30').length).toBeGreaterThan(0);
+  });
+
+  it('asks the API for the next page, not the same one again', async () => {
+    mockPagedShelf(30);
+    renderProfile();
+
+    await screen.findByText('24 of 30 books');
+    await userEvent.click(screen.getByRole('button', { name: 'Load more' }));
+    await screen.findByText('All 30 books');
+
+    expect(mockedPublicLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 2 }),
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('offers nothing more when the shelf fits in one page', async () => {
+    mockPagedShelf(3);
+    renderProfile();
+
+    expect(await screen.findByText('All 3 books')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
+  });
+
+  /*
+   * The race the ticket warns about. A filter change while a later page is in
+   * flight must not staple that page under the new shelf -- the reader would be
+   * looking at a filtered shelf with unfiltered books beneath it.
+   */
+  it('drops a page that lands after the filter under it changed', async () => {
+    const total = 60;
+    let releaseSecondPage: (() => void) | null = null;
+
+    mockedPublicLibrary.mockImplementation(async ({ page = 1, limit = 24, q }) => {
+      const answer = {
+        entries: Array.from({ length: Math.min(limit, total - (page - 1) * limit) }, (_, i) =>
+          rawEntry((page - 1) * limit + i + 1, q ? `Match ${i + 1}` : `Book ${(page - 1) * limit + i + 1}`),
+        ) as never,
+        total: q ? 1 : total,
+        page,
+        pageSize: limit,
+      };
+      // Page 2 of the unfiltered shelf is held open until the test lets it go.
+      if (page === 2 && !q) {
+        await new Promise<void>((resolve) => {
+          releaseSecondPage = resolve;
+        });
+      }
+      return answer;
+    });
+
+    renderProfile();
+    await screen.findByText('24 of 60 books');
+
+    // Ask for page 2, then change the question before it can answer.
+    await userEvent.click(screen.getByRole('button', { name: 'Load more' }));
+    await waitFor(() => expect(releaseSecondPage).not.toBeNull());
+
+    await userEvent.type(screen.getByPlaceholderText(/Search/i), 'match');
+    await screen.findByText('All 1 book');
+
+    releaseSecondPage!();
+
+    // The stale page never joins the filtered shelf.
+    await waitFor(() => expect(screen.queryAllByText('Book 25')).toHaveLength(0));
+    expect(screen.getByText('All 1 book')).toBeInTheDocument();
+  });
+});
+
 describe('ProfilePage as the owner', () => {
   beforeEach(() => {
     signInAsOwner();

@@ -41,8 +41,7 @@ function asSub(value: string | null): FavoritesSub {
 export interface ShelfParams {
   tab: ProfileTab;
   sub: FavoritesSub;
-  page: number;
-  /** How many of the shelf are on screen, for the view that holds all of it. */
+  /** How many of the shelf are on screen. */
   shownCount: number;
   /** What is in the box, which may be ahead of the shelf while typing. */
   q: string;
@@ -53,7 +52,6 @@ export interface ShelfParams {
   theme: string;
   onSelectTab: (tab: ProfileTab) => void;
   onSelectSub: (sub: FavoritesSub) => void;
-  onPage: (page: number) => void;
   /** Grows the slice by one page. */
   onMore: () => void;
   onQueryChange: (value: string) => void;
@@ -77,19 +75,14 @@ export interface ShelfParams {
 export function useShelfParams(): ShelfParams {
   const [searchParams, setSearchParams] = useSearchParams();
   /**
-   * Two slices of the same shelf, because the two profile views hold their books
-   * differently. The owner has the whole shelf in the browser and grows a count;
-   * a visitor is served one page at a time and still asks by number.
-   *
-   * `page` and `onPage` go when the visitor's shelf learns to append (LOS-345
-   * part 2). Until then both reset together, so a filter change means the same
-   * thing on either view.
+   * How much of the shelf is on screen, for the owner's view, which holds the
+   * whole thing in the browser. A visitor's shelf is served a page at a time and
+   * counts its own pages inside useShelf, so nothing about that lives here.
    */
-  const [page, setPage] = useState(1);
   const [shownCount, setShownCount] = useState(PAGE_SIZE);
 
+  // A new question is a new shelf, opened at the top rather than part-way down.
   function resetSlice() {
-    setPage(1);
     setShownCount(PAGE_SIZE);
   }
 
@@ -176,7 +169,6 @@ export function useShelfParams(): ShelfParams {
   return {
     tab,
     sub,
-    page,
     shownCount,
     q,
     appliedQuery: urlQuery,
@@ -185,7 +177,6 @@ export function useShelfParams(): ShelfParams {
     theme,
     onSelectTab,
     onSelectSub,
-    onPage: setPage,
     onMore: () => setShownCount((n) => n + PAGE_SIZE),
     onQueryChange: setQ,
     onSelectSubject: (next: string) => selectFacet('subject', subject, next),

@@ -1,6 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Loader } from '../../shared/components/Loader/Loader';
-import { Pagination } from '../../shared/components/Pagination/Pagination';
+import { LoadMore } from '../../shared/components/LoadMore/LoadMore';
 import { useNoIndex } from '../../shared/hooks/useNoIndex';
 import { Grid, Header, ShelfFilters, Tabs } from './ProfilePage';
 import { AuthorsTab } from './AuthorsTab';
@@ -35,14 +35,14 @@ export function SharedProfilePage() {
 
   useNoIndex();
 
-  const { tab, sub, page, q, appliedQuery, subject, mood, theme } = shelf;
-  const { profile, entries, total, loading, searching, notFound, error } = useSharedProfile(
-    token,
-    showsAuthors(tab, sub) ? null : tab,
-    page,
-    PAGE_SIZE,
-    { q: appliedQuery, subject, mood, theme },
-  );
+  const { tab, sub, q, appliedQuery, subject, mood, theme } = shelf;
+  const { profile, entries, total, loading, searching, notFound, error, loadingMore, onMore } =
+    useSharedProfile(token, showsAuthors(tab, sub) ? null : tab, PAGE_SIZE, {
+      q: appliedQuery,
+      subject,
+      mood,
+      theme,
+    });
 
   // The token is the address here, so the facets come by token too.
   const facets = useShelfFacets('token', token);
@@ -110,11 +110,7 @@ export function SharedProfilePage() {
             <div className={searching ? styles.searching : undefined}>
               <Grid entries={entries} navigate={navigate} onSelectSubject={shelf.onSelectSubject} />
             </div>
-            <Pagination
-              page={page}
-              pageCount={Math.ceil(total / PAGE_SIZE)}
-              onChange={shelf.onPage}
-            />
+            <LoadMore shown={entries.length} total={total} onMore={onMore} busy={loadingMore} />
           </div>
         </div>
       )}
