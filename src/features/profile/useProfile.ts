@@ -20,9 +20,8 @@ export type VisitorProfile = ShelfView;
 export function useVisitorProfile(
   handle: string,
   tab: ProfileTab | null,
-  page: number,
   pageSize: number,
   filters: ProfileFilters = { q: '', subject: '', mood: '', theme: '' },
 ): VisitorProfile {
-  return useShelf('handle', handle, tab, page, pageSize, filters);
+  return useShelf('handle', handle, tab, pageSize, filters);
 }

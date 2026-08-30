@@ -17,9 +17,8 @@ export type SharedProfile = ShelfView;
 export function useSharedProfile(
   token: string,
   tab: ProfileTab | null,
-  page: number,
   pageSize: number,
   filters: ProfileFilters = { q: '', subject: '', mood: '', theme: '' },
 ): SharedProfile {
-  return useShelf('token', token, tab, page, pageSize, filters);
+  return useShelf('token', token, tab, pageSize, filters);
 }

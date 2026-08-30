@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getProfile } from '../../api/users/get-profile';
 import type { RawPublicProfile } from '../../api/users/get-profile';
 import { getPublicLibrary } from '../../api/users/get-public-library';
@@ -41,6 +41,12 @@ export interface ShelfView {
   loading: boolean;
   /** A newer request is in flight and the screen holds the previous answer. */
   searching: boolean;
+  /** Pages remain beyond what is on screen. */
+  hasMore: boolean;
+  /** A further page is in flight, under books already shown. */
+  loadingMore: boolean;
+  /** Asks for the next page, which is appended rather than swapped in. */
+  onMore: () => void;
   /** Unknown handle, private page, unknown or revoked token — all one case. */
   notFound: boolean;
   error: boolean;
@@ -57,6 +63,8 @@ interface Shelf {
   key: string;
   entries: LibraryEntry[];
   total: number;
+  /** The highest page folded into `entries`, so a repeat cannot double them. */
+  loadedPage: number;
   outcome: 'ok' | 'not-found' | 'error';
 }
 
@@ -84,13 +92,15 @@ export function useShelf(
   kind: ShelfKind,
   id: string,
   tab: ProfileTab | null,
-  page: number,
   pageSize: number,
   filters: ProfileFilters = { q: '', subject: '', mood: '', theme: '' },
 ): ShelfView {
   const { q, subject, mood, theme } = filters;
   const [header, setHeader] = useState<Header | null>(null);
   const [shelf, setShelf] = useState<Shelf | null>(null);
+  // Which page to ask for next. Owned here rather than passed in: a page number
+  // is now an implementation detail of appending, not something the reader sets.
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -116,7 +126,20 @@ export function useShelf(
     return () => controller.abort();
   }, [kind, id]);
 
-  const key = `${kind}|${id}|${tab ?? 'none'}|${page}|${pageSize}|${q}|${subject}|${mood}|${theme}`;
+  /**
+   * What is being asked for, with no page in it. Every page of one query folds
+   * into the same shelf, so the page is what varies *within* a key rather than
+   * part of it.
+   */
+  const key = `${kind}|${id}|${tab ?? 'none'}|${pageSize}|${q}|${subject}|${mood}|${theme}`;
+
+  // A different question is a different shelf, so it starts at its first page.
+  // The books already on screen stay until the new first page lands (LOS-310).
+  const [syncedKey, setSyncedKey] = useState(key);
+  if (key !== syncedKey) {
+    setSyncedKey(key);
+    setPage(1);
+  }
 
   useEffect(() => {
     // A null tab means the section on screen is not a shelf -- favourite
@@ -124,6 +147,15 @@ export function useShelf(
     if (tab === null) return;
 
     const controller = new AbortController();
+    /**
+     * Whether this effect is still the current one.
+     *
+     * Aborting is the first guard and usually the only one that matters, but
+     * abort is not instant: a page 3 that has already resolved can still run its
+     * `.then` after the filter under it changed, and appending that would put a
+     * slice of the old shelf beneath the new one.
+     */
+    let live = true;
     const args = { ...TAB_QUERY[tab], page, limit: pageSize, q, subject, mood, theme };
 
     const request =
@@ -132,40 +164,63 @@ export function useShelf(
         : getLibraryByToken({ token: id, ...args }, controller.signal);
 
     request
-      .then((response) =>
-        setShelf({
-          id,
-          key,
-          entries: response.entries.map(normalizeLibraryEntry),
-          total: response.total,
-          outcome: 'ok',
-        }),
-      )
+      .then((response) => {
+        if (!live) return;
+        const fresh = response.entries.map(normalizeLibraryEntry);
+        setShelf((prev) =>
+          // Appended only within one query, and only for a page not already
+          // folded in -- a re-run of the same effect must not double a page.
+          prev && prev.key === key && page > prev.loadedPage
+            ? {
+                ...prev,
+                entries: [...prev.entries, ...fresh],
+                total: response.total,
+                loadedPage: page,
+              }
+            : { id, key, entries: fresh, total: response.total, loadedPage: page, outcome: 'ok' },
+        );
+      })
       .catch((err) => {
-        if (isAbortError(err)) return;
+        if (isAbortError(err) || !live) return;
         setShelf({
           id,
           key,
           entries: [],
           total: 0,
+          loadedPage: page,
           outcome: err instanceof ApiError && err.status === 404 ? 'not-found' : 'error',
         });
       });
 
-    return () => controller.abort();
+    return () => {
+      live = false;
+      controller.abort();
+    };
   }, [key, kind, id, tab, page, pageSize, q, subject, mood, theme]);
+
+  const onMore = useCallback(() => setPage((n) => n + 1), []);
 
   // Only the current profile's answer may be shown. Within it, an answer for an
   // earlier query is kept on screen until the newer one lands.
   const shownShelf = shelf?.id === id ? shelf : null;
   const currentHeader = header?.id === id ? header : null;
 
+  const entries = shownShelf?.entries ?? [];
+  const total = shownShelf?.total ?? 0;
+  // Answering for the current query only. Mid-search the numbers on screen are
+  // the previous shelf's, and offering to extend that one is not what the
+  // reader asked for.
+  const current = shownShelf !== null && shownShelf.key === key;
+
   return {
     profile: currentHeader?.profile ?? null,
-    entries: shownShelf?.entries ?? [],
-    total: shownShelf?.total ?? 0,
+    entries,
+    total,
     loading: currentHeader === null || (tab !== null && shownShelf === null),
     searching: shownShelf !== null && shownShelf.key !== key,
+    hasMore: current && entries.length < total,
+    loadingMore: current && page > shownShelf.loadedPage,
+    onMore,
     // The header is the authority: it is the request that asks whether this
     // profile is reachable at all.
     notFound: currentHeader?.outcome === 'not-found',
