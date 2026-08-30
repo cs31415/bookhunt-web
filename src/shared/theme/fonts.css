@@ -1,21 +1,7 @@
 /*
  * Self-hosted faces, so the public site keeps its type on a machine that has
- * neither Futura nor Times. A face declared here costs nothing until a rule
- * asks for it, so Cabin Sketch stays parked for a swap back in tokens.css.
+ * neither the display face nor Times installed.
  */
-
-/*
- * Jost, a Futura revival, carrying the display face for everyone. One variable
- * file spans the 400, 500 and 600 the app asks for, which is smaller than the
- * three static cuts it replaces.
- */
-@font-face {
-  font-family: 'Jost';
-  font-style: normal;
-  font-weight: 400 600;
-  font-display: swap;
-  src: url('./fonts/jost-400-600.woff2') format('woff2');
-}
 
 /*
  * Tinos, metric-compatible with Times New Roman, so a visitor who has Times

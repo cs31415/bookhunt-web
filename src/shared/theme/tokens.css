@@ -36,16 +36,13 @@
    * repoint the role below. Nothing else has to move.
    */
   /*
-   * Jost leads, not Futura. It is a Futura revival but not a metric match, so
-   * leaving the system face ahead of it would break macOS lines differently
-   * from everyone else's. One face is one layout.
+   * Cabin Sketch is self-hosted, so it holds on any machine.
    *
-   * Times New Roman leads its own stack for the opposite reason: Tinos IS a
-   * metric match, so the lines are the same either way, and a visitor who
-   * already has Times never downloads the file.
+   * Times New Roman leads its own stack rather than Tinos, which sits behind
+   * it: Tinos is a metric match, so the lines are the same either way, and a
+   * visitor who already has Times never downloads the file.
    */
-  --face-display: Jost, Futura, 'Futura PT', 'Century Gothic', 'Avenir Next',
-    Avenir, sans-serif;
+  --face-display: 'Cabin Sketch', Georgia, 'Times New Roman', serif;
   --face-prose: 'Times New Roman', Times, Tinos, Georgia, serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --face-ui: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -60,6 +57,14 @@
   --mono: var(--face-mono);
   /* Plain grotesque for small UI chrome, where a display face turns to mush. */
   --ui-sans: var(--face-ui);
+  /*
+   * Text boxes, which are that same case. The sketch face draws its @ with 42
+   * contours against 19.5 for an average letter, and at the 14px of a search
+   * field that is mush -- nothing wrong with the glyph, just a display face
+   * asked to do UI work. The other common choice here is a system-UI stack, so
+   * typed text matches the OS; that is a one-line change.
+   */
+  --field: var(--face-ui);
 
   /*
    * The page-title size: the book title and the author name read it, so the two
@@ -74,9 +79,9 @@
   /* Nav links, the greeting and the sign-in: one size, three places. */
   --type-nav: 0.875rem;
   /*
-   * Taken off every size set in the prose face. Times runs large beside Jost
-   * at the same nominal size, and the ten prose rules all differ, so there is
-   * no one ratio to scale by -- but the trim itself stays one line.
+   * Taken off every size set in the prose face. The ten prose rules all carry
+   * different sizes, so there is no one ratio to scale by -- but the trim
+   * itself stays one line.
    */
   --prose-trim: 0.0625rem;
   /*

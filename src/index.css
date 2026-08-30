@@ -97,7 +97,7 @@ a {
 input,
 textarea,
 select {
-  font-family: inherit;
+  font-family: var(--field);
 }
 
 .fade-up {

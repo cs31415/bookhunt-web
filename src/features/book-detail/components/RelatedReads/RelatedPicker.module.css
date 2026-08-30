@@ -30,7 +30,7 @@
   outline: none;
   background: transparent;
   font-size: 0.875rem;
-  font-family: var(--serif);
+  font-family: var(--field);
   color: var(--ink);
 }
 
