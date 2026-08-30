@@ -87,7 +87,7 @@
 
 .author {
   font-family: var(--prose);
-  font-size: 1.125rem;
+  font-size: calc(1.125rem - var(--prose-trim));
   color: var(--ink-2);
   margin-bottom: 18px;
 }
@@ -148,7 +148,7 @@
 }
 
 .blurb {
-  font-size: 1.0625rem;
+  font-size: calc(1.0625rem - var(--prose-trim));
   line-height: 1.62;
   color: var(--ink);
   font-family: var(--prose);

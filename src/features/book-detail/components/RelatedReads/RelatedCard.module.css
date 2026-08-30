@@ -102,7 +102,7 @@
 
 .author {
   font-family: var(--prose);
-  font-size: 0.7812rem;
+  font-size: calc(0.7812rem - var(--prose-trim));
   color: var(--muted);
   margin-bottom: 7px;
 }
