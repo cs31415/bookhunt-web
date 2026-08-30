@@ -1,66 +1,110 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiActivityIndicator } from './ApiActivityIndicator';
 import { beginRequest, endRequest } from '../../../api/api-activity';
 
+// Both thresholds live in use-activity-visibility; these mirror them.
+const APPEAR_AFTER_MS = 250;
+const STAY_FOR_MS = 400;
+
+function advance(ms: number) {
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
+}
+
 describe('ApiActivityIndicator', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
   });
 
   it('renders nothing when no requests are in flight', () => {
     render(<ApiActivityIndicator />);
+    advance(APPEAR_AFTER_MS);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('shows the loader while a request is in flight and hides it once it ends', async () => {
+  // The point of the delay: most requests land inside it, and the reader who
+  // would have seen a flash now sees nothing at all.
+  it('stays hidden for a request that finishes inside the delay', () => {
     render(<ApiActivityIndicator />);
 
-    beginRequest();
-    expect(await screen.findByRole('status')).toBeInTheDocument();
+    act(() => beginRequest());
+    advance(APPEAR_AFTER_MS - 50);
+    act(() => endRequest());
+    advance(APPEAR_AFTER_MS);
 
-    endRequest();
-    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('stays visible while multiple overlapping requests are in flight', async () => {
+  it('appears once a request outlives the delay', () => {
     render(<ApiActivityIndicator />);
 
-    beginRequest();
-    beginRequest();
-    expect(await screen.findByRole('status')).toBeInTheDocument();
+    act(() => beginRequest());
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
 
-    endRequest();
+    advance(APPEAR_AFTER_MS);
     expect(screen.getByRole('status')).toBeInTheDocument();
 
-    endRequest();
-    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+    act(() => endRequest());
   });
 
-  // The request starts before the render, so the first paint already sees a
-  // non-zero count. A waitFor on an absence would pass before React had
-  // flushed anything, and so would pass with the switch ignored.
-  it('renders nothing at all when the spinner is switched off', () => {
+  // Once up it is a state, not a blink: it holds even if the request lands
+  // immediately afterwards.
+  it('holds for the minimum once it has appeared', () => {
+    render(<ApiActivityIndicator />);
+
+    act(() => beginRequest());
+    advance(APPEAR_AFTER_MS);
+    act(() => endRequest());
+
+    advance(STAY_FOR_MS - 50);
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    advance(50);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('goes away promptly when the request ran longer than the minimum', () => {
+    render(<ApiActivityIndicator />);
+
+    act(() => beginRequest());
+    advance(APPEAR_AFTER_MS + STAY_FOR_MS + 100);
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    act(() => endRequest());
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('stays up while overlapping requests keep the app busy', () => {
+    render(<ApiActivityIndicator />);
+
+    act(() => beginRequest());
+    act(() => beginRequest());
+    advance(APPEAR_AFTER_MS);
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    act(() => endRequest());
+    advance(STAY_FOR_MS + 100);
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    act(() => endRequest());
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('renders nothing at all when the indicator is switched off', () => {
     vi.stubEnv('VITE_SHOW_ACTIVITY_SPINNER', 'false');
-    beginRequest();
-    try {
-      render(<ApiActivityIndicator />);
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    } finally {
-      endRequest();
-    }
-  });
+    render(<ApiActivityIndicator />);
 
-  // Same shape as the test above, which is what makes the pair meaningful:
-  // one value hides it, the other does not, from an identical starting state.
-  it('stays on for any other value of the switch', () => {
-    vi.stubEnv('VITE_SHOW_ACTIVITY_SPINNER', 'true');
-    beginRequest();
-    try {
-      render(<ApiActivityIndicator />);
-      expect(screen.getByRole('status')).toBeInTheDocument();
-    } finally {
-      endRequest();
-    }
+    act(() => beginRequest());
+    advance(APPEAR_AFTER_MS + 100);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+    act(() => endRequest());
   });
 });

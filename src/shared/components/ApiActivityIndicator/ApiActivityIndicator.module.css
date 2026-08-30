@@ -1,9 +1,44 @@
-.indicator {
+/*
+ * Above the sticky top bar, which sits at 30, and inert: this reports, it does
+ * not stand between the reader and the page. That is the whole point of it.
+ */
+.track {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
   z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
   pointer-events: none;
+}
+
+/*
+ * Indeterminate on purpose. The activity store counts requests, not bytes, so
+ * there is no honest percentage to draw -- a bar that pretended to know would
+ * be making it up.
+ */
+.glide {
+  width: 40%;
+  height: 100%;
+  background: var(--rust);
+  animation: activity-glide 1.1s ease-in-out infinite;
+}
+
+@keyframes activity-glide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+
+/* A reader who asked for less motion still gets the report, just held still. */
+@media (prefers-reduced-motion: reduce) {
+  .glide {
+    width: 100%;
+    animation: none;
+    opacity: 0.6;
+  }
 }
