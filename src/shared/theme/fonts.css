@@ -27,19 +27,36 @@
 }
 
 /*
- * Outfit, carrying the prose. One variable file spans the 400 of body text, the
- * 600 on the sidebar author link, and the 700 RichText emits for <strong>.
+ * Tinos, standing in for Times New Roman in the prose, and metric-compatible
+ * with it -- so a visitor who has Times and one who does not read the same line
+ * breaks, and whoever has Times never downloads these at all.
  *
- * No italic is declared because Outfit has none -- no ital axis, and Google
- * serves no italic file. An <em> in a blurb gets a browser-synthesized oblique,
- * a mechanical slant of the upright rather than a drawn italic.
+ * Italic and bold are both here because RichText emits <em> and <strong> inside
+ * blurbs and bios. The italic is drawn, which is what a synthesized slant is
+ * not. 400 and 700 only, so the sidebar author link's 600 resolves to the 700.
  */
 @font-face {
-  font-family: 'Outfit';
+  font-family: 'Tinos';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 400;
   font-display: swap;
-  src: url('./fonts/outfit-400-700.woff2') format('woff2');
+  src: url('./fonts/tinos-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Tinos';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/tinos-400-italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Tinos';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/tinos-700.woff2') format('woff2');
 }
 
 /*

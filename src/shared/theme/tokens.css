@@ -38,12 +38,12 @@
   /*
    * Cabin Sketch is self-hosted, so it holds on any machine.
    *
-   * Outfit replaces Times in the prose. Its x-height is 0.460em against Times's
-   * 0.459, so nothing shifts in apparent size -- but it has no italic, so an
-   * <em> in a blurb is a synthesized oblique rather than a drawn face.
+   * Times New Roman leads the prose stack, with Tinos behind it: the two are
+   * metric-compatible, so the lines are the same either way, and a visitor who
+   * already has Times never downloads a file.
    */
   --face-display: 'Cabin Sketch', Georgia, 'Times New Roman', serif;
-  --face-prose: Outfit, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --face-prose: 'Times New Roman', Times, Tinos, Georgia, serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --face-ui: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --face-field: 'Special Elite', 'Courier New', Courier, monospace;
