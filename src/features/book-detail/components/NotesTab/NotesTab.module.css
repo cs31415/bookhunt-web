@@ -40,8 +40,3 @@
   border-color: var(--rust);
 }
 
-.hint {
-  font-size: 0.8125rem;
-  color: var(--muted);
-  margin-top: 10px;
-}

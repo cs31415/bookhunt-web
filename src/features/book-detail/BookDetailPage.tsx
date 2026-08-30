@@ -254,7 +254,6 @@ export function BookDetailPage() {
           <NotesTab
             userRating={libraryEntry?.userRating ?? 0}
             initialNotes={libraryEntry?.notes ?? ''}
-            inLibrary={Boolean(libraryEntry)}
             onRatingChange={handleRate}
             onSaveNotes={handleSaveNotes}
           />
