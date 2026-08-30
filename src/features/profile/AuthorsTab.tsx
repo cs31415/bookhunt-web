@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { isAbortError } from '../../api/client';
 import {
@@ -11,6 +11,7 @@ import { toast } from '../../shared/toast/toast-store';
 import { pluralize } from '../../shared/lib/text';
 import { PublicTick } from './PublicTick';
 import { VisibilityBar } from './VisibilityBar';
+import { useEditMode } from './useEditMode';
 import styles from './ProfilePage.module.css';
 
 /**
@@ -31,6 +32,9 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
   // server; a key drops out again once it agrees with the fetched list.
   const [staged, setStaged] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  // Behind Edit like the book grid's ticks, so the list reads as a list until
+  // the owner says otherwise (LOS-346).
+  const edit = useEditMode(useCallback(() => setStaged({}), []));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -91,7 +95,9 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
         row.slug in done ? { ...row, isHidden: done[row.slug] } : row,
       ),
     );
-    setStaged({});
+    // Leaves the mode with the staging, as the book grid does: a save is the
+    // end of the task, not a step in it.
+    edit.exit();
     setSaving(false);
 
     if (failed.length > 0) {
@@ -124,11 +130,13 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
         <VisibilityBar
           publicCount={shown.filter((author) => !author.isHidden).length}
           total={shown.length}
+          editing={edit.editing}
+          onEdit={edit.enter}
+          onExit={edit.exit}
           onSetAll={(nextShown) => stage(authors, !nextShown)}
           dirtyCount={Object.keys(staged).length}
           saving={saving}
           onSave={save}
-          onCancel={() => setStaged({})}
         />
       )}
 
@@ -143,7 +151,7 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
             </span>
             {/* After the name rather than before it: the row reads as the
                 author first, then what is done with them. */}
-            {owner && (
+            {owner && edit.editing && (
               <PublicTick
                 shown={!author.isHidden}
                 onChange={(shown) => stage([author], !shown)}

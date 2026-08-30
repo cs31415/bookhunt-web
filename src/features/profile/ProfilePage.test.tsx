@@ -93,6 +93,11 @@ function tickFor(title: string) {
   return within(screen.getByRole('group', { name: title })).getByRole('checkbox');
 }
 
+/** The ticks live behind Edit (LOS-346), so most owner tests start by pressing it. */
+async function enterEdit() {
+  await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+}
+
 function renderProfile(path = '/ada') {
   const router = createMemoryRouter([{ path: '/:handle', element: <ProfilePage /> }], {
     initialEntries: [path],
@@ -355,22 +360,25 @@ describe('ProfilePage as the owner', () => {
     } as never);
     renderProfile();
 
-    const card = within(await screen.findByRole('group', { name: 'Cosmos' }));
-    expect(card.getByText('4.2')).toBeInTheDocument();
-    expect(card.getByText('Your rating 5.0')).toBeInTheDocument();
+    // Not scoped to a card group: outside edit mode a card carries no action,
+    // so BookCard has nothing to group and does not.
+    await screen.findByRole('button', { name: /Cosmos/ });
+    expect(screen.getByText('4.2')).toBeInTheDocument();
+    expect(screen.getByText('Your rating 5.0')).toBeInTheDocument();
   });
 
   it('says nothing about a rating the reader never gave', async () => {
     renderProfile();
 
-    const card = within(await screen.findByRole('group', { name: 'Cosmos' }));
-    expect(card.queryByText(/Your rating/)).not.toBeInTheDocument();
+    await screen.findByRole('button', { name: /Cosmos/ });
+    expect(screen.queryByText(/Your rating/)).not.toBeInTheDocument();
   });
 
   it('ticks what is public and leaves a hidden book unticked', async () => {
     renderProfile();
 
     expect(await screen.findByRole('button', { name: /Secret/ })).toBeInTheDocument();
+    await enterEdit();
     expect(tickFor('Cosmos')).toBeChecked();
     expect(tickFor('Cosmos')).toHaveAccessibleName('Hide from public profile');
     expect(tickFor('Secret')).not.toBeChecked();
@@ -381,6 +389,7 @@ describe('ProfilePage as the owner', () => {
   it('stages a tick rather than writing it, until Save', async () => {
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
+    await enterEdit();
     const tick = tickFor('Cosmos');
 
     await userEvent.click(tick);
@@ -398,26 +407,33 @@ describe('ProfilePage as the owner', () => {
   it('offers no Save until something is staged', async () => {
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
+    await enterEdit();
 
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
   });
 
+  // Cancel now also leaves the mode, which is the one meaning of backing out.
   it('drops the staged ticks on Cancel, writing nothing', async () => {
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
-    const tick = tickFor('Cosmos');
-    await userEvent.click(tick);
+    await enterEdit();
+    await userEvent.click(tickFor('Cosmos'));
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(tick).toBeChecked();
     expect(mockedSetHidden).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+
+    // Back in, the tick is where the shelf says it is rather than where it was left.
+    await enterEdit();
+    expect(tickFor('Cosmos')).toBeChecked();
   });
 
   it('forgets a tick moved back to where it started', async () => {
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
+    await enterEdit();
     const tick = tickFor('Cosmos');
 
     await userEvent.click(tick);
@@ -431,19 +447,22 @@ describe('ProfilePage as the owner', () => {
     mockedSetHidden.mockRejectedValue(new ApiError(500, 'Internal server error'));
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
-    const tick = tickFor('Cosmos');
+    await enterEdit();
 
-    await userEvent.click(tick);
+    await userEvent.click(tickFor('Cosmos'));
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     // Falls back to whatever the server last said, never claiming a state it
-    // refused.
-    await waitFor(() => expect(tick).toBeChecked());
+    // refused. Saving ends the mode, so this looks again from outside it.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument());
+    await enterEdit();
+    expect(tickFor('Cosmos')).toBeChecked();
   });
 
   it('reaches the whole tab from Show all, not the page on screen', async () => {
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
+    await enterEdit();
 
     await userEvent.click(screen.getByRole('button', { name: 'Show all 2' }));
     // One book of the two is hidden, so only that one is a change to save.
@@ -455,7 +474,12 @@ describe('ProfilePage as the owner', () => {
     expect(mockedSetHidden).toHaveBeenCalledWith(2, false);
   });
 
-  it('offers the other direction when every book already agrees', async () => {
+  /*
+   * Two buttons now, not one that flips (LOS-346). Each says what it does and
+   * goes quiet when there is nothing left for it to do, so neither is ever an
+   * instruction that would be a no-op.
+   */
+  it('offers both directions, and disables the one with nothing to do', async () => {
     mockedLibrary.mockResolvedValue({
       entries: [rawEntry(1, 'Cosmos')] as never,
       total: 1,
@@ -464,8 +488,67 @@ describe('ProfilePage as the owner', () => {
     } as never);
     renderProfile();
     await screen.findByRole('button', { name: /Cosmos/ });
+    await enterEdit();
 
-    expect(screen.getByRole('button', { name: 'Hide all 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show all 1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Hide all 1' })).toBeEnabled();
+  });
+
+  it('disables Hide when every book is already hidden', async () => {
+    mockedLibrary.mockResolvedValue({
+      entries: [rawEntry(1, 'Cosmos', { is_hidden: true })] as never,
+      total: 1,
+      page: 1,
+      pageSize: 60,
+    } as never);
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+    await enterEdit();
+
+    expect(screen.getByRole('button', { name: 'Hide all 1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Show all 1' })).toBeEnabled();
+  });
+
+  // The point of the mode: a shelf being read is not a shelf being edited.
+  it('keeps the ticks out of sight until Edit is pressed', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    expect(screen.queryByRole('checkbox', { name: /public profile/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Show all/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Hide all/ })).not.toBeInTheDocument();
+
+    await enterEdit();
+
+    expect(tickFor('Cosmos')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show all 2' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hide all 2' })).toBeInTheDocument();
+    // Edit has handed over to them rather than sitting alongside.
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+  });
+
+  it('leaves the mode on Done when nothing is staged', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+    await enterEdit();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /public profile/ })).not.toBeInTheDocument();
+  });
+
+  // Escape is the way out of every other transient state on these pages.
+  it('leaves the mode on Escape, dropping what was staged', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+    await enterEdit();
+    await userEvent.click(tickFor('Cosmos'));
+
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(mockedSetHidden).not.toHaveBeenCalled();
   });
 
   it('publishes the page from the switch, on the spot', async () => {
@@ -574,6 +657,10 @@ describe('the Authors tab', () => {
 
     renderProfile('/ada?tab=favorites&sub=authors');
     await screen.findByRole('link', { name: 'Ursula Le Guin' });
+    // The author ticks sit behind Edit too (LOS-346): the two lists share the
+    // bar, so they share the mode rather than disagreeing about it.
+    expect(screen.queryByRole('checkbox', { name: /public profile/ })).not.toBeInTheDocument();
+    await enterEdit();
     const tick = screen.getByRole('checkbox', { name: 'Hide from public profile' });
 
     await userEvent.click(tick);
@@ -584,7 +671,8 @@ describe('the Authors tab', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(mockedSetAuthorHidden).toHaveBeenCalledWith('ursula-le-guin', true);
-    await waitFor(() => expect(tick).not.toBeChecked());
+    // Saving leaves the mode, so the ticks go with it.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument());
   });
 });
 

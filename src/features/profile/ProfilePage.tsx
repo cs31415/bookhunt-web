@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BookCard } from '../../shared/components/BookCard/BookCard';
@@ -10,6 +10,7 @@ import { useShelfParams, showsAuthors, PAGE_SIZE, TABS, SUB_TABS } from './useSh
 import type { FavoritesSub, ShelfParams } from './useShelfParams';
 import { PublicTick } from './PublicTick';
 import { VisibilityBar } from './VisibilityBar';
+import { useEditMode } from './useEditMode';
 import { buildBookHref } from '../../shared/lib/build-book-href';
 import { useAuth } from '../auth/AuthContext';
 import { updateMe } from '../../api/users/update-me';
@@ -263,6 +264,9 @@ function OwnerProfile({
   // saved with; a key disappears again as soon as it agrees with the shelf.
   const [staged, setStaged] = useState<Record<number, boolean>>({});
   const [saving, setSaving] = useState(false);
+  // The ticks are the edit mode: out of it the shelf is a shelf, and the only
+  // thing a book offers is being opened (LOS-346).
+  const edit = useEditMode(useCallback(() => setStaged({}), []));
 
   // What the server last said, as the ticks would be without the staging.
   const saved = useMemo(() => flags.apply(entries), [entries, flags]);
@@ -339,8 +343,9 @@ function OwnerProfile({
     if (toShow.length > 0) await flags.hideMany(toShow, false);
     setSaving(false);
     // Dropped whatever the writes did: the overrides now carry the answer, and
-    // a failed one has fallen back to what the server says.
-    setStaged({});
+    // a failed one has fallen back to what the server says. Leaving the mode
+    // with it -- a save is the end of the task, not a step in it.
+    edit.exit();
   }
 
   if (loading) return <Loader />;
@@ -387,17 +392,21 @@ function OwnerProfile({
           <VisibilityBar
             publicCount={shown.filter((entry) => !entry.isHidden).length}
             total={shown.length}
+            editing={edit.editing}
+            onEdit={edit.enter}
+            onExit={edit.exit}
             onSetAll={(shownNext) => stage(shown, !shownNext)}
             dirtyCount={Object.keys(staged).length}
             saving={saving}
             onSave={save}
-            onCancel={() => setStaged({})}
           />
           <Grid
             entries={pageItems}
             navigate={navigate}
             onSelectSubject={onSelectSubject}
-            onToggleShown={(entry, shownNext) => stage([entry], !shownNext)}
+            onToggleShown={
+              edit.editing ? (entry, shownNext) => stage([entry], !shownNext) : undefined
+            }
           />
           <LoadMore shown={pageItems.length} total={shown.length} onMore={onMore} />
           </div>
