@@ -108,6 +108,13 @@
    */
   --book-grid-min: 6.75rem;
   --book-grid-gap: 26px;
+  /*
+   * The whole track expression, not just the minimum. It was this same line
+   * copied into six stylesheets, so changing how the shelf breaks up meant
+   * finding all six -- and a phone rule that wants a fixed count, rather than
+   * a different minimum, had nowhere to live at all.
+   */
+  --book-grid-columns: repeat(auto-fill, minmax(var(--book-grid-min), 1fr));
 }
 
 /*
@@ -132,6 +139,20 @@
 @media (max-width: 1024px) and (orientation: portrait) {
   :root {
     --book-grid-min: 3.375rem;
+  }
+}
+
+/*
+ * A phone held upright gets three columns, counted rather than fitted.
+ * auto-fill was giving it four or five tracks a few characters wide.
+ *
+ * This supersedes --book-grid-min above on a phone: three tracks across a
+ * 390px screen are wider than that minimum, not narrower. minmax(0, 1fr)
+ * rather than 1fr so a long title cannot push a track past its share.
+ */
+@media (max-width: 640px) and (orientation: portrait) {
+  :root {
+    --book-grid-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
