@@ -4,17 +4,18 @@
  */
 
 /*
- * Outfit, carrying the text boxes. A geometric sans rather than the system
- * grotesque: it draws its @ with 5 contours where the sketch face uses 42, so
- * it survives a 14px field. One variable file spans the 400-500 a text box
- * asks for.
+ * Special Elite, carrying the text boxes. A distressed typewriter face: the
+ * character is in the irregular inked edges, not in extra contours, so it draws
+ * its @ with 2 where the sketch face uses 42 and survives a 14px field.
+ *
+ * One weight, which is all a text box asks for -- none of the seven sets one.
  */
 @font-face {
-  font-family: 'Outfit';
+  font-family: 'Special Elite';
   font-style: normal;
-  font-weight: 400 500;
+  font-weight: 400;
   font-display: swap;
-  src: url('./fonts/outfit-400-500.woff2') format('woff2');
+  src: url('./fonts/special-elite-400.woff2') format('woff2');
 }
 
 /*
