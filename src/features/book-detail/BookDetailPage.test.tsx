@@ -176,6 +176,55 @@ describe('BookDetailPage', () => {
   });
 
   /*
+   * The catalogue's rating is a fact about the book, not about the reader, so
+   * it does not follow the sections that hide (LOS-368).
+   */
+  describe('the catalogue rating', () => {
+    it('shows the figure when the catalogue has one', async () => {
+      mockedGetBook.mockResolvedValue({ book: { ...rawBook, rating: 4.2 }, inLibrary: false });
+
+      renderBookDetailPage('night-watch');
+
+      expect(await screen.findByText('Average rating')).toBeInTheDocument();
+      expect(screen.getByText('4.2')).toBeInTheDocument();
+    });
+
+    /*
+     * Around four in five books have none -- Google Books returns averageRating
+     * only for volumes with enough ratings. The section says so rather than
+     * disappearing, and says it in words: five empty stars would claim the book
+     * scored nothing, which is a different thing from nobody having scored it.
+     */
+    it('says so when the catalogue has none, rather than vanishing', async () => {
+      renderBookDetailPage('night-watch');
+
+      expect(await screen.findByText('Average rating')).toBeInTheDocument();
+      expect(screen.getByText('Not rated by the catalogue')).toBeInTheDocument();
+    });
+
+    it('shows it to a signed-out visitor', async () => {
+      mockedGetBook.mockResolvedValue({ book: { ...rawBook, rating: 4.2 }, inLibrary: false });
+      const element = (
+        <>
+          <BookDetailPage />
+          <LocationProbe />
+        </>
+      );
+      const router = createMemoryRouter([{ path: '/books/:slug', element }], {
+        initialEntries: ['/books/night-watch'],
+      });
+      render(
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>,
+      );
+
+      expect(await screen.findByText('Average rating')).toBeInTheDocument();
+      expect(screen.getByText('4.2')).toBeInTheDocument();
+    });
+  });
+
+  /*
    * "My review" is the reader's own, so there has to be a reader (LOS-364).
    * Signed out there is no "my" to speak of, and the editor would be a box that
    * cannot save: writing a review needs a library entry, which needs an account.
@@ -317,6 +366,8 @@ describe('BookDetailPage', () => {
       renderVisiting('night-watch', 'ada');
 
       expect(await screen.findByText('Theirs.')).toBeInTheDocument();
+      // The catalogue rating is about the book, so it stays (LOS-368).
+      expect(screen.getByText('Average rating')).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'My review' })).not.toBeInTheDocument();
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       // Nor the reader's own curation, for the same reason: this page is about

@@ -143,18 +143,36 @@ export function Hero({
           own ratings on one screen and left it unclear which one counted
           (LOS-349). The review section is the one that keeps it, since that is
           where a reader is already saying what they thought.
+
+          Shown whatever the reader's situation -- signed out, or reading
+          somebody else's copy under `?u=`. This is a fact about the book, not
+          about them, so unlike the sections below it never depends on who is
+          looking (LOS-368).
+
+          Present even with no figure to show, which is most books: Google Books
+          returns averageRating only for volumes carrying enough ratings, so
+          around four in five have none. Saying so is better than the section
+          vanishing, which reads as the page having lost something.
+
+          No stars in that case, deliberately. Five empty ones say the book
+          scored nothing, which is a different claim from nobody having scored
+          it.
         */}
-        {book.rating != null && (
-          <div className={styles.ratings}>
-            <div className={styles.ratingGroup}>
-              <span className={styles.eyebrow}>Average rating</span>
+        <div className={styles.ratings}>
+          <div className={styles.ratingGroup}>
+            <span className={styles.eyebrow}>Average rating</span>
+            {book.rating != null ? (
               <div className={styles.ratingRow}>
                 <Stars value={book.rating} mode="display" />
                 <span className={styles.ratingValue}>{book.rating.toFixed(1)}</span>
               </div>
-            </div>
+            ) : (
+              <div className={styles.ratingRow}>
+                <span className={styles.unrated}>Not rated by the catalogue</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {meta && <div className={styles.meta}>{meta}</div>}
         {/*
