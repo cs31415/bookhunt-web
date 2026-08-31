@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-do
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BookDetailPage } from './BookDetailPage';
 import { getBook } from '../../api/books/get-book';
+import { getPublicEntry } from '../../api/users/get-public-entry';
 import { setFavorite } from '../../api/library/set-favorite';
 import { getAuthor } from '../../api/authors/get-author';
 import { getBooksByIds } from '../../api/books/get-books-by-ids';
@@ -14,6 +15,7 @@ import { removeEntry } from '../../api/library/remove-entry';
 import { ApiError } from '../../api/client';
 
 vi.mock('../../api/books/get-book');
+vi.mock('../../api/users/get-public-entry');
 vi.mock('../../api/library/set-favorite');
 vi.mock('../../api/authors/get-author');
 vi.mock('../../api/books/get-books-by-ids');
@@ -26,6 +28,7 @@ vi.mock('../../api/library/add-related');
 vi.mock('../../api/library/remove-related');
 
 const mockedGetBook = vi.mocked(getBook);
+const mockedPublicEntry = vi.mocked(getPublicEntry);
 const mockedGetAuthor = vi.mocked(getAuthor);
 const mockedGetBooksByIds = vi.mocked(getBooksByIds);
 const mockedGenerateThemes = vi.mocked(generateThemes);
@@ -149,6 +152,81 @@ describe('BookDetailPage', () => {
     renderBookDetailPage('missing-book');
 
     expect(await screen.findByText('Book not found.')).toBeInTheDocument();
+  });
+
+  /*
+   * Reached from someone's shelf: the page shows their entry, and every control
+   * that would write goes with it. Reading their review beside a box that saves
+   * over your own is the worst version of this (LOS-360).
+   */
+  describe('arriving from another reader\'s shelf', () => {
+    function renderVisiting(slug: string, handle: string) {
+      const element = (
+        <>
+          <BookDetailPage />
+          <LocationProbe />
+        </>
+      );
+      const router = createMemoryRouter([{ path: '/books/:slug', element }], {
+        initialEntries: [`/books/${slug}?u=${handle}`],
+      });
+      render(<RouterProvider router={router} />);
+      return router;
+    }
+
+    it('shows their review, and no editor at all', async () => {
+      mockedPublicEntry.mockResolvedValue({
+        entry: {
+          book_id: 95,
+          status: 'finished',
+          user_rating: 5,
+          review: 'The best thing I read all year.',
+        } as never,
+      });
+
+      renderVisiting('night-watch', 'ada');
+
+      expect(await screen.findByText('The best thing I read all year.')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /ada.s review/i })).toBeInTheDocument();
+      // No box to type in, disabled or otherwise.
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Save$/ })).not.toBeInTheDocument();
+    });
+
+    it('asks for that reader\'s entry, not the caller\'s', async () => {
+      mockedPublicEntry.mockResolvedValue({
+        entry: { book_id: 95, status: 'finished', user_rating: 4, review: 'Good.' } as never,
+      });
+
+      renderVisiting('night-watch', 'ada');
+
+      await waitFor(() =>
+        expect(mockedPublicEntry).toHaveBeenCalledWith('ada', 95, expect.anything()),
+      );
+    });
+
+    /*
+     * Every way this can be unavailable is one answer: no such reader, a page
+     * not listed, a book they do not have, one they hid, and a review they
+     * never published. The page says nothing was shared rather than guessing
+     * which, and still never offers an editor.
+     */
+    it('says nothing was shared when there is nothing to see', async () => {
+      mockedPublicEntry.mockRejectedValue(new ApiError(404, 'Not found'));
+
+      renderVisiting('night-watch', 'ada');
+
+      expect(await screen.findByText('Nothing shared for this book.')).toBeInTheDocument();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
+
+    it('keeps the editor on the ordinary book page', async () => {
+      renderBookDetailPage('night-watch');
+
+      expect(await screen.findByRole('heading', { name: 'My review' })).toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(mockedPublicEntry).not.toHaveBeenCalled();
+    });
   });
 
   it('shows the review section with the rating control', async () => {
