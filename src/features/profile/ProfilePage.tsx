@@ -227,7 +227,7 @@ function VisitorProfileView({
             {/* Dimmed rather than replaced: the previous answer stays readable,
                 and the search box keeps focus because nothing unmounts. */}
             <div className={searching ? styles.searching : undefined}>
-              <Grid entries={entries} navigate={navigate} onSelectSubject={onSelectSubject} />
+              <Grid entries={entries} navigate={navigate} />
             </div>
             <LoadMore shown={entries.length} total={total} onMore={onMore} busy={loadingMore} />
           </div>
@@ -403,7 +403,6 @@ function OwnerProfile({
           <Grid
             entries={pageItems}
             navigate={navigate}
-            onSelectSubject={onSelectSubject}
             onToggleShown={
               edit.editing ? (entry, shownNext) => stage([entry], !shownNext) : undefined
             }
@@ -651,13 +650,10 @@ export function Tabs({
 export function Grid({
   entries,
   navigate,
-  onSelectSubject,
   onToggleShown,
 }: {
   entries: LibraryEntry[];
   navigate: ReturnType<typeof useNavigate>;
-  /** Filters the shelf to that category, reusing what the search box builds. */
-  onSelectSubject?: (subject: string) => void;
   /** Owner only. Absent for a visitor, who gets no ticks at all. */
   onToggleShown?: (entry: LibraryEntry, shown: boolean) => void;
 }) {
@@ -678,11 +674,6 @@ export function Grid({
           // Both scores, since the shelf is a reader's and the stars alone
           // were the catalog's (LOS-291).
           userRating={entry.userRating}
-          // What the row is about, which the shelf said nothing about before
-          // (LOS-304). Fewer than the book page's ten: a shelf row has less
-          // space than a detail card, and three carry the sense.
-          subjects={entry.subjects}
-          onSubjectClick={onSelectSubject}
           onClick={() => navigate(buildBookHref(entry.book))}
           // The same slot the library grid uses for its select box. A tick
           // means the book is on the public page; no separate badge says so
