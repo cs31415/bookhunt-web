@@ -20,7 +20,10 @@ export interface VisitorReviewProps {
  */
 export function VisitorReview({ review, userRating }: VisitorReviewProps) {
   if (!review && !userRating) {
-    return <p className={styles.empty}>Nothing shared for this book.</p>;
+    // "None yet" rather than "Nothing shared": the line covers a review never
+    // written as well as one held back, and it should not imply the second
+    // (LOS-373).
+    return <p className={styles.empty}>None yet</p>;
   }
 
   return (
