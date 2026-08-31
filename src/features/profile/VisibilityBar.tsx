@@ -63,7 +63,18 @@ export function VisibilityBar({
            * Two buttons rather than one that flips. A single toggle has to read
            * the list to decide what it means, which makes it a different button
            * on a mixed list than on a uniform one; these two always say what
-           * they do, and go quiet when there is nothing left for them to do.
+           * they do.
+           *
+           * Each goes quiet only when it provably cannot write anything: Show
+           * all on a list that is entirely shown, Hide all on one entirely
+           * hidden. A button that could do nothing at all should say so.
+           *
+           * That is a narrower rule than it looks, and it does not contradict
+           * what a press does (LOS-358). On a mixed list both stay live, and
+           * pressing one still ticks every row -- including the ones already in
+           * that state, which contribute nothing to the count beside it. The
+           * disabling is about the whole list having nothing to write; the
+           * ticking is about what you selected.
            */}
           <button
             type="button"

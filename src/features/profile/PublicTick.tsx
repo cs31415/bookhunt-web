@@ -1,20 +1,27 @@
 import styles from './ProfilePage.module.css';
 
 /**
- * The owner's tick, with words for what pressing it would do.
+ * The owner's tick: whether this row appears on the public page.
  *
- * The label names the action rather than the state — "Display on public
- * profile" while it is off — because a bare box under a cover says nothing
- * about what it governs.
+ * One fixed word, and the box carries the meaning -- checked is shown, unchecked
+ * is hidden. That is the ordinary reading of a checkbox, and it is what the
+ * label had stopped doing (LOS-358): it used to name the *action*, so a ticked
+ * box read "Hide from public profile" and said the opposite of what the tick
+ * meant. A label that changes as you work is one more thing to track.
  *
- * The label wraps the box, so the visible words are the accessible name too.
- * What the tick belongs to comes from its surroundings: BookCard groups each
- * card under the book's title, and an author row carries the author's name.
+ * So a wholly public library opens with every box ticked, and that is now simply
+ * true rather than the alarming thing it was when the words disagreed.
+ *
+ * The label wraps the box, so the visible word is the accessible name too. One
+ * word is enough because what the tick belongs to comes from its surroundings:
+ * BookCard groups each card under the book's title, and an author row carries
+ * the author's name.
  */
 export function PublicTick({
   shown,
   onChange,
 }: {
+  /** Whether the row is on the public page, with any staged change applied. */
   shown: boolean;
   onChange: (shown: boolean) => void;
 }) {
@@ -26,9 +33,7 @@ export function PublicTick({
         checked={shown}
         onChange={(event) => onChange(event.target.checked)}
       />
-      <span className={styles.tickText}>
-        {shown ? 'Hide from public profile' : 'Display on public profile'}
-      </span>
+      <span className={styles.tickText}>Show</span>
     </label>
   );
 }

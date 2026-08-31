@@ -52,15 +52,19 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
     return () => controller.abort();
   }, [handle, owner]);
 
+  /** What the fetched list says, before anything was staged over it. */
+  const savedHidden = (slug: string) =>
+    Boolean((authors ?? []).find((author) => author.slug === slug)?.isHidden);
+
+  /**
+   * Records what each row would become, dropping anything that matches the
+   * fetched list again: back to where it started is no longer a change to save.
+   */
   function stage(rows: FavoriteAuthor[], isHidden: boolean) {
     setStaged((current) => {
       const next = { ...current };
       for (const row of rows) {
-        // Against the fetched list rather than the row handed in, which may
-        // already carry a staged value: back to what the server says is no
-        // longer a change to save.
-        const saved = (authors ?? []).find((author) => author.slug === row.slug);
-        if (Boolean(saved?.isHidden) === isHidden) delete next[row.slug];
+        if (savedHidden(row.slug) === isHidden) delete next[row.slug];
         else next[row.slug] = isHidden;
       }
       return next;
@@ -154,7 +158,7 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
             {owner && edit.editing && (
               <PublicTick
                 shown={!author.isHidden}
-                onChange={(shown) => stage([author], !shown)}
+                onChange={(next) => stage([author], !next)}
               />
             )}
           </li>

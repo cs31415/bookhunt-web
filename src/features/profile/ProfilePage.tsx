@@ -322,6 +322,11 @@ function OwnerProfile({
     [saved],
   );
 
+  /**
+   * Records what each row would become, dropping anything that matches the
+   * shelf again: a tick moved back to where it started is no longer a change to
+   * save, so the count beside the bar stays honest.
+   */
   function stage(items: LibraryEntry[], hidden: boolean) {
     setStaged((current) => {
       const next = { ...current };
@@ -403,8 +408,15 @@ function OwnerProfile({
           <Grid
             entries={pageItems}
             navigate={navigate}
-            onToggleShown={
-              edit.editing ? (entry, shownNext) => stage([entry], !shownNext) : undefined
+            renderAction={
+              edit.editing
+                ? (entry) => (
+                    <PublicTick
+                      shown={!entry.isHidden}
+                      onChange={(next) => stage([entry], !next)}
+                    />
+                  )
+                : undefined
             }
           />
           <LoadMore shown={pageItems.length} total={shown.length} onMore={onMore} />
@@ -650,12 +662,15 @@ export function Tabs({
 export function Grid({
   entries,
   navigate,
-  onToggleShown,
+  renderAction,
 }: {
   entries: LibraryEntry[];
   navigate: ReturnType<typeof useNavigate>;
-  /** Owner only. Absent for a visitor, who gets no ticks at all. */
-  onToggleShown?: (entry: LibraryEntry, shown: boolean) => void;
+  /**
+   * Owner only, and absent for a visitor. A rendered control rather than a
+   * callback, so the grid does not have to know what staging is (LOS-358).
+   */
+  renderAction?: (entry: LibraryEntry) => ReactNode;
 }) {
   if (entries.length === 0) {
     return <p className={styles.message}>Nothing here yet.</p>;
@@ -675,17 +690,8 @@ export function Grid({
           // were the catalog's (LOS-291).
           userRating={entry.userRating}
           onClick={() => navigate(buildBookHref(entry.book))}
-          // The same slot the library grid uses for its select box. A tick
-          // means the book is on the public page; no separate badge says so
-          // as well, because the tick already does.
-          action={
-            onToggleShown && (
-              <PublicTick
-                shown={!entry.isHidden}
-                onChange={(shown) => onToggleShown(entry, shown)}
-              />
-            )
-          }
+          // The same slot the library grid uses for its select box.
+          action={renderAction?.(entry)}
         />
       ))}
     </div>
