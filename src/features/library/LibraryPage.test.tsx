@@ -591,14 +591,15 @@ describe('LibraryPage', () => {
       expect(within(card).getByText('Ebook')).toBeInTheDocument();
     });
 
-    // The eyebrow is one line and two flags can be true at once, so it says
-    // both rather than letting the first one win.
-    it('badges a hidden ebook as both', async () => {
+    // Hiding is a setting, not a property of the copy, and it is set and shown
+    // on the profile page. The eyebrow says nothing about it (LOS-375).
+    it('says nothing about hiding on a hidden ebook', async () => {
       mockLibrary([{ ...kindleDune, is_hidden: true }], { reading: 1 });
       renderLibrary();
 
       const card = await screen.findByRole('group', { name: 'Dune' });
-      expect(within(card).getByText('Ebook · Hidden from your public page')).toBeInTheDocument();
+      expect(within(card).getByText('Ebook')).toBeInTheDocument();
+      expect(within(card).queryByText(/Hidden/)).not.toBeInTheDocument();
     });
 
     it('marks the copy as an ebook from the card menu', async () => {

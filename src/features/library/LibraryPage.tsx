@@ -42,14 +42,17 @@ function asStatus(value: string | null): LibraryStatus | null {
 /**
  * The card's eyebrow line, which the library grid uses for nothing else: it is
  * already recessive and sits above the title, which is what a badge wants.
- * Joined rather than chosen between, so a hidden ebook reads as both instead of
- * one silently winning.
+ * Joined rather than chosen between, so a book that is both reads as both
+ * instead of one silently winning.
+ *
+ * Format only. Whether a book shows on the public profile used to sit here too
+ * (LOS-375), but that is a setting rather than a property of the copy, and the
+ * profile page is where it is both set and shown.
  */
 function cardBadges(entry: LibraryEntry): string | undefined {
   const badges: string[] = [];
   if (entry.isEbook) badges.push('Ebook');
   if (entry.isAudiobook) badges.push('Audiobook');
-  if (entry.isHidden) badges.push('Hidden from your public page');
   return badges.length > 0 ? badges.join(' · ') : undefined;
 }
 
