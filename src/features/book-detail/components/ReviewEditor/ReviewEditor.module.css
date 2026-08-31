@@ -44,6 +44,7 @@
 .actions {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
   margin-top: 12px;
 }
 
@@ -76,5 +77,71 @@
 @media (prefers-reduced-motion: no-preference) {
   .saveButton {
     transition: opacity 0.14s ease, box-shadow 0.14s ease;
+  }
+}
+
+
+/* Secondary to Save, which is the filled one: this only opens the box. */
+.editButton {
+  padding: 7px 16px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.8438rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Leaving without writing anything is the quiet option, so it carries no
+   border at all -- only Save should look like a thing to press. */
+.cancelButton {
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.8438rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cancelButton:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.empty {
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+@media (hover: hover) {
+  .editButton:hover,
+  .cancelButton:hover:not(:disabled) {
+    border-color: var(--rust);
+    color: var(--rust);
+  }
+}
+
+/*
+ * Phones and tablets, iPad in either orientation included. A fixed 220px box is
+ * about six lines on a phone, which is too small a window to write a review
+ * through -- so it grows with the screen instead, and keeps a floor for the
+ * short ones.
+ *
+ * The text is held at 16px rather than reduced. Below that, iOS Safari zooms
+ * the page when the box takes focus, which leaves the reader looking at *less*
+ * of their review, not more. Height is the way to fit more in here; type size
+ * would work against itself.
+ */
+@media (max-width: 1024px) {
+  .textarea {
+    min-height: max(50vh, 240px);
+    font-size: 1rem;
+    padding: 14px 15px;
   }
 }

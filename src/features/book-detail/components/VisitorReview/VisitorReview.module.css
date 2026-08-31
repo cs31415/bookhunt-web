@@ -11,14 +11,6 @@
   color: var(--muted);
 }
 
-/* The prose face, like every other passage of someone's writing on this page. */
-.review {
-  font-family: var(--prose);
-  font-size: 0.9688rem;
-  line-height: 1.7;
-  color: var(--ink);
-}
-
 .empty {
   font-size: 0.875rem;
   color: var(--muted);

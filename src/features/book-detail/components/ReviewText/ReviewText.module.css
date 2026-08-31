@@ -1,0 +1,7 @@
+/* The prose face, like every other passage of someone's writing on this page. */
+.review {
+  font-family: var(--prose);
+  font-size: 0.9688rem;
+  line-height: 1.7;
+  color: var(--ink);
+}
