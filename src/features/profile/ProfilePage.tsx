@@ -317,6 +317,24 @@ function OwnerProfile({
 
   // Compared against, so a tick moved back to what the shelf says stops
   // counting as a change rather than being saved as a no-op.
+  /**
+   * What the grid draws: the shelf as a visitor would see it, until Edit is
+   * pressed (LOS-362).
+   *
+   * A book kept off the public page is absent here too, so the profile means
+   * one thing -- this is what someone else gets -- and Edit is where the rest
+   * of the library comes into view to be managed.
+   *
+   * Deliberately not `shown` itself: the bar above still counts the whole
+   * shelf, because "300 of 349 shown publicly" is the sentence that explains
+   * why there is an Edit button at all. Narrowed to the visible set it would
+   * read "349 of 349" and say nothing.
+   */
+  const visible = useMemo(
+    () => (edit.editing ? shown : shown.filter((entry) => !entry.isHidden)),
+    [shown, edit.editing],
+  );
+
   const savedHidden = useMemo(
     () => new Map(saved.map((entry) => [entry.book.id, Boolean(entry.isHidden)])),
     [saved],
@@ -355,7 +373,7 @@ function OwnerProfile({
 
   if (loading) return <Loader />;
 
-  const pageItems = shown.slice(0, shownCount);
+  const pageItems = visible.slice(0, shownCount);
 
   return (
     <div className={styles.page}>
@@ -419,7 +437,7 @@ function OwnerProfile({
                 : undefined
             }
           />
-          <LoadMore shown={pageItems.length} total={shown.length} onMore={onMore} />
+          <LoadMore shown={pageItems.length} total={visible.length} onMore={onMore} />
           </div>
         </div>
       )}

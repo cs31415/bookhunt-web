@@ -394,7 +394,7 @@ describe('ProfilePage as the owner', () => {
   it('ticks what is public and leaves a hidden book unticked', async () => {
     renderProfile();
 
-    expect(await screen.findByRole('button', { name: /Secret/ })).toBeInTheDocument();
+    await screen.findByRole('button', { name: /Cosmos/ });
     await enterEdit();
 
     expect(tickFor('Cosmos')).toBeChecked();
@@ -406,7 +406,7 @@ describe('ProfilePage as the owner', () => {
 
   it('moves the box without changing the word', async () => {
     renderProfile();
-    await screen.findByRole('button', { name: /Secret/ });
+    await screen.findByRole('button', { name: /Cosmos/ });
     await enterEdit();
 
     await userEvent.click(tickFor('Secret'));
@@ -418,7 +418,7 @@ describe('ProfilePage as the owner', () => {
   // Back to where it started is no longer a change to save.
   it('forgets a tick moved back to where it was', async () => {
     renderProfile();
-    await screen.findByRole('button', { name: /Secret/ });
+    await screen.findByRole('button', { name: /Cosmos/ });
     await enterEdit();
 
     await userEvent.click(tickFor('Secret'));
@@ -447,6 +447,32 @@ describe('ProfilePage as the owner', () => {
 
     expect(mockedSetHidden).toHaveBeenCalledWith(1, true);
     await waitFor(() => expect(screen.queryByText('1 unsaved')).not.toBeInTheDocument());
+  });
+
+  /*
+   * The shelf shows what a visitor gets, and Edit is where the rest of the
+   * library comes into view (LOS-362). Secret is hidden in the default fixture.
+   */
+  it('keeps a hidden book off the shelf until Edit is pressed', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    expect(screen.queryByRole('button', { name: /Secret/ })).not.toBeInTheDocument();
+
+    await enterEdit();
+    expect(screen.getByRole('button', { name: /Secret/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('button', { name: /Secret/ })).not.toBeInTheDocument();
+  });
+
+  // The bar counts the whole shelf either way: "1 of 2 shown publicly" is the
+  // sentence that explains why there is an Edit button at all.
+  it('still counts the hidden book in the bar', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Cosmos/ });
+
+    expect(screen.getByText('1 of 2 shown publicly')).toBeInTheDocument();
   });
 
   it('offers no Save until something is staged', async () => {
@@ -530,7 +556,7 @@ describe('ProfilePage as the owner', () => {
    */
   it('ticks every row, and counts only what changes', async () => {
     renderProfile();
-    await screen.findByRole('button', { name: /Secret/ });
+    await screen.findByRole('button', { name: /Cosmos/ });
     await enterEdit();
 
     await userEvent.click(screen.getByRole('button', { name: 'Show all 2' }));
@@ -570,7 +596,9 @@ describe('ProfilePage as the owner', () => {
       pageSize: 60,
     } as never);
     renderProfile();
-    await screen.findByRole('button', { name: /Cosmos/ });
+    // The one book is hidden, so the shelf is empty until Edit reveals it: wait
+    // on the bar rather than on a card.
+    await screen.findByRole('button', { name: 'Edit' });
     await enterEdit();
 
     expect(screen.getByRole('button', { name: 'Hide all 1' })).toBeDisabled();
