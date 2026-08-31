@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BookDetailPage } from './BookDetailPage';
 import { getBook } from '../../api/books/get-book';
 import { getPublicEntry } from '../../api/users/get-public-entry';
+import { AuthProvider } from '../auth/AuthContext';
 import { setFavorite } from '../../api/library/set-favorite';
 import { getAuthor } from '../../api/authors/get-author';
 import { getBooksByIds } from '../../api/books/get-books-by-ids';
@@ -43,7 +44,20 @@ function LocationProbe() {
   return <div data-testid="location">{location.pathname + location.search}</div>;
 }
 
+/**
+ * Signs a reader in for the tests that need one. The page hides its own review
+ * section from a signed-out visitor (LOS-364), so most of these tests are about
+ * a reader who is signed in.
+ */
+function signIn() {
+  localStorage.setItem(
+    'bookhunt_user',
+    JSON.stringify({ id: 7, email: 'reader@example.com', displayName: 'Ada', handle: 'ada' }),
+  );
+}
+
 function renderBookDetailPage(slug: string) {
+  signIn();
   const element = (
     <>
       <BookDetailPage />
@@ -58,7 +72,11 @@ function renderBookDetailPage(slug: string) {
     ],
     { initialEntries: [`/books/${slug}`] },
   );
-  render(<RouterProvider router={router} />);
+  render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  );
   return router;
 }
 
@@ -112,6 +130,9 @@ function setupHappyPathMocks() {
 describe('BookDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Signed out unless a test says otherwise, so a stored reader cannot leak
+    // between them.
+    localStorage.clear();
     setupHappyPathMocks();
   });
 
@@ -155,6 +176,46 @@ describe('BookDetailPage', () => {
   });
 
   /*
+   * "My review" is the reader's own, so there has to be a reader (LOS-364).
+   * Signed out there is no "my" to speak of, and the editor would be a box that
+   * cannot save: writing a review needs a library entry, which needs an account.
+   */
+  describe('signed out', () => {
+    function renderSignedOut(slug: string) {
+      const element = (
+        <>
+          <BookDetailPage />
+          <LocationProbe />
+        </>
+      );
+      const router = createMemoryRouter([{ path: '/books/:slug', element }], {
+        initialEntries: [`/books/${slug}`],
+      });
+      render(
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>,
+      );
+      return router;
+    }
+
+    it('offers no review section at all', async () => {
+      renderSignedOut('night-watch');
+
+      await screen.findByRole('heading', { name: 'Night Watch' });
+      expect(screen.queryByRole('heading', { name: 'My review' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
+
+    // The rest of the page is a book, and a book is public.
+    it('still shows the book itself', async () => {
+      renderSignedOut('night-watch');
+
+      expect(await screen.findByRole('heading', { name: 'Night Watch' })).toBeInTheDocument();
+    });
+  });
+
+  /*
    * Reached from someone's shelf: the page shows their entry, and every control
    * that would write goes with it. Reading their review beside a box that saves
    * over your own is the worst version of this (LOS-360).
@@ -170,7 +231,11 @@ describe('BookDetailPage', () => {
       const router = createMemoryRouter([{ path: '/books/:slug', element }], {
         initialEntries: [`/books/${slug}?u=${handle}`],
       });
-      render(<RouterProvider router={router} />);
+      render(
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>,
+      );
       return router;
     }
 
@@ -220,12 +285,27 @@ describe('BookDetailPage', () => {
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
-    it('keeps the editor on the ordinary book page', async () => {
+    it('keeps the editor on the ordinary book page, for a signed-in reader', async () => {
       renderBookDetailPage('night-watch');
 
       expect(await screen.findByRole('heading', { name: 'My review' })).toBeInTheDocument();
       expect(screen.getByRole('textbox')).toBeInTheDocument();
       expect(mockedPublicEntry).not.toHaveBeenCalled();
+    });
+
+    // Signed in or not, arriving from someone's shelf is about their copy: the
+    // reader's own section stays away rather than sitting beside it.
+    it('offers no editor even to a signed-in reader', async () => {
+      signIn();
+      mockedPublicEntry.mockResolvedValue({
+        entry: { book_id: 95, status: 'finished', user_rating: 4, review: 'Theirs.' } as never,
+      });
+
+      renderVisiting('night-watch', 'ada');
+
+      expect(await screen.findByText('Theirs.')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'My review' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
   });
 

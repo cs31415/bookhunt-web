@@ -5,6 +5,7 @@ import { SpecificationsCard } from './components/SpecificationsCard/Specificatio
 import { ReviewEditor } from './components/ReviewEditor/ReviewEditor';
 import { VisitorReview } from './components/VisitorReview/VisitorReview';
 import { useVisitorEntry } from './hooks/useVisitorEntry';
+import { useAuth } from '../auth/AuthContext';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { RelatedReads } from './components/RelatedReads/RelatedReads';
 import { useBookDetailData } from './hooks/useBookDetailData';
@@ -71,6 +72,17 @@ export function BookDetailPage() {
    */
   const visitorEntry = useVisitorEntry(visitingHandle, book?.id);
   const visiting = Boolean(visitingHandle);
+
+  /**
+   * Whether to offer the reader's own review at all.
+   *
+   * Not to a signed-out visitor: there is no "my" to speak of, and the editor
+   * would be a box that cannot save -- writing one needs a library entry, which
+   * needs an account. Not under `?u=` either, where the section belongs to
+   * whoever's shelf this was reached from (LOS-364).
+   */
+  const { isAuthenticated } = useAuth();
+  const showOwnReview = isAuthenticated && !visiting;
 
   const fetchedEntry = detail?.libraryEntry;
   const libraryEntry = fetchedEntry
@@ -268,7 +280,7 @@ export function BookDetailPage() {
 
       <div className={styles.body}>
         <div className={styles.main}>
-          {visiting ? (
+          {visiting && (
             <>
               <h2 className={styles.sectionHeading}>
                 {visitingHandle}&rsquo;s review
@@ -281,7 +293,8 @@ export function BookDetailPage() {
                 userRating={visitorEntry?.userRating ?? null}
               />
             </>
-          ) : (
+          )}
+          {showOwnReview && (
             <>
               <h2 className={styles.sectionHeading}>My review</h2>
               {/* Keyed on the book, so a different book is a different box.
