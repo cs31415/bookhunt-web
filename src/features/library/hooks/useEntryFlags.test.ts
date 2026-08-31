@@ -19,7 +19,7 @@ const mockedSetEbook = vi.mocked(setEbook);
 
 const entry = {
   status: 'queued',
-  notes: null,
+  review: null,
   subjects: [],
   moods: [],
   themes: [],

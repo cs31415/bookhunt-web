@@ -38,8 +38,7 @@ function makeRaw(overrides: Partial<RawLibraryEntry> = {}): RawLibraryEntry {
   return {
     book_id: id,
     status: 'queued',
-    notes: null,
-    review: null,
+        review: null,
     title: `Book ${id}`,
     book_slug: `book-${id}`,
     author_name: 'Anon',
@@ -505,7 +504,7 @@ describe('LibraryPage', () => {
 
       // Names the book, and says what removal costs beyond the entry itself.
       expect(await screen.findByRole('dialog')).toHaveTextContent('Remove this book?');
-      expect(screen.getByRole('dialog')).toHaveTextContent(/rating, review and notes/);
+      expect(screen.getByRole('dialog')).toHaveTextContent(/rating and review/);
 
       fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }));
 

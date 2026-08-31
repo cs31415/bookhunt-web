@@ -19,7 +19,7 @@ export interface PublicLibraryParams {
 /**
  * Matches GET /users/:handle/library (LOS-256).
  *
- * The rows are a subset of RawLibraryEntry: no notes, no review, no user_id --
+ * The rows are a subset of RawLibraryEntry: no review, no user_id --
  * those are absent from the stored function's row type, not stripped here. The
  * shared normalizer copes because it already treats every one of them as
  * optional.

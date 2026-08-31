@@ -505,8 +505,7 @@ describe('SearchPage', () => {
       return {
         book_id: 42,
         status: 'queued',
-        notes: null,
-        review: null,
+                review: null,
         title: 'Cosmos',
         book_slug: 'cosmos',
         author_name: 'Carl Sagan',

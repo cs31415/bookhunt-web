@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Hero } from './components/Hero/Hero';
 import { SpecificationsCard } from './components/SpecificationsCard/SpecificationsCard';
-import { NotesTab } from './components/NotesTab/NotesTab';
+import { ReviewEditor } from './components/ReviewEditor/ReviewEditor';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { RelatedReads } from './components/RelatedReads/RelatedReads';
 import { useBookDetailData } from './hooks/useBookDetailData';
@@ -86,13 +86,13 @@ export function BookDetailPage() {
 
   // Only the initial load (no book yet) blanks the page — background
   // reloads after a mutation keep showing the stale-then-fresh book so
-  // typing in Notes doesn't flash the whole page on every debounced save.
+  // typing a review doesn't flash the whole page on every save.
   if (!book) {
     return <div className={styles.page} />;
   }
 
   // Ensures the book has a real catalog row before an action that needs one
-  // (rating, notes, toggling into the library) — the only place a
+  // (rating, review, toggling into the library) — the only place a
   // not-yet-cataloged book gets written to the catalog, distinct from just
   // viewing it. Returns the real {id, slug}, which may differ from the
   // pseudo reference the ephemeral page was viewed under.
@@ -147,7 +147,7 @@ export function BookDetailPage() {
     reload();
   }
 
-  // PUT /library/:bookId 404s if the entry doesn't exist yet, so rating/notes
+  // PUT /library/:bookId 404s if the entry doesn't exist yet, so rating/review
   // changes add the book first (idempotent) before updating it (AC12) — and
   // for a not-yet-cataloged book, that add is also what creates its catalog
   // row, so we canonicalize the URL to the real slug afterward.
@@ -185,11 +185,11 @@ export function BookDetailPage() {
     }
   }
 
-  async function handleSaveNotes(notes: string) {
+  async function handleSaveReview(review: string) {
     if (!book) return;
     const wasEphemeral = !book.cataloged;
     const real = await ensureAddedToLibrary('queued');
-    await updateEntry(real.id, { notes });
+    await updateEntry(real.id, { review });
     if (wasEphemeral) {
       navigate(buildBookHref({ ...book, slug: real.slug }), { replace: true });
     } else {
@@ -250,17 +250,17 @@ export function BookDetailPage() {
 
       <div className={styles.body}>
         <div className={styles.main}>
-          <h2 className={styles.sectionHeading}>My notes</h2>
+          <h2 className={styles.sectionHeading}>My review</h2>
           {/* Keyed on the book, so a different book is a different box. That
-              is what lets NotesTab own its text outright: nothing syncs the
+              is what lets ReviewEditor own its text outright: nothing syncs the
               prop back into it, so a reload cannot overwrite an edit in
               progress (LOS-353). */}
-          <NotesTab
+          <ReviewEditor
             key={book.id}
             userRating={libraryEntry?.userRating ?? 0}
-            initialNotes={libraryEntry?.notes ?? ''}
+            initialReview={libraryEntry?.review ?? ''}
             onRatingChange={handleRate}
-            onSaveNotes={handleSaveNotes}
+            onSaveReview={handleSaveReview}
           />
         </div>
 

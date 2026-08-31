@@ -5,9 +5,8 @@ import { toNumber } from '../shared/lib/to-number';
 export interface RawLibraryEntry {
   book_id: number;
   status: LibraryStatus;
-  // Absent on a public profile row (LOS-256): notes and review are not columns
-  // of fn_get_public_library at all, so they cannot arrive by any route.
-  notes?: string | null;
+  // Absent on a public profile row (LOS-256): review is not a column of
+  // fn_get_public_library at all, so it cannot arrive by any route.
   review?: string | null;
   title: string;
   book_slug: string;
@@ -48,7 +47,8 @@ export interface LibraryEntry {
   status: LibraryStatus;
   /** What this reader gave the book, where book.rating is what the catalog says. */
   userRating: number | null;
-  notes: string | null;
+  /** The reader's own words. Called notes until LOS-266. */
+  review: string | null;
   subjects: string[];
   moods: string[];
   themes: string[];
@@ -68,7 +68,7 @@ export function normalizeLibraryEntry(raw: RawLibraryEntry): LibraryEntry {
     // Zero is "unrated" in the column, and reads as no rating rather than as a
     // score of nought.
     userRating: toNumber(raw.user_rating) || null,
-    notes: raw.notes ?? raw.review ?? null,
+    review: raw.review ?? null,
     subjects: raw.subjects ?? [],
     // Both are AI-generated per book and populated lazily, so plenty of rows
     // carry empty arrays — the filters that read them narrow to what is tagged.

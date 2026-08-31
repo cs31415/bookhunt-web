@@ -124,8 +124,7 @@ describe('normalizeLibraryEntryToSearchResult', () => {
   const rawEntry: RawLibraryEntry = {
     book_id: 42,
     status: 'reading',
-    notes: 'a note',
-    review: null,
+    review: 'a note',
     title: 'Cosmos',
     book_slug: 'cosmos',
     author_name: 'Carl Sagan',

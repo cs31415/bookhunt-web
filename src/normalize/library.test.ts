@@ -5,8 +5,7 @@ import type { RawLibraryEntry } from './library';
 const rawEntry: RawLibraryEntry = {
   book_id: 1,
   status: 'reading',
-  notes: 'Slow start but picking up',
-  review: null,
+  review: 'Slow start but picking up',
   title: 'Dune',
   book_slug: 'dune',
   author_name: 'Frank Herbert',
@@ -33,10 +32,10 @@ describe('normalizeLibraryEntry', () => {
     });
   });
 
-  it('maps snake_case fields to a BookSummary + status + notes', () => {
+  it('maps snake_case fields to a BookSummary + status + review', () => {
     expect(normalizeLibraryEntry(rawEntry)).toEqual({
       status: 'reading',
-      notes: 'Slow start but picking up',
+      review: 'Slow start but picking up',
       subjects: [],
       moods: [],
       themes: [],
@@ -64,14 +63,20 @@ describe('normalizeLibraryEntry', () => {
     });
   });
 
-  it('falls back to review when notes is null', () => {
-    const entry = normalizeLibraryEntry({ ...rawEntry, notes: null, review: 'A classic' });
-    expect(entry.notes).toBe('A classic');
+  /*
+   * There used to be a `raw.notes ?? raw.review` fallback here, and two tests
+   * for it. LOS-266 removed it along with the second column: `review` was
+   * plumbed end to end and never written by anything, so the fallback had never
+   * once fired, and the field a reader actually writes now carries that name.
+   */
+  it('carries the review through', () => {
+    const entry = normalizeLibraryEntry({ ...rawEntry, review: 'A classic' });
+    expect(entry.review).toBe('A classic');
   });
 
-  it('returns null notes when neither notes nor review is set', () => {
-    const entry = normalizeLibraryEntry({ ...rawEntry, notes: null, review: null });
-    expect(entry.notes).toBeNull();
+  it('returns a null review when the row has none', () => {
+    const entry = normalizeLibraryEntry({ ...rawEntry, review: null });
+    expect(entry.review).toBeNull();
   });
 
   it('maps subjects and date_added when present', () => {

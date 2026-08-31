@@ -15,7 +15,7 @@ export interface ConfirmRemoveModalProps {
  * Asks before a removal, and says what the removal costs.
  *
  * Removal deletes the library entry, and the entry is where the reader's own
- * work lives — the status, the rating, the review, the notes. The books
+ * work lives — the status, the rating, the review. The books
  * themselves are shared catalog rows and stay put, which is worth saying too:
  * without it, "remove" reads like it might delete the book for everyone.
  */
@@ -57,7 +57,7 @@ export function ConfirmRemoveModal({ title, count, onConfirm, onCancel }: Confir
       }
     >
       <p className={styles.body}>
-        {subject} will be taken out of your library, along with any rating, review and notes. That
+        {subject} will be taken out of your library, along with any rating and review. That
         cannot be undone.
       </p>
     </Modal>

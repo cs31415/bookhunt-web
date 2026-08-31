@@ -56,8 +56,7 @@ function renderDiscoverPage() {
 const readingEntry = {
   book_id: 1,
   status: 'reading' as const,
-  notes: 'Slow start but picking up',
-  review: null,
+  review: 'Slow start but picking up',
   title: 'Dune',
   book_slug: 'dune',
   author_name: 'Frank Herbert',
