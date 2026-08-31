@@ -134,4 +134,41 @@ describe('Collapsible', () => {
     expect(toggle).toHaveAttribute('aria-controls', panel.id);
     expect(panel.id).not.toBe('');
   });
+
+  /*
+   * Where the reader lands on collapse is a choice now (LOS-367). The default
+   * throws them to the top of the page, which is right for a panel near the top
+   * and wrong for one beside the main column.
+   */
+  describe('collapseScroll', () => {
+    it('scrolls to the top by default, as the prose panels expect', () => {
+      restore = withScrollHeight(400);
+      atScrollY(500);
+      const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+
+      render(<Collapsible>text</Collapsible>);
+      const toggle = screen.getByRole('button');
+
+      fireEvent.click(toggle); // expand
+      fireEvent.click(toggle); // collapse
+
+      expect(scrollTo).toHaveBeenCalledWith(0, 0);
+    });
+
+    // A sidebar block collapses beside the main column: the reader has not lost
+    // their place, and jumping to the top would take them away from it.
+    it('leaves the reader where they are when asked to', () => {
+      restore = withScrollHeight(400);
+      atScrollY(500);
+      const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+
+      render(<Collapsible collapseScroll="none">text</Collapsible>);
+      const toggle = screen.getByRole('button');
+
+      fireEvent.click(toggle);
+      fireEvent.click(toggle);
+
+      expect(scrollTo).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -14,6 +14,16 @@ export interface CollapsibleProps {
    * so a caller moves that spacing out here.
    */
   className?: string;
+  /**
+   * Where to put the reader when the block collapses.
+   *
+   * 'page-top' is right for a panel near the top of the page, which is what the
+   * first two callers were -- see the note on toggle(). A block further down,
+   * or beside the main column, wants 'none': throwing the reader to the top
+   * from there moves them away from what they were reading rather than back to
+   * it (LOS-367).
+   */
+  collapseScroll?: 'page-top' | 'none';
 }
 
 /**
@@ -34,6 +44,7 @@ export function Collapsible({
   collapsedHeight = 180,
   label,
   className,
+  collapseScroll = 'page-top',
 }: CollapsibleProps) {
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
@@ -62,9 +73,14 @@ export function Collapsible({
    * they land wherever that scroll position now falls -- somewhere in the
    * middle of the page, looking at something else (LOS-293).
    *
-   * Back to the top of the page rather than to the panel (LOS-294): both pages
-   * that use this open at the top, so collapsing leaves the reader where a
-   * reload would, with the cover and title above the text again.
+   * Back to the top of the page rather than to the panel (LOS-294): the pages
+   * that ask for 'page-top' open at the top, so collapsing leaves the reader
+   * where a reload would, with the cover and title above the text again.
+   *
+   * Not every caller wants that, which is why it is a choice now rather than a
+   * rule (LOS-367). A block in the sidebar collapses beside the main column,
+   * where the reader has not lost their place and being thrown to the top would
+   * take them away from what they were reading.
    *
    * Instant, in the two-argument form the pages' own load-time scroll uses. A
    * smooth scroll is silently a no-op wherever the browser or the machine has
@@ -78,6 +94,7 @@ export function Collapsible({
     }
 
     setExpanded(false);
+    if (collapseScroll === 'none') return;
     if (window.scrollY === 0) return;
     window.scrollTo(0, 0);
   }
