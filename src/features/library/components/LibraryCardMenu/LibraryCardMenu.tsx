@@ -7,6 +7,9 @@ export interface LibraryCardMenuProps {
   onToggleFavorite: (next: boolean) => void;
   isHidden: boolean;
   onToggleHidden: (next: boolean) => void;
+  /** null means this book follows the reader's global setting (LOS-266). */
+  shareReview: boolean | null;
+  onSetShareReview: (next: boolean | null) => void;
   isEbook: boolean;
   onToggleEbook: (next: boolean) => void;
   isAudiobook: boolean;
@@ -27,6 +30,8 @@ export function LibraryCardMenu({
   onToggleFavorite,
   isHidden,
   onToggleHidden,
+  shareReview,
+  onSetShareReview,
   isEbook,
   onToggleEbook,
   isAudiobook,
@@ -109,7 +114,48 @@ export function LibraryCardMenu({
           >
             {isHidden ? 'Show on my public page' : 'Hide from my public page'}
           </li>
-          {/* Below the two flags that change what others see, because this one
+          {/*
+            Three states, so radios in a group rather than the checkbox items
+            above: Default follows the reader's global setting, and the other two
+            override it in either direction (LOS-266).
+            
+            A group with its own label, because "Default" means nothing on its
+            own -- it needs the question it is answering next to it.
+          */}
+          <li role="none" className={styles.groupLabel}>
+            Review on my public page
+          </li>
+          {(
+            [
+              [undefined, 'Default'],
+              [true, 'Always show'],
+              [false, 'Never show'],
+            ] as const
+          ).map(([value, label]) => {
+            const next = value === undefined ? null : value;
+            return (
+              <li
+                key={label}
+                role="menuitemradio"
+                aria-checked={shareReview === next}
+                tabIndex={0}
+                className={styles.item}
+                onClick={() => {
+                  setOpen(false);
+                  onSetShareReview(next);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  event.preventDefault();
+                  setOpen(false);
+                  onSetShareReview(next);
+                }}
+              >
+                {label}
+              </li>
+            );
+          })}
+          {/* Below the flags that change what others see, because this one
               only describes the copy on the shelf. */}
           <li
             role="menuitemcheckbox"

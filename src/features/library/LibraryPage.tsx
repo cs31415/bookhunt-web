@@ -399,6 +399,8 @@ export function LibraryPage() {
                       <LibraryCardMenu
                         isHidden={entry.isHidden}
                         onToggleHidden={(next) => flags.toggleHidden(entry, next)}
+                        shareReview={entry.shareReview}
+                        onSetShareReview={(next) => flags.setShareReview(entry, next)}
                         isEbook={entry.isEbook}
                         onToggleEbook={(next) => flags.toggleEbook(entry, next)}
                         isAudiobook={entry.isAudiobook}

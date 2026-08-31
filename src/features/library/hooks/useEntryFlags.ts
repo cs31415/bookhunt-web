@@ -3,13 +3,25 @@ import { setFavorite } from '../../../api/library/set-favorite';
 import { setHidden } from '../../../api/library/set-hidden';
 import { setEbook } from '../../../api/library/set-ebook';
 import { setAudiobook } from '../../../api/library/set-audiobook';
+import { setReviewSharing } from '../../../api/library/set-review-sharing';
 import { toast } from '../../../shared/toast/toast-store';
 import type { LibraryEntry } from '../../../normalize/library';
 
 type Flag = 'isFavorite' | 'isHidden' | 'isEbook' | 'isAudiobook';
 
-/** One override per book per flag, so favouriting and hiding cannot clobber each other. */
-type Overrides = Record<number, Partial<Record<Flag, boolean>>>;
+/**
+ * One override per book per flag, so favouriting and hiding cannot clobber
+ * each other.
+ *
+ * `shareReview` sits outside the Flag record rather than joining it: it is a
+ * tri-state where null is a value -- "follow the global setting" -- and
+ * widening every flag to `boolean | null` to accommodate it would let a null
+ * reach `isFavorite`, which has no meaning for it (LOS-266).
+ */
+type Overrides = Record<
+  number,
+  Partial<Record<Flag, boolean>> & { shareReview?: boolean | null }
+>;
 
 /**
  * Optimistic toggling for both per-book flags on the library grid.
@@ -85,6 +97,33 @@ export function useEntryFlags() {
     [set],
   );
 
+  /**
+   * Publishes, holds back, or defers one review.
+   *
+   * Its own setter rather than `set`, which treats undefined as "drop the
+   * override": null has to survive as a value here, so the two cannot share a
+   * signature. A failed request drops the override, as the others do.
+   */
+  const setShareReview = useCallback(
+    async (entry: LibraryEntry, next: boolean | null) => {
+      setOverrides((current) => ({
+        ...current,
+        [entry.book.id]: { ...current[entry.book.id], shareReview: next },
+      }));
+      try {
+        await setReviewSharing(entry.book.id, next);
+      } catch {
+        setOverrides((current) => {
+          const forBook = { ...current[entry.book.id] };
+          delete forBook.shareReview;
+          return { ...current, [entry.book.id]: forBook };
+        });
+        toast({ text: `Could not change who can see your review of “${entry.book.title}”` });
+      }
+    },
+    [],
+  );
+
   const toggleEbook = useCallback(
     async (entry: LibraryEntry, next: boolean) => {
       set(entry.book.id, 'isEbook', next);
@@ -149,7 +188,15 @@ export function useEntryFlags() {
   );
 
   return useMemo(
-    () => ({ apply, toggleFavorite, toggleHidden, toggleEbook, toggleAudiobook, hideMany }),
-    [apply, toggleFavorite, toggleHidden, toggleEbook, toggleAudiobook, hideMany],
+    () => ({
+      apply,
+      toggleFavorite,
+      toggleHidden,
+      toggleEbook,
+      toggleAudiobook,
+      hideMany,
+      setShareReview,
+    }),
+    [apply, toggleFavorite, toggleHidden, toggleEbook, toggleAudiobook, hideMany, setShareReview],
   );
 }

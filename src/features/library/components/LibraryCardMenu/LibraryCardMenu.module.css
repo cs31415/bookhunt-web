@@ -82,3 +82,19 @@
   background: var(--paper-2);
   outline: none;
 }
+
+/*
+ * The question the three radios below it answer. "Default" says nothing on its
+ * own, so the group needs its heading next to it (LOS-266).
+ *
+ * Not an .item: it is a label, not a thing to press, and it takes no hover.
+ */
+.groupLabel {
+  padding: 10px 12px 4px;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: default;
+}

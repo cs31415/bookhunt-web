@@ -8,6 +8,8 @@ export interface RawLibraryEntry {
   // Absent on a public profile row (LOS-256): review is not a column of
   // fn_get_public_library at all, so it cannot arrive by any route.
   review?: string | null;
+  /** null means the book follows the reader's global setting (LOS-266). */
+  share_review?: boolean | null;
   title: string;
   book_slug: string;
   author_name: string;
@@ -55,6 +57,12 @@ export interface LibraryEntry {
    * visitor sees for a book with no review at all.
    */
   review: string | null;
+  /**
+   * Whether this one review is published, overriding the global setting. null
+   * means it follows that setting, which is the default and the third state.
+   * Absent on a public shelf: it is the owner's own control (LOS-266).
+   */
+  shareReview: boolean | null;
   subjects: string[];
   moods: string[];
   themes: string[];
@@ -75,6 +83,7 @@ export function normalizeLibraryEntry(raw: RawLibraryEntry): LibraryEntry {
     // score of nought.
     userRating: toNumber(raw.user_rating) || null,
     review: raw.review ?? null,
+    shareReview: raw.share_review ?? null,
     subjects: raw.subjects ?? [],
     // Both are AI-generated per book and populated lazily, so plenty of rows
     // carry empty arrays — the filters that read them narrow to what is tagged.
