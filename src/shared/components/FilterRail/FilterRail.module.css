@@ -10,14 +10,30 @@
  * scroll past. Came from the search rail, which had it; the library rail did
  * not, and there is no reason the two should differ.
  */
+/*
+ * The padding and the equal negative margins are what stop this clipping the
+ * shadows on the pills inside it (LOS-366).
+ *
+ * overflow-y: auto makes this a scroll container, and a scroll container clips
+ * on *both* axes: CSS computes an overflow-x of visible to auto whenever the
+ * other axis is not visible. So a pill against any edge had its shadow cut off,
+ * which read as the rail being drawn on top of it.
+ *
+ * The padding gives the shadow room inside the box; the negative margins take
+ * that room back out of the layout, so nothing moves. 10px clears the 8px blur
+ * and 2px offset of --shadow-hover with a little to spare. The right side
+ * already did this for the scrollbar; the other three needed it too.
+ *
+ * max-height carries the vertical padding, so the rail still ends where it did.
+ */
 .rail {
   min-width: 0;
   position: sticky;
   top: 88px;
-  max-height: calc(100vh - 108px);
+  max-height: calc(100vh - 108px + 20px);
   overflow-y: auto;
-  padding-right: 8px;
-  margin-right: -8px;
+  padding: 10px;
+  margin: -10px;
 }
 
 /* --- Below DRAWER_MAX_WIDTH: a trigger and a pane ----------------------- */
