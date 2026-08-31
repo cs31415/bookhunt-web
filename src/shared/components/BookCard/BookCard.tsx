@@ -28,6 +28,12 @@ export interface BookCardProps {
    */
   overlay?: ReactNode;
   /**
+   * Rendered under the card, after the subject pills. Unlike `overlay` this is
+   * in the flow rather than laid over the cover, so it is the slot for
+   * something to read rather than something to press (LOS-266).
+   */
+  footer?: ReactNode;
+  /**
    * The reader's own score, shown under the catalog's (LOS-291). Passed only
    * where a card stands for a shelf entry; elsewhere there is no such score and
    * the rating row reads as it always has.
@@ -55,6 +61,7 @@ export function BookCard({
   onClick,
   action,
   overlay,
+  footer,
   userRating,
   subjects,
   onSubjectClick,
@@ -120,6 +127,7 @@ export function BookCard({
           )}
         </div>
       )}
+      {footer}
       {action && <div className={styles.action}>{action}</div>}
     </div>
   );

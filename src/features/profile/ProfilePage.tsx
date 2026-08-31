@@ -473,6 +473,7 @@ function OwnerProfile({
 function PublicPageBar({ handle }: { handle: string }) {
   const { user, updateUser } = useAuth();
   const [isPublic, setIsPublic] = useState(user?.isDiscoverable ?? false);
+  const [shareReviews, setShareReviews] = useState(user?.shareReviews ?? false);
 
   async function toggle(next: boolean) {
     setIsPublic(next);
@@ -483,6 +484,19 @@ function PublicPageBar({ handle }: { handle: string }) {
     } catch {
       setIsPublic(!next);
       toast({ text: 'Could not change who can see your page' });
+    }
+  }
+
+  /** Same shape as the switch above, and for the same reasons (LOS-266). */
+  async function toggleReviews(next: boolean) {
+    setShareReviews(next);
+    try {
+      const { user: updated } = await updateMe({ shareReviews: next });
+      setShareReviews(updated.shareReviews);
+      updateUser({ shareReviews: updated.shareReviews });
+    } catch {
+      setShareReviews(!next);
+      toast({ text: 'Could not change who can see your reviews' });
     }
   }
 
@@ -498,6 +512,23 @@ function PublicPageBar({ handle }: { handle: string }) {
           />
           <span>List profile publicly</span>
         </label>
+        {/*
+          Subordinate to the switch above, and shown only while it is on: this
+          governs what appears on a public page, so it does nothing at all while
+          there is no public page and should not look as though it might
+          (LOS-266).
+        */}
+        {isPublic && (
+          <label className={`${styles.switchRow} ${styles.subSwitchRow}`}>
+            <input
+              type="checkbox"
+              className={styles.switch}
+              checked={shareReviews}
+              onChange={(event) => toggleReviews(event.target.checked)}
+            />
+            <span>Show my reviews on my public page</span>
+          </label>
+        )}
       </div>
       {/* Only while the page is listed. An address that would 404 is not
           worth showing, let alone copying. */}
@@ -677,6 +708,17 @@ export function Tabs({
   );
 }
 
+/**
+ * A published review, under the book it is about.
+ *
+ * Clamped rather than scrolled: a shelf is for browsing, and a review that ran
+ * to twenty lines would push the next row off the screen. The book page is
+ * where one is read in full.
+ */
+function Review({ text }: { text: string }) {
+  return <p className={styles.cardReview}>{text}</p>;
+}
+
 export function Grid({
   entries,
   navigate,
@@ -710,6 +752,14 @@ export function Grid({
           onClick={() => navigate(buildBookHref(entry.book))}
           // The same slot the library grid uses for its select box.
           action={renderAction?.(entry)}
+          // In the flow under the card, not over the cover: this is to be
+          // read, not pressed.
+          //
+          // Only ever present when the reader published it -- the SQL gate
+          // returns NULL otherwise, so there is nothing here to decide
+          // (LOS-266). No review and an unshared one look the same, which is
+          // the point: a visitor cannot tell one from the other.
+          footer={entry.review ? <Review text={entry.review} /> : undefined}
         />
       ))}
     </div>

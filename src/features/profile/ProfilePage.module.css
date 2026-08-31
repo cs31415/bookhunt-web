@@ -89,6 +89,17 @@
   cursor: pointer;
 }
 
+/*
+ * Indented and quieter than the switch it sits under, because it governs a
+ * detail of that switch's answer rather than a second question (LOS-266).
+ */
+.subSwitchRow {
+  margin-top: 8px;
+  margin-left: 28px;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
 .switch {
   width: 18px;
   height: 18px;
@@ -390,4 +401,23 @@
   font-size: 0.75rem;
   color: var(--muted);
   text-align: right;
+}
+
+/*
+ * A published review under the book it is about (LOS-266).
+ *
+ * Clamped to four lines rather than scrolled: a shelf is for browsing, and one
+ * long review would push the next row off the screen. The book page is where a
+ * review is read in full.
+ */
+.cardReview {
+  margin-top: 8px;
+  font-family: var(--prose);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

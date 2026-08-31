@@ -47,7 +47,13 @@ export interface LibraryEntry {
   status: LibraryStatus;
   /** What this reader gave the book, where book.rating is what the catalog says. */
   userRating: number | null;
-  /** The reader's own words. Called notes until LOS-266. */
+  /**
+   * The reader's own words. Called notes until LOS-266.
+   *
+   * On a public shelf this arrives only when they published it -- the SQL gate
+   * in fn_get_public_library returns NULL otherwise, which is the same thing a
+   * visitor sees for a book with no review at all.
+   */
   review: string | null;
   subjects: string[];
   moods: string[];

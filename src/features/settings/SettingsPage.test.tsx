@@ -17,6 +17,7 @@ const storedUser = {
   displayName: 'Ada Reader',
   handle: 'ada',
   isDiscoverable: false,
+      shareReviews: false,
   preferences: {},
 };
 
