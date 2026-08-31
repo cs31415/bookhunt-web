@@ -1,7 +1,13 @@
+/*
+ * No rule above this (LOS-371). The pills and the shelf are two halves of the
+ * same page, and a line across it made them read as separate places.
+ *
+ * The 60px + 52px either side of that line was spacing built around it. With
+ * the line gone it would just be a hole, so it collapses to one gap -- still
+ * enough to part the sections, which is what the rule was there to do.
+ */
 .section {
-  margin-top: 60px;
-  padding-top: 52px;
-  border-top: 1px solid var(--line);
+  margin-top: 64px;
 }
 
 /* Sideways rather than wrapping: books on a shelf run off the end of it. */
