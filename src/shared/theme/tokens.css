@@ -130,15 +130,17 @@
    * resting elevations for cards and menus, and tying a hover response to one
    * would mean a card could not change its rest state without moving the hover.
    *
-   * Raised well past the first attempt (LOS-351), and the cover case is why the
-   * two steps are so far apart. What a reader perceives is the *change*, not the
+   * Raised past the first attempt in LOS-351 and then eased back in LOS-366:
+   * the boost overshot, and these read as an object lifting rather than as one
+   * being pressed into the page. The cover case is why the two steps are so far
+   * apart. What a reader perceives is the *change*, not the
    * shadow: a cover rests at --shadow-2, already 0.1 alpha, so a hover value
    * near it reads as no hover at all however heavy it looks written down. The
    * strong step has to clear the resting one by enough to be seen, which a flat
    * pill -- lifting from nothing -- never needed.
    */
-  --shadow-hover: 0 4px 12px rgba(42, 38, 32, 0.2), 0 1px 3px rgba(42, 38, 32, 0.14);
-  --shadow-hover-strong: 0 16px 34px rgba(42, 38, 32, 0.32), 0 5px 12px rgba(42, 38, 32, 0.2);
+  --shadow-hover: 0 2px 8px rgba(42, 38, 32, 0.13), 0 1px 2px rgba(42, 38, 32, 0.1);
+  --shadow-hover-strong: 0 10px 22px rgba(42, 38, 32, 0.2), 0 3px 7px rgba(42, 38, 32, 0.13);
 
   /*
    * The shelf grid, shared by every place books are laid out in a grid: the
@@ -271,8 +273,8 @@
      * hairline of ink-coloured light along the top edge -- on a dark ground an
      * edge is caught by light, not by shade.
      */
-    --shadow-hover: 0 4px 14px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(239, 233, 220, 0.14);
-    --shadow-hover-strong: 0 16px 36px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(239, 233, 220, 0.2);
+    --shadow-hover: 0 2px 9px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(239, 233, 220, 0.1);
+    --shadow-hover-strong: 0 10px 24px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(239, 233, 220, 0.14);
 
   }
 }
@@ -315,8 +317,8 @@
      * hairline of ink-coloured light along the top edge -- on a dark ground an
      * edge is caught by light, not by shade.
      */
-    --shadow-hover: 0 4px 14px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(239, 233, 220, 0.14);
-    --shadow-hover-strong: 0 16px 36px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(239, 233, 220, 0.2);
+    --shadow-hover: 0 2px 9px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(239, 233, 220, 0.1);
+    --shadow-hover-strong: 0 10px 24px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(239, 233, 220, 0.14);
 
 
     /*
