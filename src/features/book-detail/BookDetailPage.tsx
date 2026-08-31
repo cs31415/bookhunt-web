@@ -74,15 +74,21 @@ export function BookDetailPage() {
   const visiting = Boolean(visitingHandle);
 
   /**
-   * Whether to offer the reader's own review at all.
+   * Whether to show the parts of this page that are about what *this* reader
+   * did with the book, rather than about the book.
    *
-   * Not to a signed-out visitor: there is no "my" to speak of, and the editor
-   * would be a box that cannot save -- writing one needs a library entry, which
-   * needs an account. Not under `?u=` either, where the section belongs to
-   * whoever's shelf this was reached from (LOS-364).
+   * Two sections qualify, and both fail the same way without a reader. My
+   * review offers an editor that cannot save -- writing one needs a library
+   * entry, which needs an account (LOS-364). Related reads is mostly the
+   * curating of your own picks: an Add related button, a picker, and a hint
+   * telling you to add the book so you can curate it (LOS-365).
+   *
+   * Excluded under `?u=` for a different reason: there the page is about
+   * somebody else's copy, and the reader's own working area does not belong
+   * beside it.
    */
   const { isAuthenticated } = useAuth();
-  const showOwnReview = isAuthenticated && !visiting;
+  const showOwnSections = isAuthenticated && !visiting;
 
   const fetchedEntry = detail?.libraryEntry;
   const libraryEntry = fetchedEntry
@@ -294,7 +300,7 @@ export function BookDetailPage() {
               />
             </>
           )}
-          {showOwnReview && (
+          {showOwnSections && (
             <>
               <h2 className={styles.sectionHeading}>My review</h2>
               {/* Keyed on the book, so a different book is a different box.
@@ -321,15 +327,17 @@ export function BookDetailPage() {
         />
       </div>
 
-      <RelatedReads
-        works={relatedReads.works}
-        inLibrary={Boolean(libraryEntry)}
-        onOpenBook={(opened) => navigate(buildBookHref(opened))}
-        onAddRelated={handleAddRelated}
-        onRemoveRelated={handleRemoveRelated}
-        onAddToLibrary={handleAddRelatedBookToLibrary}
-        onRemoveFromLibrary={handleRemoveRelatedBookFromLibrary}
-      />
+      {showOwnSections && (
+        <RelatedReads
+          works={relatedReads.works}
+          inLibrary={Boolean(libraryEntry)}
+          onOpenBook={(opened) => navigate(buildBookHref(opened))}
+          onAddRelated={handleAddRelated}
+          onRemoveRelated={handleRemoveRelated}
+          onAddToLibrary={handleAddRelatedBookToLibrary}
+          onRemoveFromLibrary={handleRemoveRelatedBookFromLibrary}
+        />
+      )}
 
       {confirmingRemove && (
         <ConfirmRemoveModal
