@@ -8,6 +8,8 @@ export interface UpdateMeRequest {
   displayName?: string;
   handle?: string;
   isDiscoverable?: boolean;
+  /** Whether reviews appear on the public page at all (LOS-266). */
+  shareReviews?: boolean;
   /** Merged into the stored document server-side, never assigned over it. */
   preferences?: Record<string, unknown>;
 }
@@ -18,6 +20,7 @@ export interface UserProfile {
   displayName: string;
   handle: string;
   isDiscoverable: boolean;
+  shareReviews: boolean;
   preferences: { theme?: string } & Record<string, unknown>;
 }
 

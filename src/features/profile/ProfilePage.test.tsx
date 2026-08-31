@@ -341,6 +341,47 @@ describe('a visitor’s shelf grows a page at a time (LOS-345)', () => {
   });
 });
 
+/*
+ * Sharing a review (LOS-266). The gate is in fn_get_public_library's SELECT, so
+ * by the time a row reaches the browser an unshared review is already NULL --
+ * the page has nothing to decide and no way to leak one.
+ */
+describe('a shared review on the shelf', () => {
+  it('shows a review the reader published', async () => {
+    mockedPublicLibrary.mockResolvedValue({
+      entries: [rawEntry(1, 'Cosmos', { review: 'Changed how I look at the sky.' })] as never,
+      total: 1,
+      page: 1,
+      pageSize: 24,
+    } as never);
+
+    renderProfile();
+
+    expect(await screen.findByText('Changed how I look at the sky.')).toBeInTheDocument();
+  });
+
+  /*
+   * The one that matters. An unshared review arrives as null, exactly as a book
+   * with no review at all does -- so a visitor cannot tell the two apart, and
+   * there is no "hidden" element in the markup to go looking for.
+   */
+  it('shows nothing where the review was not published', async () => {
+    mockedPublicLibrary.mockResolvedValue({
+      entries: [rawEntry(1, 'Cosmos', { review: null })] as never,
+      total: 1,
+      page: 1,
+      pageSize: 24,
+    } as never);
+
+    renderProfile();
+
+    await screen.findByRole('button', { name: /Cosmos/ });
+    expect(document.body.textContent).not.toContain('Changed how I look');
+    // No empty slot left behind either.
+    expect(document.querySelector('[class*="cardReview"]')).toBeNull();
+  });
+});
+
 describe('ProfilePage as the owner', () => {
   beforeEach(() => {
     signInAsOwner();

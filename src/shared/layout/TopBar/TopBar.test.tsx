@@ -74,6 +74,7 @@ beforeEach(() => {
       displayName: 'Ada Reader',
       handle: 'ada',
       isDiscoverable: true,
+      shareReviews: false,
       preferences: { theme: 'dark' },
     },
   });
