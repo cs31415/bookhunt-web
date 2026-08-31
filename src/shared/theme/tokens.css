@@ -130,16 +130,22 @@
    * resting elevations for cards and menus, and tying a hover response to one
    * would mean a card could not change its rest state without moving the hover.
    *
-   * Raised past the first attempt in LOS-351 and then eased back in LOS-366:
-   * the boost overshot, and these read as an object lifting rather than as one
-   * being pressed into the page. The cover case is why the two steps are so far
-   * apart. What a reader perceives is the *change*, not the
+   * Raised in LOS-351, eased in LOS-366, and settled here. Worth recording how,
+   * because the first easing overshot in the other direction: the alpha came
+   * down a third but the blur and the offset came down with it, and three
+   * reductions at once took far more weight out than any of them suggests.
+   *
+   * What reads as heavy is a large diffuse shadow, not a dark one. So the
+   * geometry stays tight -- 2px down, 6px of blur -- and the alpha carries the
+   * visibility. Crisp rather than either heavy or absent.
+   *
+   * The cover case is why the two steps are so far apart. What a reader perceives is the *change*, not the
    * shadow: a cover rests at --shadow-2, already 0.1 alpha, so a hover value
    * near it reads as no hover at all however heavy it looks written down. The
    * strong step has to clear the resting one by enough to be seen, which a flat
    * pill -- lifting from nothing -- never needed.
    */
-  --shadow-hover: 0 2px 8px rgba(42, 38, 32, 0.13), 0 1px 2px rgba(42, 38, 32, 0.1);
+  --shadow-hover: 0 2px 6px rgba(42, 38, 32, 0.18), 0 1px 2px rgba(42, 38, 32, 0.12);
   --shadow-hover-strong: 0 10px 22px rgba(42, 38, 32, 0.2), 0 3px 7px rgba(42, 38, 32, 0.13);
 
   /*
@@ -273,7 +279,7 @@
      * hairline of ink-coloured light along the top edge -- on a dark ground an
      * edge is caught by light, not by shade.
      */
-    --shadow-hover: 0 2px 9px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(239, 233, 220, 0.1);
+    --shadow-hover: 0 2px 7px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(239, 233, 220, 0.13);
     --shadow-hover-strong: 0 10px 24px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(239, 233, 220, 0.14);
 
   }
@@ -317,7 +323,7 @@
      * hairline of ink-coloured light along the top edge -- on a dark ground an
      * edge is caught by light, not by shade.
      */
-    --shadow-hover: 0 2px 9px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(239, 233, 220, 0.1);
+    --shadow-hover: 0 2px 7px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(239, 233, 220, 0.13);
     --shadow-hover-strong: 0 10px 24px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(239, 233, 220, 0.14);
 
 
