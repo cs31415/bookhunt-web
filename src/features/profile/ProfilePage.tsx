@@ -322,21 +322,51 @@ function OwnerProfile({
     [saved],
   );
 
+  /**
+   * Selects rows and records what each would become.
+   *
+   * Always assigns, where this used to drop a key that matched the shelf
+   * (LOS-358). A selection is a selection even when it changes nothing: Hide
+   * all ticks every book, including ones already hidden. What would actually be
+   * written is `dirtyCount` below, derived rather than inferred from the keys.
+   */
   function stage(items: LibraryEntry[], hidden: boolean) {
     setStaged((current) => {
       const next = { ...current };
-      for (const item of items) {
-        if (savedHidden.get(item.book.id) === hidden) delete next[item.book.id];
-        else next[item.book.id] = hidden;
-      }
+      for (const item of items) next[item.book.id] = hidden;
       return next;
     });
   }
 
+  /** Ticks or unticks one row. Unticking cancels that row's pending change. */
+  function toggleStaged(entry: LibraryEntry, selected: boolean) {
+    setStaged((current) => {
+      const next = { ...current };
+      // The action a row offers is always the opposite of where it rests.
+      if (selected) next[entry.book.id] = !(savedHidden.get(entry.book.id) ?? false);
+      else delete next[entry.book.id];
+      return next;
+    });
+  }
+
+  /**
+   * What a save would actually write, which is not the same as what is ticked.
+   * A book already hidden and staged to hide is selected and costs nothing, so
+   * the bar can read "every box ticked, 0 unsaved" and be telling the truth.
+   */
+  const stagedChanges = useMemo(
+    () =>
+      Object.entries(staged).filter(
+        ([bookId, hidden]) => savedHidden.get(Number(bookId)) !== hidden,
+      ),
+    [staged, savedHidden],
+  );
+
   async function save() {
     // Only what differs, and hideMany already reports what it could not write.
-    const toHide = saved.filter((entry) => staged[entry.book.id] === true);
-    const toShow = saved.filter((entry) => staged[entry.book.id] === false);
+    const changed = new Set(stagedChanges.map(([bookId]) => Number(bookId)));
+    const toHide = saved.filter((entry) => changed.has(entry.book.id) && staged[entry.book.id]);
+    const toShow = saved.filter((entry) => changed.has(entry.book.id) && !staged[entry.book.id]);
 
     setSaving(true);
     if (toHide.length > 0) await flags.hideMany(toHide, true);
@@ -396,15 +426,25 @@ function OwnerProfile({
             onEdit={edit.enter}
             onExit={edit.exit}
             onSetAll={(shownNext) => stage(shown, !shownNext)}
-            dirtyCount={Object.keys(staged).length}
+            dirtyCount={stagedChanges.length}
             saving={saving}
             onSave={save}
           />
           <Grid
             entries={pageItems}
             navigate={navigate}
-            onToggleShown={
-              edit.editing ? (entry, shownNext) => stage([entry], !shownNext) : undefined
+            renderAction={
+              edit.editing
+                ? (entry) => (
+                    <PublicTick
+                      // The shelf's own state, not the staged one: the label
+                      // offers the action this row started with.
+                      hidden={savedHidden.get(entry.book.id) ?? false}
+                      stagedHidden={staged[entry.book.id]}
+                      onToggle={(selected) => toggleStaged(entry, selected)}
+                    />
+                  )
+                : undefined
             }
           />
           <LoadMore shown={pageItems.length} total={shown.length} onMore={onMore} />
@@ -650,12 +690,15 @@ export function Tabs({
 export function Grid({
   entries,
   navigate,
-  onToggleShown,
+  renderAction,
 }: {
   entries: LibraryEntry[];
   navigate: ReturnType<typeof useNavigate>;
-  /** Owner only. Absent for a visitor, who gets no ticks at all. */
-  onToggleShown?: (entry: LibraryEntry, shown: boolean) => void;
+  /**
+   * Owner only, and absent for a visitor. A rendered control rather than a
+   * callback, so the grid does not have to know what staging is (LOS-358).
+   */
+  renderAction?: (entry: LibraryEntry) => ReactNode;
 }) {
   if (entries.length === 0) {
     return <p className={styles.message}>Nothing here yet.</p>;
@@ -675,17 +718,8 @@ export function Grid({
           // were the catalog's (LOS-291).
           userRating={entry.userRating}
           onClick={() => navigate(buildBookHref(entry.book))}
-          // The same slot the library grid uses for its select box. A tick
-          // means the book is on the public page; no separate badge says so
-          // as well, because the tick already does.
-          action={
-            onToggleShown && (
-              <PublicTick
-                shown={!entry.isHidden}
-                onChange={(shown) => onToggleShown(entry, shown)}
-              />
-            )
-          }
+          // The same slot the library grid uses for its select box.
+          action={renderAction?.(entry)}
         />
       ))}
     </div>

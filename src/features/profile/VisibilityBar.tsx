@@ -63,13 +63,19 @@ export function VisibilityBar({
            * Two buttons rather than one that flips. A single toggle has to read
            * the list to decide what it means, which makes it a different button
            * on a mixed list than on a uniform one; these two always say what
-           * they do, and go quiet when there is nothing left for them to do.
+           * they do.
+           *
+           * No longer disabled on "everything already agrees" (LOS-358). They
+           * are a selection gesture now, and selecting every row is something
+           * you can do to a uniform list as much as a mixed one -- the tick
+           * says what is chosen, and the count beside it says how much of that
+           * would actually be written.
            */}
           <button
             type="button"
             className={styles.bulkButton}
             onClick={() => onSetAll(true)}
-            disabled={saving || publicCount === total}
+            disabled={saving}
           >
             Show all {total}
           </button>
@@ -77,7 +83,7 @@ export function VisibilityBar({
             type="button"
             className={styles.bulkButton}
             onClick={() => onSetAll(false)}
-            disabled={saving || publicCount === 0}
+            disabled={saving}
           >
             Hide all {total}
           </button>

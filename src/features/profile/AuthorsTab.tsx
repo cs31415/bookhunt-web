@@ -52,17 +52,19 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
     return () => controller.abort();
   }, [handle, owner]);
 
+  /** What the fetched list says, before anything was staged over it. */
+  const savedHidden = (slug: string) =>
+    Boolean((authors ?? []).find((author) => author.slug === slug)?.isHidden);
+
+  /**
+   * Selects rows and records what each would become. Always assigns, so a
+   * selection survives even where it changes nothing -- the book grid's rule,
+   * and the two lists share this bar (LOS-358).
+   */
   function stage(rows: FavoriteAuthor[], isHidden: boolean) {
     setStaged((current) => {
       const next = { ...current };
-      for (const row of rows) {
-        // Against the fetched list rather than the row handed in, which may
-        // already carry a staged value: back to what the server says is no
-        // longer a change to save.
-        const saved = (authors ?? []).find((author) => author.slug === row.slug);
-        if (Boolean(saved?.isHidden) === isHidden) delete next[row.slug];
-        else next[row.slug] = isHidden;
-      }
+      for (const row of rows) next[row.slug] = isHidden;
       return next;
     });
   }
@@ -75,8 +77,26 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
    * Failures are counted and reported once, and those rows keep what the server
    * last said rather than a remembered value.
    */
+  /** Ticks or unticks one row; unticking cancels that row's pending change. */
+  function toggleStaged(author: FavoriteAuthor, selected: boolean) {
+    setStaged((current) => {
+      const next = { ...current };
+      if (selected) next[author.slug] = !savedHidden(author.slug);
+      else delete next[author.slug];
+      return next;
+    });
+  }
+
+  /** What a save would write, which is not the same as what is ticked. */
+  const stagedChanges = Object.entries(staged).filter(
+    ([slug, isHidden]) => savedHidden(slug) !== isHidden,
+  );
+
   async function save() {
-    const rows = (authors ?? []).filter((row) => row.slug in staged);
+    // Only rows that would actually change; a selection that matches the list
+    // is still a selection, but there is nothing to write for it.
+    const changed = new Set(stagedChanges.map(([slug]) => slug));
+    const rows = (authors ?? []).filter((row) => changed.has(row.slug));
     setSaving(true);
 
     const done: Record<string, boolean> = {};
@@ -134,7 +154,7 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
           onEdit={edit.enter}
           onExit={edit.exit}
           onSetAll={(nextShown) => stage(authors, !nextShown)}
-          dirtyCount={Object.keys(staged).length}
+          dirtyCount={stagedChanges.length}
           saving={saving}
           onSave={save}
         />
@@ -153,8 +173,9 @@ export function AuthorsTab({ handle, owner }: { handle: string; owner: boolean }
                 author first, then what is done with them. */}
             {owner && edit.editing && (
               <PublicTick
-                shown={!author.isHidden}
-                onChange={(shown) => stage([author], !shown)}
+                hidden={savedHidden(author.slug)}
+                stagedHidden={staged[author.slug]}
+                onToggle={(selected) => toggleStaged(author, selected)}
               />
             )}
           </li>
