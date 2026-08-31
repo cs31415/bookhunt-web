@@ -342,7 +342,7 @@ describe('BookDetailPage', () => {
 
       renderVisiting('night-watch', 'ada');
 
-      expect(await screen.findByText('Nothing shared for this book.')).toBeInTheDocument();
+      expect(await screen.findByText('None yet')).toBeInTheDocument();
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
