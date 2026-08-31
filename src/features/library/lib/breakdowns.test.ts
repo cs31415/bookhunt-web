@@ -17,7 +17,7 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
   const id = overrides.book?.id ?? nextId++;
   return {
     status: overrides.status ?? 'queued',
-    notes: null,
+    review: null,
     subjects: overrides.subjects ?? [],
     moods: overrides.moods ?? [],
     themes: overrides.themes ?? [],

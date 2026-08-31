@@ -66,8 +66,7 @@ describe('normalizeBookDetail', () => {
       libraryEntry: {
         status: 'reading',
         user_rating: 4,
-        notes: 'Gripping',
-        review: null,
+        review: 'Gripping',
         user_related: [1, 2, 3],
       },
     });
@@ -78,7 +77,7 @@ describe('normalizeBookDetail', () => {
       // Absent on the raw row reads as false: the flag has been in the payload
       // since LOS-249, but a fixture written before it will not carry one.
       isFavorite: false,
-      notes: 'Gripping',
+      review: 'Gripping',
       userRelatedIds: [1, 2, 3],
     });
   });

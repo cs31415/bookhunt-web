@@ -139,9 +139,9 @@ export function Hero({
 
         {/*
           The catalog's figure alone. A reader's own score used to sit beside it
-          here as well as under My notes, which showed one person two of their
+          here as well as under My review, which showed one person two of their
           own ratings on one screen and left it unclear which one counted
-          (LOS-349). The notes section is the one that keeps it, since that is
+          (LOS-349). The review section is the one that keeps it, since that is
           where a reader is already saying what they thought.
         */}
         {book.rating != null && (

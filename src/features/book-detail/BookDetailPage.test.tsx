@@ -151,7 +151,7 @@ describe('BookDetailPage', () => {
     expect(await screen.findByText('Book not found.')).toBeInTheDocument();
   });
 
-  it('shows the notes section with the rating control', async () => {
+  it('shows the review section with the rating control', async () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });
 
@@ -162,7 +162,7 @@ describe('BookDetailPage', () => {
   /*
    * The hero used to carry a second, interactive rating beside the catalog's,
    * so a reader saw two of their own scores on one screen and could not tell
-   * which counted (LOS-349). The notes section keeps it, since that is where
+   * which counted (LOS-349). The review section keeps it, since that is where
    * they are already saying what they thought.
    */
   it('gives a reader one place to rate, not two', async () => {
@@ -247,7 +247,7 @@ describe('BookDetailPage', () => {
 
   // Saved on the button now, not on a debounce: typing wrote mid-sentence and
   // the reload that followed threw the reader back to the top (LOS-353).
-  it('adds the book to the library before saving a note (AC12), in order', async () => {
+  it('adds the book to the library before saving a review (AC12), in order', async () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });
 
@@ -255,7 +255,7 @@ describe('BookDetailPage', () => {
     fireEvent.change(textarea, { target: { value: 'A note' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(mockedUpdateEntry).toHaveBeenCalledWith(95, { notes: 'A note' }));
+    await waitFor(() => expect(mockedUpdateEntry).toHaveBeenCalledWith(95, { review: 'A note' }));
     const addOrder = mockedAddToLibrary.mock.invocationCallOrder[0];
     const updateOrder = mockedUpdateEntry.mock.invocationCallOrder[mockedUpdateEntry.mock.calls.length - 1];
     expect(addOrder).toBeLessThan(updateOrder);
@@ -362,7 +362,7 @@ describe('BookDetailPage', () => {
       mockedGetBook.mockResolvedValue({
         book: rawBook,
         inLibrary: true,
-        libraryEntry: { status: 'reading', userRating: 0, notes: '', userRelatedIds: [] },
+        libraryEntry: { status: 'reading', userRating: 0, review: '', userRelatedIds: [] },
       } as never);
     }
 
@@ -388,7 +388,7 @@ describe('BookDetailPage', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Remove from library' }));
 
       const dialog = await screen.findByRole('dialog');
-      expect(dialog).toHaveTextContent(/rating, review and notes/);
+      expect(dialog).toHaveTextContent(/rating and review/);
       expect(mockedRemoveEntry).not.toHaveBeenCalled();
 
       fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
@@ -432,7 +432,7 @@ describe('BookDetailPage', () => {
         libraryEntry: {
           status: 'reading',
           user_rating: 0,
-          notes: '',
+          review: '',
           user_related: [],
           is_favorite: isFavorite,
         },

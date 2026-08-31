@@ -34,8 +34,7 @@ function makeEntry(overrides: Partial<RawLibraryEntry> = {}): RawLibraryEntry {
   return {
     book_id: id,
     status: 'queued',
-    notes: null,
-    review: null,
+        review: null,
     title: `Book ${id}`,
     book_slug: `book-${id}`,
     author_name: 'Anon',

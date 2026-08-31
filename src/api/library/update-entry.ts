@@ -4,7 +4,8 @@ import type { LibraryStatus } from '../../shared/types/library-status';
 export interface UpdateEntryParams {
   status?: LibraryStatus;
   userRating?: number;
-  notes?: string;
+  /** The reader's own words. The two fields this replaced -- notes, which was
+      written, and review, which never was -- became one in LOS-266. */
   review?: string;
 }
 
