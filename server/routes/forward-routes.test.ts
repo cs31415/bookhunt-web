@@ -151,6 +151,28 @@ describe('the forwarding manifest', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  /*
+   * The profile filter rail's values, for a shelf the reader does not own
+   * (LOS-359). Absent from the manifest until now, and the symptom hid the
+   * cause: an unlisted GET falls through to the SPA rather than 404ing
+   * (LOS-242), so the browser got HTML where it expected JSON, read no facets,
+   * and the rail simply did not appear. Nothing errored anywhere.
+   */
+  it('forwards the public shelf facets for a signed-out visitor', async () => {
+    const response = await request('/bff/users/ada/library/facets');
+
+    expect(response.status).toBe(200);
+    expect(apiCall(fetchMock).url).toContain('/users/ada/library/facets');
+    expect(apiCall(fetchMock).headers.has('Authorization')).toBe(false);
+  });
+
+  it('forwards the unlisted shelf facets, which the token alone authorises', async () => {
+    const response = await request('/bff/users/by-token/abc123/library/facets');
+
+    expect(response.status).toBe(200);
+    expect(apiCall(fetchMock).url).toContain('/users/by-token/abc123/library/facets');
+  });
+
   it('matches literal segments before the parameters that would swallow them', async () => {
     // DELETE /library/bulk must not arrive at the API as bookId "bulk".
     await request('/bff/library/bulk', {
