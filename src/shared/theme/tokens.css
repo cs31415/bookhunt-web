@@ -349,3 +349,56 @@
     --line: #e0e0e0;
     --line-2: #cecece;
 }
+
+/*
+ * Touch devices, where --shadow-hover is not a hover at all (LOS-374).
+ *
+ * Pills, search boxes, covers and buttons all paint it at rest, so that a
+ * device with no pointer still gets some depth (LOS-351). The value was tuned
+ * for the desktop case, where it is transient and sits under one element at a
+ * time. On a phone it is neither: it is permanent, and the filter rail puts a
+ * dozen pills carrying it on screen at once. The same shadow that reads as
+ * crisp for a moment under a pointer reads as heavy when it never leaves.
+ *
+ * (hover: none) rather than a width, because the trigger is the absence of a
+ * pointer and not a small screen. It catches iPad both ways round and a phone
+ * in landscape, and leaves a narrow desktop window alone -- which a max-width
+ * rule would have caught wrongly.
+ *
+ * Alpha only. LOS-366 recorded what happens when alpha, blur and offset come
+ * down together: far more weight goes than any one of them suggests. The
+ * geometry stays exactly where it is.
+ *
+ * --shadow-hover-strong is deliberately untouched. It only ever fires on hover,
+ * which is the thing these devices do not have.
+ *
+ * Three blocks, matching the three the rest of the file uses: the bare default,
+ * the system preference, and the stamped choice. A single block here would
+ * hand dark mode the light values.
+ */
+@media (hover: none) {
+  :root {
+    --shadow-hover: 0 2px 6px rgba(42, 38, 32, 0.1), 0 1px 2px rgba(42, 38, 32, 0.07);
+  }
+}
+
+@media (hover: none) and (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    /* The hairline holds nearly its full strength: on a dark ground it is what
+       actually draws the edge, and dropping it would flatten the pill away. */
+    --shadow-hover: 0 2px 7px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(239, 233, 220, 0.11);
+  }
+}
+
+@media (hover: none) {
+  :root[data-theme='dark'] {
+    --shadow-hover: 0 2px 7px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(239, 233, 220, 0.11);
+  }
+
+  /* A reader who chose light on a touch device: the block above is keyed to the
+     system preference, so this is the only thing that restores the light value
+     when the system says dark and the reader has said otherwise. */
+  :root[data-theme='light'] {
+    --shadow-hover: 0 2px 6px rgba(42, 38, 32, 0.1), 0 1px 2px rgba(42, 38, 32, 0.07);
+  }
+}
