@@ -52,11 +52,17 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   // would add nothing the API reads. Literals, so above ':handle'.
   { method: 'get', path: '/users/by-token/:token', auth: 'public' },
   { method: 'get', path: '/users/by-token/:token/library', auth: 'public' },
+  { method: 'get', path: '/users/by-token/:token/library/facets', auth: 'public' },
   // Last of the /users block, mirroring routes/users.ts: ':handle' would
   // otherwise swallow the two literals above it. Optional rather than public --
   // a later revision may want to know who is looking.
   { method: 'get', path: '/users/:handle', auth: 'optional' },
   { method: 'get', path: '/users/:handle/library', auth: 'optional' },
+  // The rail's values for a visitor's shelf. Missing until LOS-359, and the
+  // symptom hid the cause: an unlisted GET falls through to the SPA rather than
+  // 404ing (LOS-242), so the browser received HTML where it expected JSON, read
+  // no facets, and the rail simply did not appear.
+  { method: 'get', path: '/users/:handle/library/facets', auth: 'optional' },
   { method: 'get', path: '/users/:handle/favorite-authors', auth: 'optional' },
   { method: 'post', path: '/users/:handle/favorite', auth: 'required' },
   { method: 'delete', path: '/users/:handle/favorite', auth: 'required' },
