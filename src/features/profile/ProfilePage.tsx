@@ -227,7 +227,7 @@ function VisitorProfileView({
             {/* Dimmed rather than replaced: the previous answer stays readable,
                 and the search box keeps focus because nothing unmounts. */}
             <div className={searching ? styles.searching : undefined}>
-              <Grid entries={entries} navigate={navigate} />
+              <Grid entries={entries} navigate={navigate} handle={handle} />
             </div>
             <LoadMore shown={entries.length} total={total} onMore={onMore} busy={loadingMore} />
           </div>
@@ -723,6 +723,7 @@ export function Grid({
   entries,
   navigate,
   renderAction,
+  handle,
 }: {
   entries: LibraryEntry[];
   navigate: ReturnType<typeof useNavigate>;
@@ -731,6 +732,12 @@ export function Grid({
    * callback, so the grid does not have to know what staging is (LOS-358).
    */
   renderAction?: (entry: LibraryEntry) => ReactNode;
+  /**
+   * Whose shelf this is, when it is not the reader's own. Carried into the book
+   * link so the page opens their copy rather than yours (LOS-360). Absent on
+   * the owner's own shelf, where your copy is the right one.
+   */
+  handle?: string;
 }) {
   if (entries.length === 0) {
     return <p className={styles.message}>Nothing here yet.</p>;
@@ -749,7 +756,7 @@ export function Grid({
           // Both scores, since the shelf is a reader's and the stars alone
           // were the catalog's (LOS-291).
           userRating={entry.userRating}
-          onClick={() => navigate(buildBookHref(entry.book))}
+          onClick={() => navigate(buildBookHref(entry.book, { handle }))}
           // The same slot the library grid uses for its select box.
           action={renderAction?.(entry)}
           // In the flow under the card, not over the cover: this is to be

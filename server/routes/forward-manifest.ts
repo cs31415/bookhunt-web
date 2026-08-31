@@ -63,6 +63,9 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   // 404ing (LOS-242), so the browser received HTML where it expected JSON, read
   // no facets, and the rail simply did not appear.
   { method: 'get', path: '/users/:handle/library/facets', auth: 'optional' },
+  // After the literal /facets, which would otherwise be read as a bookId --
+  // the ordering this file follows throughout (LOS-360).
+  { method: 'get', path: '/users/:handle/library/:bookId', auth: 'optional' },
   { method: 'get', path: '/users/:handle/favorite-authors', auth: 'optional' },
   { method: 'post', path: '/users/:handle/favorite', auth: 'required' },
   { method: 'delete', path: '/users/:handle/favorite', auth: 'required' },

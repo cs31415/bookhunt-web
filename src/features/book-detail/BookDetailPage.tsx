@@ -3,6 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Hero } from './components/Hero/Hero';
 import { SpecificationsCard } from './components/SpecificationsCard/SpecificationsCard';
 import { ReviewEditor } from './components/ReviewEditor/ReviewEditor';
+import { VisitorReview } from './components/VisitorReview/VisitorReview';
+import { useVisitorEntry } from './hooks/useVisitorEntry';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { RelatedReads } from './components/RelatedReads/RelatedReads';
 import { useBookDetailData } from './hooks/useBookDetailData';
@@ -44,6 +46,14 @@ export function BookDetailPage() {
   const [searchParams] = useSearchParams();
   const authorSlug = searchParams.get('a') ?? undefined;
   const pid = searchParams.get('pid') ?? undefined;
+  /**
+   * Whose copy of this book to show (LOS-360).
+   *
+   * Set when a visitor arrived from someone's shelf. The page then reads their
+   * entry instead of the caller's and offers none of the caller's controls --
+   * this is somebody else's copy, not a second place to edit your own.
+   */
+  const visitingHandle = searchParams.get('u') ?? undefined;
   const navigate = useNavigate();
 
   const { detail, authorBio, authorWorks, relatedBooks, notFound, error, reload } = useBookDetailData(slug, {
@@ -54,6 +64,14 @@ export function BookDetailPage() {
   // null means "whatever the server said", so a reload needs no synchronising
   // effect and a failed toggle needs no remembered value to restore.
   const [favoriteOverride, setFavoriteOverride] = useState<boolean | null>(null);
+  /**
+   * Whose entry the page is about. Under `?u=` it is theirs, and every control
+   * that would write goes with it -- reading someone's review beside a box that
+   * saves over your own is the worst version of this (LOS-360).
+   */
+  const visitorEntry = useVisitorEntry(visitingHandle, book?.id);
+  const visiting = Boolean(visitingHandle);
+
   const fetchedEntry = detail?.libraryEntry;
   const libraryEntry = fetchedEntry
     ? { ...fetchedEntry, isFavorite: favoriteOverride ?? fetchedEntry.isFavorite }
@@ -250,18 +268,35 @@ export function BookDetailPage() {
 
       <div className={styles.body}>
         <div className={styles.main}>
-          <h2 className={styles.sectionHeading}>My review</h2>
-          {/* Keyed on the book, so a different book is a different box. That
-              is what lets ReviewEditor own its text outright: nothing syncs the
-              prop back into it, so a reload cannot overwrite an edit in
-              progress (LOS-353). */}
-          <ReviewEditor
-            key={book.id}
-            userRating={libraryEntry?.userRating ?? 0}
-            initialReview={libraryEntry?.review ?? ''}
-            onRatingChange={handleRate}
-            onSaveReview={handleSaveReview}
-          />
+          {visiting ? (
+            <>
+              <h2 className={styles.sectionHeading}>
+                {visitingHandle}&rsquo;s review
+              </h2>
+              {/* No editor at all, rather than a disabled one: there is nothing
+                  here for the reader to do, and a greyed-out box would suggest
+                  otherwise (LOS-360). */}
+              <VisitorReview
+                review={visitorEntry?.review ?? null}
+                userRating={visitorEntry?.userRating ?? null}
+              />
+            </>
+          ) : (
+            <>
+              <h2 className={styles.sectionHeading}>My review</h2>
+              {/* Keyed on the book, so a different book is a different box.
+                  That is what lets ReviewEditor own its text outright: nothing
+                  syncs the prop back into it, so a reload cannot overwrite an
+                  edit in progress (LOS-353). */}
+              <ReviewEditor
+                key={book.id}
+                userRating={libraryEntry?.userRating ?? 0}
+                initialReview={libraryEntry?.review ?? ''}
+                onRatingChange={handleRate}
+                onSaveReview={handleSaveReview}
+              />
+            </>
+          )}
         </div>
 
         <Sidebar

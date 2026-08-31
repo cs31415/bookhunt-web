@@ -10,7 +10,7 @@ import { slugify } from './slugify';
  * (LOS-135). Provider is opaque here — `g:` for Google Books, `o:` for
  * OpenLibrary — nothing is special-cased to a single provider.
  */
-export function buildBookHref(book: BookSummary): string {
+export function buildBookHref(book: BookSummary, options: { handle?: string } = {}): string {
   const bookSlug = book.slug || slugify(book.title);
   const authorSlug = book.authorSlug || slugify(book.authorName);
   const params = new URLSearchParams({ a: authorSlug });
@@ -20,5 +20,9 @@ export function buildBookHref(book: BookSummary): string {
       ? `o:${book.openLibraryId}`
       : null;
   if (pid) params.set('pid', pid);
+  // Whose copy of the book to show (LOS-360). A third hint of the same kind as
+  // the two above rather than a path of its own: this is the same book,
+  // resolved with more context, not a different resource.
+  if (options.handle) params.set('u', options.handle);
   return `/books/${bookSlug}?${params.toString()}`;
 }
