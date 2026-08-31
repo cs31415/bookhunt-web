@@ -207,6 +207,18 @@ describe('BookDetailPage', () => {
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
+    /*
+     * Related reads is mostly the curating of your own picks -- an Add related
+     * button, a picker, and a hint telling you to add the book so you can
+     * curate it. None of that means anything without a reader (LOS-365).
+     */
+    it('offers no related reads section either', async () => {
+      renderSignedOut('night-watch');
+
+      await screen.findByRole('heading', { name: 'Night Watch' });
+      expect(screen.queryByRole('heading', { name: 'Related reads' })).not.toBeInTheDocument();
+    });
+
     // The rest of the page is a book, and a book is public.
     it('still shows the book itself', async () => {
       renderSignedOut('night-watch');
@@ -285,11 +297,12 @@ describe('BookDetailPage', () => {
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
-    it('keeps the editor on the ordinary book page, for a signed-in reader', async () => {
+    it('keeps both sections on the ordinary book page, for a signed-in reader', async () => {
       renderBookDetailPage('night-watch');
 
       expect(await screen.findByRole('heading', { name: 'My review' })).toBeInTheDocument();
       expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Related reads' })).toBeInTheDocument();
       expect(mockedPublicEntry).not.toHaveBeenCalled();
     });
 
@@ -306,6 +319,9 @@ describe('BookDetailPage', () => {
       expect(await screen.findByText('Theirs.')).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'My review' })).not.toBeInTheDocument();
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      // Nor the reader's own curation, for the same reason: this page is about
+      // somebody else's copy (LOS-365).
+      expect(screen.queryByRole('heading', { name: 'Related reads' })).not.toBeInTheDocument();
     });
   });
 
