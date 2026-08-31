@@ -108,7 +108,7 @@ export function SharedProfilePage() {
             {/* Dimmed rather than replaced, as on the public profile: the search
                 box keeps focus because nothing unmounts (LOS-310). */}
             <div className={searching ? styles.searching : undefined}>
-              <Grid entries={entries} navigate={navigate} onSelectSubject={shelf.onSelectSubject} />
+              <Grid entries={entries} navigate={navigate} />
             </div>
             <LoadMore shown={entries.length} total={total} onMore={onMore} busy={loadingMore} />
           </div>

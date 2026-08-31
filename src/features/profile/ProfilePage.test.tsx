@@ -800,7 +800,7 @@ describe('searching a profile (LOS-304)', () => {
   });
 });
 
-describe('category pills on the shelf (LOS-304)', () => {
+describe('filtering the shelf by category (LOS-304, LOS-357)', () => {
   const withSubjects = {
     entries: [rawEntry(1, 'Cosmos', { subjects: ['Science', 'Astronomy', 'Essays', 'History'] })],
     total: 1,
@@ -808,33 +808,34 @@ describe('category pills on the shelf (LOS-304)', () => {
     pageSize: 24,
   };
 
-  it('says what a book is about, which the shelf did not before', async () => {
+  /*
+   * The per-card pills are gone (LOS-357). They were a filter control, and the
+   * rail does the same job in one place instead of once per book -- which only
+   * became true for a visitor when LOS-359 put the facets route in the
+   * forwarding manifest, so this test is the pair to that one.
+   */
+  it('offers no pills under a book', async () => {
     mockedPublicLibrary.mockResolvedValue(withSubjects as never);
 
     renderProfile();
 
-    expect(await screen.findByRole('button', { name: 'Science' })).toBeInTheDocument();
+    await screen.findByRole('button', { name: /Cosmos/ });
+    expect(screen.queryByRole('button', { name: 'Science' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Astronomy' })).not.toBeInTheDocument();
   });
 
-  // Fewer than the book page's ten: a shelf row has less space than a detail
-  // card, and three carry the sense.
-  it('shows three, not the whole list', async () => {
+  // The job the pills were doing, done by the rail: same URL, same request.
+  it('filters to a category from the rail', async () => {
     mockedPublicLibrary.mockResolvedValue(withSubjects as never);
-
-    renderProfile();
-
-    await screen.findByRole('button', { name: 'Science' });
-    expect(screen.getByRole('button', { name: 'Astronomy' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Essays' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'History' })).not.toBeInTheDocument();
-  });
-
-  it('filters the shelf to that category when a pill is clicked', async () => {
-    mockedPublicLibrary.mockResolvedValue(withSubjects as never);
+    mockedFacets.mockResolvedValue({
+      subject: ['Science', 'History'],
+      mood: [],
+      theme: [],
+    } as never);
     const router = renderProfile();
-    await screen.findByRole('button', { name: 'Science' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Science' }));
+    const rail = await screen.findByLabelText('Shelf filters');
+    await userEvent.click(within(rail).getByText('Science'));
 
     await waitFor(() => expect(router.state.location.search).toContain('subject=Science'));
     expect(mockedPublicLibrary).toHaveBeenCalledWith(
