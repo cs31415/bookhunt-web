@@ -323,50 +323,25 @@ function OwnerProfile({
   );
 
   /**
-   * Selects rows and records what each would become.
-   *
-   * Always assigns, where this used to drop a key that matched the shelf
-   * (LOS-358). A selection is a selection even when it changes nothing: Hide
-   * all ticks every book, including ones already hidden. What would actually be
-   * written is `dirtyCount` below, derived rather than inferred from the keys.
+   * Records what each row would become, dropping anything that matches the
+   * shelf again: a tick moved back to where it started is no longer a change to
+   * save, so the count beside the bar stays honest.
    */
   function stage(items: LibraryEntry[], hidden: boolean) {
     setStaged((current) => {
       const next = { ...current };
-      for (const item of items) next[item.book.id] = hidden;
+      for (const item of items) {
+        if (savedHidden.get(item.book.id) === hidden) delete next[item.book.id];
+        else next[item.book.id] = hidden;
+      }
       return next;
     });
   }
-
-  /** Ticks or unticks one row. Unticking cancels that row's pending change. */
-  function toggleStaged(entry: LibraryEntry, selected: boolean) {
-    setStaged((current) => {
-      const next = { ...current };
-      // The action a row offers is always the opposite of where it rests.
-      if (selected) next[entry.book.id] = !(savedHidden.get(entry.book.id) ?? false);
-      else delete next[entry.book.id];
-      return next;
-    });
-  }
-
-  /**
-   * What a save would actually write, which is not the same as what is ticked.
-   * A book already hidden and staged to hide is selected and costs nothing, so
-   * the bar can read "every box ticked, 0 unsaved" and be telling the truth.
-   */
-  const stagedChanges = useMemo(
-    () =>
-      Object.entries(staged).filter(
-        ([bookId, hidden]) => savedHidden.get(Number(bookId)) !== hidden,
-      ),
-    [staged, savedHidden],
-  );
 
   async function save() {
     // Only what differs, and hideMany already reports what it could not write.
-    const changed = new Set(stagedChanges.map(([bookId]) => Number(bookId)));
-    const toHide = saved.filter((entry) => changed.has(entry.book.id) && staged[entry.book.id]);
-    const toShow = saved.filter((entry) => changed.has(entry.book.id) && !staged[entry.book.id]);
+    const toHide = saved.filter((entry) => staged[entry.book.id] === true);
+    const toShow = saved.filter((entry) => staged[entry.book.id] === false);
 
     setSaving(true);
     if (toHide.length > 0) await flags.hideMany(toHide, true);
@@ -426,7 +401,7 @@ function OwnerProfile({
             onEdit={edit.enter}
             onExit={edit.exit}
             onSetAll={(shownNext) => stage(shown, !shownNext)}
-            dirtyCount={stagedChanges.length}
+            dirtyCount={Object.keys(staged).length}
             saving={saving}
             onSave={save}
           />
@@ -437,11 +412,8 @@ function OwnerProfile({
               edit.editing
                 ? (entry) => (
                     <PublicTick
-                      // The shelf's own state, not the staged one: the label
-                      // offers the action this row started with.
-                      hidden={savedHidden.get(entry.book.id) ?? false}
-                      stagedHidden={staged[entry.book.id]}
-                      onToggle={(selected) => toggleStaged(entry, selected)}
+                      shown={!entry.isHidden}
+                      onChange={(next) => stage([entry], !next)}
                     />
                   )
                 : undefined

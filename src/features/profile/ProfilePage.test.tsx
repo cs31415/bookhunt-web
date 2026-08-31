@@ -387,25 +387,24 @@ describe('ProfilePage as the owner', () => {
   });
 
   /*
-   * The tick is a pending change, not a state (LOS-358). Edit opens with
-   * nothing selected, and each row offers the one action available to it --
-   * which is the opposite of where it rests.
+   * One fixed word, and the box carries the meaning: checked is shown (LOS-358).
+   * The label used to name the action instead, so a ticked box read "Hide from
+   * public profile" and said the opposite of what the tick meant.
    */
-  it('opens with nothing ticked, each row offering its own action', async () => {
+  it('ticks what is public and leaves a hidden book unticked', async () => {
     renderProfile();
 
     expect(await screen.findByRole('button', { name: /Secret/ })).toBeInTheDocument();
     await enterEdit();
 
-    expect(tickFor('Cosmos')).not.toBeChecked();
-    expect(tickFor('Cosmos')).toHaveAccessibleName('Hide');
+    expect(tickFor('Cosmos')).toBeChecked();
     expect(tickFor('Secret')).not.toBeChecked();
+    // The same word on both, so there is nothing to track as you work.
+    expect(tickFor('Cosmos')).toHaveAccessibleName('Show');
     expect(tickFor('Secret')).toHaveAccessibleName('Show');
   });
 
-  // Selected rows describe the selection instead, which is what lets a bulk
-  // press read the same word on every row.
-  it('follows the selection once a row is ticked', async () => {
+  it('moves the box without changing the word', async () => {
     renderProfile();
     await screen.findByRole('button', { name: /Secret/ });
     await enterEdit();
@@ -413,11 +412,11 @@ describe('ProfilePage as the owner', () => {
     await userEvent.click(tickFor('Secret'));
 
     expect(tickFor('Secret')).toBeChecked();
-    // Still Show: ticking a hidden book selects it to be shown.
     expect(tickFor('Secret')).toHaveAccessibleName('Show');
   });
 
-  it('unticking cancels that row and leaves the rest alone', async () => {
+  // Back to where it started is no longer a change to save.
+  it('forgets a tick moved back to where it was', async () => {
     renderProfile();
     await screen.findByRole('button', { name: /Secret/ });
     await enterEdit();
@@ -439,8 +438,8 @@ describe('ProfilePage as the owner', () => {
 
     await userEvent.click(tick);
 
-    // Ticked means selected, and nothing is written until Save.
-    expect(tick).toBeChecked();
+    // Unticked: the book would come off the public page. Nothing written yet.
+    expect(tick).not.toBeChecked();
     expect(mockedSetHidden).not.toHaveBeenCalled();
     expect(screen.getByText('1 unsaved')).toBeInTheDocument();
 
@@ -471,10 +470,9 @@ describe('ProfilePage as the owner', () => {
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
 
-    // Back in, nothing is selected: the staging went with the cancel.
+    // Back in, the tick is where the shelf says it is rather than where it was left.
     await enterEdit();
-    expect(tickFor('Cosmos')).not.toBeChecked();
-    expect(tickFor('Cosmos')).toHaveAccessibleName('Hide');
+    expect(tickFor('Cosmos')).toBeChecked();
   });
 
   it('forgets a tick moved back to where it started', async () => {
@@ -500,12 +498,10 @@ describe('ProfilePage as the owner', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     // Falls back to whatever the server last said, never claiming a state it
-    // refused. Saving ends the mode, so this looks again from outside it: the
-    // book is still public, so its row still offers Hide.
+    // refused. Saving ends the mode, so this looks again from outside it.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument());
     await enterEdit();
-    expect(tickFor('Cosmos')).not.toBeChecked();
-    expect(tickFor('Cosmos')).toHaveAccessibleName('Hide');
+    expect(tickFor('Cosmos')).toBeChecked();
   });
 
   it('reaches the whole tab from Show all, not the page on screen', async () => {
@@ -529,24 +525,20 @@ describe('ProfilePage as the owner', () => {
    * instruction that would be a no-op.
    */
   /*
-   * A bulk press ticks every row, including ones already in that state and so
-   * contributing nothing to the count (LOS-358). The default fixture is mixed --
-   * Cosmos shown, Secret hidden -- so Show all is live and has one real change
-   * to make.
+   * The default fixture is mixed -- Cosmos shown, Secret hidden -- so Show all
+   * is live and has exactly one real change to make.
    */
-  it('ticks every row, including ones with nothing to save', async () => {
+  it('ticks every row, and counts only what changes', async () => {
     renderProfile();
     await screen.findByRole('button', { name: /Secret/ });
     await enterEdit();
 
     await userEvent.click(screen.getByRole('button', { name: 'Show all 2' }));
 
-    // Both ticked, both labelled by the selection.
+    // Both ticked, because both are now shown.
     expect(tickFor('Cosmos')).toBeChecked();
-    expect(tickFor('Cosmos')).toHaveAccessibleName('Show');
     expect(tickFor('Secret')).toBeChecked();
-    expect(tickFor('Secret')).toHaveAccessibleName('Show');
-    // Only Secret would actually be written: Cosmos was already shown.
+    // Only Secret is a change: Cosmos was already shown.
     expect(screen.getByText('1 unsaved')).toBeInTheDocument();
   });
 
@@ -735,15 +727,15 @@ describe('the Authors tab', () => {
     await screen.findByRole('link', { name: 'Ursula Le Guin' });
     // The author ticks sit behind Edit too (LOS-346): the two lists share the
     // bar, so they share the mode rather than disagreeing about it.
-    expect(screen.queryByRole('checkbox', { name: /^(Show|Hide)$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Show' })).not.toBeInTheDocument();
     await enterEdit();
-    // A listed author offers Hide, and starts unselected like the book grid.
-    const tick = screen.getByRole('checkbox', { name: 'Hide' });
-    expect(tick).not.toBeChecked();
+    // A listed author is shown, so its box starts ticked, like the book grid.
+    const tick = screen.getByRole('checkbox', { name: 'Show' });
+    expect(tick).toBeChecked();
 
     await userEvent.click(tick);
 
-    expect(tick).toBeChecked();
+    expect(tick).not.toBeChecked();
     expect(mockedSetAuthorHidden).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
