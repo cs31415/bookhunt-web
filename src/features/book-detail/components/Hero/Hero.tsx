@@ -151,26 +151,19 @@ export function Hero({
 
           Present even with no figure to show, which is most books: Google Books
           returns averageRating only for volumes carrying enough ratings, so
-          around four in five have none. Saying so is better than the section
-          vanishing, which reads as the page having lost something.
-
-          No stars in that case, deliberately. Five empty ones say the book
-          scored nothing, which is a different claim from nobody having scored
-          it.
+          around four in five have none. Those get an empty row of stars and no
+          number, which is what the grid cards already do -- a book looks the
+          same here as it did on the way in.
         */}
         <div className={styles.ratings}>
           <div className={styles.ratingGroup}>
             <span className={styles.eyebrow}>Average rating</span>
-            {book.rating != null ? (
-              <div className={styles.ratingRow}>
-                <Stars value={book.rating} mode="display" />
+            <div className={styles.ratingRow}>
+              <Stars value={book.rating ?? 0} mode="display" />
+              {book.rating != null && (
                 <span className={styles.ratingValue}>{book.rating.toFixed(1)}</span>
-              </div>
-            ) : (
-              <div className={styles.ratingRow}>
-                <span className={styles.unrated}>Not rated by the catalogue</span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 

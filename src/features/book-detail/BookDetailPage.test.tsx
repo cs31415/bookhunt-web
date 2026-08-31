@@ -191,15 +191,15 @@ describe('BookDetailPage', () => {
 
     /*
      * Around four in five books have none -- Google Books returns averageRating
-     * only for volumes with enough ratings. The section says so rather than
-     * disappearing, and says it in words: five empty stars would claim the book
-     * scored nothing, which is a different thing from nobody having scored it.
+     * only for volumes with enough ratings. Those keep the empty stars the grid
+     * cards show, and drop the number, so the section never disappears.
      */
-    it('says so when the catalogue has none, rather than vanishing', async () => {
+    it('shows empty stars and no number when the catalogue has none', async () => {
       renderBookDetailPage('night-watch');
 
       expect(await screen.findByText('Average rating')).toBeInTheDocument();
-      expect(screen.getByText('Not rated by the catalogue')).toBeInTheDocument();
+      // The number is the only part that goes; a stray "0.0" would read as a score.
+      expect(screen.queryByText('0.0')).not.toBeInTheDocument();
     });
 
     it('shows it to a signed-out visitor', async () => {

@@ -123,13 +123,6 @@
   gap: 8px;
 }
 
-/* Words rather than empty stars: nobody has rated it, which is not the same as
-   it having been rated nothing. */
-.unrated {
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-
 .ratingValue {
   display: var(--rating-value-display);
   font-size: 0.8125rem;
