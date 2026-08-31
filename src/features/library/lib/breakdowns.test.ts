@@ -18,6 +18,7 @@ function makeEntry(overrides: Partial<LibraryEntry> & { status?: LibraryStatus }
   return {
     status: overrides.status ?? 'queued',
     review: null,
+    shareReview: null,
     subjects: overrides.subjects ?? [],
     moods: overrides.moods ?? [],
     themes: overrides.themes ?? [],

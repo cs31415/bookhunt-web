@@ -36,6 +36,7 @@ describe('normalizeLibraryEntry', () => {
     expect(normalizeLibraryEntry(rawEntry)).toEqual({
       status: 'reading',
       review: 'Slow start but picking up',
+      shareReview: null,
       subjects: [],
       moods: [],
       themes: [],
