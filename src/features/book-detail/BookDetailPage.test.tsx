@@ -350,7 +350,8 @@ describe('BookDetailPage', () => {
       renderBookDetailPage('night-watch');
 
       expect(await screen.findByRole('heading', { name: 'My review' })).toBeInTheDocument();
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      // The reader's own review opens for writing behind this (LOS-369).
+      expect(screen.getByRole('button', { name: /Edit|Write a review/ })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Related reads' })).toBeInTheDocument();
       expect(mockedPublicEntry).not.toHaveBeenCalled();
     });
@@ -381,7 +382,7 @@ describe('BookDetailPage', () => {
     await screen.findByRole('heading', { name: 'Night Watch' });
 
     expect(await screen.findByText('Your rating')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Your review of this book/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Edit|Write a review/ })).toBeInTheDocument();
   });
 
   /*
@@ -476,7 +477,9 @@ describe('BookDetailPage', () => {
     renderBookDetailPage('night-watch');
     await screen.findByRole('heading', { name: 'Night Watch' });
 
-    const textarea = await screen.findByPlaceholderText(/Your review of this book/);
+    // The box is behind Edit now, so writing starts with opening it (LOS-369).
+    fireEvent.click(await screen.findByRole('button', { name: /Edit|Write a review/ }));
+    const textarea = screen.getByPlaceholderText(/Your review of this book/);
     fireEvent.change(textarea, { target: { value: 'A note' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 

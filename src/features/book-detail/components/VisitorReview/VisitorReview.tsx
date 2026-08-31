@@ -1,5 +1,5 @@
 import { Stars } from '../../../../shared/components/Stars/Stars';
-import { RichText } from '../../../../shared/lib/rich-text';
+import { ReviewText } from '../ReviewText/ReviewText';
 import styles from './VisitorReview.module.css';
 
 export interface VisitorReviewProps {
@@ -31,7 +31,7 @@ export function VisitorReview({ review, userRating }: VisitorReviewProps) {
           <span className={styles.ratingValue}>{userRating.toFixed(1)}</span>
         </div>
       )}
-      {review && <RichText className={styles.review} text={review} />}
+      {review && <ReviewText text={review} />}
     </div>
   );
 }
