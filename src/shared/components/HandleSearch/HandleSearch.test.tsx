@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
@@ -34,7 +34,23 @@ function renderBar(onSubmit?: (value: string) => void) {
 }
 
 beforeEach(() => {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+  /*
+   * No shouldAdvanceTime, deliberately (LOS-332).
+   *
+   * It creeps the fake clock -- and the faked Date.now -- forward with real
+   * time. findBy* measures its polling budget against that same clock while
+   * advancing it 50ms per poll, so on a busy machine each poll costs more fake
+   * time and the budget is spent in fewer actual polls. The wait then gives up
+   * on work that was about to finish.
+   *
+   * Raising the budget only moves the ceiling: at 1000ms this file failed 2
+   * runs in 8 under load, and at 4000ms it still failed 2 in 6, burning the
+   * larger budget just as readily. No value is safe while the budget is
+   * denominated in a clock that races with load.
+   *
+   * So the clock is driven explicitly below instead, and nothing here polls.
+   */
+  vi.useFakeTimers();
   mockedSearch.mockReset();
   mockedSearch.mockResolvedValue({ users });
 });
@@ -45,9 +61,26 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/*
+ * Inside act, which is the part that matters. Advancing the clock settles the
+ * search promise, but React's passive effects only run when act flushes them --
+ * and HandleSearch copies its results into a ref *in an effect*, which the
+ * keydown handler then reads. Without the flush that ref still holds an empty
+ * list, the handler takes its `length === 0` early return, and the arrow keys
+ * and Enter silently do nothing.
+ *
+ * findBy* used to hide this by wrapping its polling in act. Nothing polls now,
+ * so the flush has to be asked for.
+ */
+async function settle(ms = 0) {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
+}
+
 async function type(input: HTMLElement, value: string) {
   fireEvent.change(input, { target: { value } });
-  await vi.advanceTimersByTimeAsync(400);
+  await settle(400);
 }
 
 describe('the @ reader search', () => {
@@ -67,7 +100,7 @@ describe('the @ reader search', () => {
 
     expect(input).toHaveAttribute('aria-expanded', 'true');
     expect(mockedSearch).toHaveBeenCalledWith('ada', expect.any(AbortSignal));
-    expect(await screen.findByText('@ada')).toBeInTheDocument();
+    expect(screen.getByText('@ada')).toBeInTheDocument();
   });
 
   it('returns to book mode with the query intact when the @ is deleted', async () => {
@@ -94,7 +127,6 @@ describe('the @ reader search', () => {
   it('moves through the list with the arrow keys', async () => {
     const input = renderBar();
     await type(input, '@ada');
-    await screen.findByText('@ada');
 
     const options = screen.getAllByRole('option');
     expect(options[0]).toHaveAttribute('aria-selected', 'true');
@@ -111,12 +143,12 @@ describe('the @ reader search', () => {
     const onSubmit = vi.fn();
     const input = renderBar(onSubmit);
     await type(input, '@ada');
-    await screen.findByText('@ada');
 
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    expect(await screen.findByText('Profile page')).toBeInTheDocument();
+    await settle();
+    expect(screen.getByText('Profile page')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -125,7 +157,7 @@ describe('the @ reader search', () => {
     const input = renderBar();
     await type(input, '@nobody');
 
-    expect(await screen.findByText('No readers found.')).toBeInTheDocument();
+    expect(screen.getByText('No readers found.')).toBeInTheDocument();
   });
 
   it('cannot render a stale answer over a newer query', async () => {
@@ -134,11 +166,11 @@ describe('the @ reader search', () => {
     mockedSearch.mockResolvedValue({ users: [] });
     const input = renderBar();
     await type(input, '@a');
-    expect(await screen.findByText('No readers found.')).toBeInTheDocument();
+    expect(screen.getByText('No readers found.')).toBeInTheDocument();
 
     mockedSearch.mockResolvedValue({ users });
     await type(input, '@ada');
 
-    expect(await screen.findByText('@adare')).toBeInTheDocument();
+    expect(screen.getByText('@adare')).toBeInTheDocument();
   });
 });
