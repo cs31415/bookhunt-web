@@ -529,11 +529,33 @@ describe('ProfilePage as the owner', () => {
    * instruction that would be a no-op.
    */
   /*
-   * The bulk buttons are a selection gesture now, so neither is disabled for
-   * having nothing to write (LOS-358). Selecting every row is as possible on a
-   * uniform list as on a mixed one.
+   * A bulk press ticks every row, including ones already in that state and so
+   * contributing nothing to the count (LOS-358). The default fixture is mixed --
+   * Cosmos shown, Secret hidden -- so Show all is live and has one real change
+   * to make.
    */
   it('ticks every row, including ones with nothing to save', async () => {
+    renderProfile();
+    await screen.findByRole('button', { name: /Secret/ });
+    await enterEdit();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show all 2' }));
+
+    // Both ticked, both labelled by the selection.
+    expect(tickFor('Cosmos')).toBeChecked();
+    expect(tickFor('Cosmos')).toHaveAccessibleName('Show');
+    expect(tickFor('Secret')).toBeChecked();
+    expect(tickFor('Secret')).toHaveAccessibleName('Show');
+    // Only Secret would actually be written: Cosmos was already shown.
+    expect(screen.getByText('1 unsaved')).toBeInTheDocument();
+  });
+
+  /*
+   * A button that provably cannot write anything says so. Narrower than it
+   * sounds: this is the whole list having nothing to do, not a single row --
+   * on a mixed list both stay live, as the test above shows.
+   */
+  it('disables Show all when every book is already shown', async () => {
     mockedLibrary.mockResolvedValue({
       entries: [rawEntry(1, 'Cosmos')] as never,
       total: 1,
@@ -544,17 +566,11 @@ describe('ProfilePage as the owner', () => {
     await screen.findByRole('button', { name: /Cosmos/ });
     await enterEdit();
 
-    expect(screen.getByRole('button', { name: 'Show all 1' })).toBeEnabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Show all 1' }));
-
-    // Ticked and labelled by the selection, though the book was already shown.
-    expect(tickFor('Cosmos')).toBeChecked();
-    expect(tickFor('Cosmos')).toHaveAccessibleName('Show');
-    // And honest about it: nothing would be written.
-    expect(screen.queryByText(/unsaved/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show all 1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Hide all 1' })).toBeEnabled();
   });
 
-  it('offers Hide all on a library that is already hidden', async () => {
+  it('disables Hide all when every book is already hidden', async () => {
     mockedLibrary.mockResolvedValue({
       entries: [rawEntry(1, 'Cosmos', { is_hidden: true })] as never,
       total: 1,
@@ -565,12 +581,8 @@ describe('ProfilePage as the owner', () => {
     await screen.findByRole('button', { name: /Cosmos/ });
     await enterEdit();
 
-    expect(screen.getByRole('button', { name: 'Hide all 1' })).toBeEnabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Hide all 1' }));
-
-    expect(tickFor('Cosmos')).toBeChecked();
-    expect(tickFor('Cosmos')).toHaveAccessibleName('Hide');
-    expect(screen.queryByText(/unsaved/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hide all 1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Show all 1' })).toBeEnabled();
   });
 
   // The point of the mode: a shelf being read is not a shelf being edited.

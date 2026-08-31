@@ -65,17 +65,22 @@ export function VisibilityBar({
            * on a mixed list than on a uniform one; these two always say what
            * they do.
            *
-           * No longer disabled on "everything already agrees" (LOS-358). They
-           * are a selection gesture now, and selecting every row is something
-           * you can do to a uniform list as much as a mixed one -- the tick
-           * says what is chosen, and the count beside it says how much of that
-           * would actually be written.
+           * Each goes quiet only when it provably cannot write anything: Show
+           * all on a list that is entirely shown, Hide all on one entirely
+           * hidden. A button that could do nothing at all should say so.
+           *
+           * That is a narrower rule than it looks, and it does not contradict
+           * what a press does (LOS-358). On a mixed list both stay live, and
+           * pressing one still ticks every row -- including the ones already in
+           * that state, which contribute nothing to the count beside it. The
+           * disabling is about the whole list having nothing to write; the
+           * ticking is about what you selected.
            */}
           <button
             type="button"
             className={styles.bulkButton}
             onClick={() => onSetAll(true)}
-            disabled={saving}
+            disabled={saving || publicCount === total}
           >
             Show all {total}
           </button>
@@ -83,7 +88,7 @@ export function VisibilityBar({
             type="button"
             className={styles.bulkButton}
             onClick={() => onSetAll(false)}
-            disabled={saving}
+            disabled={saving || publicCount === 0}
           >
             Hide all {total}
           </button>
