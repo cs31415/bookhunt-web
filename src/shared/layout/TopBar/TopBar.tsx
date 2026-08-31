@@ -204,7 +204,7 @@ export function TopBar() {
       </button>
 
       <Link to="/" className={styles.brand}>
-        <LogoMark light className={styles.logo} />
+        <LogoMark className={styles.logo} />
         <span className={styles.wordmark}>BookHunt</span>
       </Link>
 
