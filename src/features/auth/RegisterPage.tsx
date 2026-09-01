@@ -91,7 +91,7 @@ export function RegisterPage() {
             />
           </div>
           <span id="invite-hint" className={styles.hint}>
-            BookHunt is invite-only while it finds its feet.
+            Request an invite code.
           </span>
         </div>
 

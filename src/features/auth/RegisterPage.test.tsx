@@ -274,7 +274,7 @@ describe('RegisterPage', () => {
       renderRegisterPage();
 
       expect(screen.getByLabelText('Invite code')).toBeRequired();
-      expect(screen.getByText(/invite-only while it finds its feet/)).toBeInTheDocument();
+      expect(screen.getByText('Request an invite code.')).toBeInTheDocument();
     });
 
     it('sits above the rest, since nothing else matters without it', () => {
