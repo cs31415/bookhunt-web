@@ -276,8 +276,13 @@ describe('RegisterPage', () => {
       expect(screen.getByLabelText('Invite code')).toBeRequired();
       // A link, not a sentence. It shipped as plain text first, which told
       // people to do something the page gave them no way to do (LOS-381).
-      const ask = screen.getByRole('link', { name: 'Request an invite code.' });
+      const ask = screen.getByRole('link', { name: 'Request an invite' });
       expect(ask).toHaveAttribute('href', '/request-invite');
+      // The link has to look like one: the global reset strips colour and
+      // underline from every anchor, which left this reading as plain grey
+      // text (LOS-382).
+      expect(ask.className).toContain('hintLink');
+      expect(screen.getByText(/Don.t have one\?/)).toBeInTheDocument();
     });
 
     it('sits above the rest, since nothing else matters without it', () => {

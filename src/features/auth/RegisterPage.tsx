@@ -91,7 +91,14 @@ export function RegisterPage() {
             />
           </div>
           <span id="invite-hint" className={styles.hint}>
-            <Link to="/request-invite">Request an invite code.</Link>
+            {/* The question carries the meaning and the link carries the act,
+                which is the idiom this page already uses at the foot of the
+                form: "Already have an account? Sign in". A bare sentence that
+                was itself the link read as ordinary text (LOS-382). */}
+            Don&rsquo;t have one?{' '}
+            <Link className={styles.hintLink} to="/request-invite">
+              Request an invite
+            </Link>
           </span>
         </div>
 
