@@ -274,7 +274,10 @@ describe('RegisterPage', () => {
       renderRegisterPage();
 
       expect(screen.getByLabelText('Invite code')).toBeRequired();
-      expect(screen.getByText('Request an invite code.')).toBeInTheDocument();
+      // A link, not a sentence. It shipped as plain text first, which told
+      // people to do something the page gave them no way to do (LOS-381).
+      const ask = screen.getByRole('link', { name: 'Request an invite code.' });
+      expect(ask).toHaveAttribute('href', '/request-invite');
     });
 
     it('sits above the rest, since nothing else matters without it', () => {

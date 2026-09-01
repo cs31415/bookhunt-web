@@ -8,6 +8,7 @@ import { AuthorPage } from '../features/author/AuthorPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
 import { VerifyEmailPage } from '../features/auth/VerifyEmailPage';
+import { RequestInvitePage } from '../features/auth/RequestInvitePage';
 import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
 import { RequireAuth } from '../features/auth/RequireAuth';
@@ -61,6 +62,8 @@ export const router = createBrowserRouter([
       // reserved handle nobody can hold.
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
+      // Where someone without a code is sent from the register form (LOS-381).
+      { path: 'request-invite', element: <RequestInvitePage /> },
       // Target of the link in the sign-up email. Unauthenticated by definition:
       // verifying is what produces the session (LOS-219).
       { path: 'verify-email', element: <VerifyEmailPage /> },

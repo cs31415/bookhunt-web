@@ -35,6 +35,9 @@ export const FORWARD_ROUTES: ForwardRoute[] = [
   // LOS-240, which built the pages that call them.
   { method: 'post', path: '/auth/forgot-password', auth: 'public' },
   { method: 'post', path: '/auth/reset-password', auth: 'public' },
+  // Public: asked by someone who has no account and no session, which is the
+  // whole point of it (LOS-381).
+  { method: 'post', path: '/auth/request-invite', auth: 'public' },
 
   // Public: the sign-up form asks this before anyone has a session, and the
   // API ignores a token on it anyway.
