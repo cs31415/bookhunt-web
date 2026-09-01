@@ -83,6 +83,28 @@
   color: var(--muted);
 }
 
+/*
+ * A link inside a hint has to say so twice (LOS-382). The global reset makes
+ * every anchor `color: inherit; text-decoration: none`, so this one was muted
+ * grey with no underline -- the same as the sentence around it, and nothing to
+ * suggest it could be pressed.
+ *
+ * Colour and underline together, rather than either alone: colour is invisible
+ * to a reader who cannot separate these two hues, and an underline on its own
+ * in small grey text is easy to miss.
+ */
+.hintLink {
+  color: var(--rust);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .hintLink:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
 /* Colour is a second signal, not the only one: the hint always says in words
    whether the handle is free, so it still reads without it. */
 .hintOk {
