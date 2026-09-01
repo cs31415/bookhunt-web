@@ -43,6 +43,11 @@ function fillAndSubmit() {
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'reader@example.com' } });
   fireEvent.change(screen.getByLabelText('Handle'), { target: { value: 'ada' } });
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'b00kW0rm!' } });
+  // Required since LOS-376. Without it the browser blocks the submit and every
+  // assertion below waits for a request that is never made.
+  fireEvent.change(screen.getByLabelText('Invite code'), {
+    target: { value: 'GNRU-XC5B-QGXT' },
+  });
   fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 }
 
@@ -80,6 +85,7 @@ describe('RegisterPage', () => {
       password: 'b00kW0rm!',
       displayName: 'Ada Reader',
       handle: 'ada',
+      inviteCode: 'GNRU-XC5B-QGXT',
     });
     // The address is named back so a typo in it is visible.
     expect(screen.getByText('reader@example.com')).toBeInTheDocument();
@@ -256,6 +262,53 @@ describe('RegisterPage', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent(
         'That email is already registered.',
       );
+    });
+  });
+
+  /*
+   * Registration is invite-only (LOS-376). It was open, and 64 of the 66
+   * accounts it produced were bots.
+   */
+  describe('the invite code', () => {
+    it('says why it is being asked for', () => {
+      renderRegisterPage();
+
+      expect(screen.getByLabelText('Invite code')).toBeRequired();
+      expect(screen.getByText('Request an invite code.')).toBeInTheDocument();
+    });
+
+    it('sits above the rest, since nothing else matters without it', () => {
+      renderRegisterPage();
+
+      const fields = screen.getAllByRole('textbox').map((el) => el.getAttribute('name'));
+      expect(fields.indexOf('inviteCode')).toBeLessThan(fields.indexOf('displayName'));
+    });
+
+    // A refused code comes back 403, and the server's wording is written to be
+    // read by whoever is filling the form in.
+    it('shows the API message when the code is refused', async () => {
+      mockedPostRegister.mockRejectedValue(
+        new ApiError(403, 'That invite code is not valid.'),
+      );
+      renderRegisterPage();
+
+      fillAndSubmit();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'That invite code is not valid.',
+      );
+    });
+
+    it('lets the reader try again after a refusal', async () => {
+      mockedPostRegister.mockRejectedValue(
+        new ApiError(403, 'That invite code is not valid.'),
+      );
+      renderRegisterPage();
+
+      fillAndSubmit();
+
+      await screen.findByRole('alert');
+      expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
     });
   });
 });
