@@ -19,6 +19,7 @@ export function RegisterPage() {
   const [email, setEmail] = useState('');
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export function RegisterPage() {
     setError(null);
     setPending(true);
     try {
-      await postRegister({ email, password, displayName, handle });
+      await postRegister({ email, password, displayName, handle, inviteCode });
       // Offered to the password manager before the form goes away (LOS-241).
       // Sign-up gives a manager neither signal it watches for — preventDefault
       // means no navigation, and the swap below unmounts the form in the same
@@ -59,6 +60,40 @@ export function RegisterPage() {
         <p className={styles.subheading}>
           Track what you have read, and get recommendations that follow from it.
         </p>
+
+        {/* First, because it is the first thing the server checks and there is
+            no point filling in the rest without one (LOS-376). Said plainly
+            rather than hidden behind a link: someone without a code should
+            find that out here, not after typing everything. */}
+        {/* Hint outside the label and attached with aria-describedby, like the
+            handle and password fields: inside it, it joins the accessible name
+            and a screen reader announces the whole sentence on every focus. */}
+        <div className={styles.fieldGroup}>
+          <div className={`${styles.field} ${styles.fieldTight}`}>
+            <label className={styles.label} htmlFor="register-invite">
+              Invite code
+            </label>
+            <input
+              id="register-invite"
+              className={styles.input}
+              type="text"
+              name="inviteCode"
+              // Codes are read off an email and retyped, so a phone keyboard
+              // should not capitalise or autocorrect what is already uppercase.
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              autoComplete="off"
+              aria-describedby="invite-hint"
+              value={inviteCode}
+              onChange={(event) => setInviteCode(event.target.value)}
+              required
+            />
+          </div>
+          <span id="invite-hint" className={styles.hint}>
+            BookHunt is invite-only while it finds its feet.
+          </span>
+        </div>
 
         <label className={styles.field}>
           <span className={styles.label}>Name</span>
@@ -199,6 +234,8 @@ function messageFor(err: unknown): string {
     // Both collisions arrive as 409, so the code decides which field is named.
     // A handle can be taken between the live check and the submit, and that
     // race is the whole reason this branch exists.
+    // Both invite refusals carry a message written for the person reading it.
+    if (err.status === 403) return err.message;
     if (err.status === 409 && err.code === 'HANDLE_TAKEN') return err.message;
     if (err.status === 409) return 'That email is already registered.';
     // The API writes its 400s to be read by the person filling in the form.
