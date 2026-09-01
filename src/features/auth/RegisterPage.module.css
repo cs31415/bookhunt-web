@@ -237,3 +237,18 @@
 .altAction a {
   color: var(--rust);
 }
+
+/*
+ * The honeypot on the invite-request form (LOS-381). Out of the layout rather
+ * than display:none: some bots skip fields that are outright hidden, and this
+ * one is meant to look ordinary to anything reading the DOM. Paired with
+ * aria-hidden and tabIndex -1 on the markup, so nobody using a screen reader or
+ * a keyboard is ever offered it.
+ */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

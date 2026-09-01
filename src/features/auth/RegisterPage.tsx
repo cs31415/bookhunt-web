@@ -91,7 +91,7 @@ export function RegisterPage() {
             />
           </div>
           <span id="invite-hint" className={styles.hint}>
-            Request an invite code.
+            <Link to="/request-invite">Request an invite code.</Link>
           </span>
         </div>
 
