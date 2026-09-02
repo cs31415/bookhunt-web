@@ -5,6 +5,7 @@ import { SearchPage } from './SearchPage';
 import { clearSuggestionCache } from './hooks/useSearchResults';
 import { AuthProvider } from '../auth/AuthContext';
 import { setStoredUser } from '../../api/auth/stored-user';
+import { ApiError } from '../../api/client';
 import { aiSearch } from '../../api/ai/search';
 import { searchLibrary } from '../../api/library/search-library';
 import { saveCannedSearch } from '../../api/canned-searches/pin-canned-search';
@@ -778,6 +779,46 @@ describe('SearchPage', () => {
       expect(
         screen.queryByRole('button', { name: /Keep this search as a pill/ }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  /*
+   * A 503 means the catalogue was never reached, as distinct from reaching it
+   * and finding nothing (LOS-318). Showing the empty state here would tell a
+   * reader their book does not exist when we simply could not look.
+   */
+  describe('when book search is unavailable', () => {
+    it('shows the API message rather than a generic one', async () => {
+      mockedAiSearch.mockRejectedValue(
+        new ApiError(
+          503,
+          'Book search is busy right now. Please try again in a minute.',
+          'SEARCH_UNAVAILABLE',
+        ),
+      );
+
+      renderSearchPage('/search?q=physics');
+
+      expect(await screen.findByText(/busy right now/)).toBeInTheDocument();
+    });
+
+    it('does not claim there are no results', async () => {
+      mockedAiSearch.mockRejectedValue(
+        new ApiError(503, 'Book search is unavailable right now.', 'SEARCH_UNAVAILABLE'),
+      );
+
+      renderSearchPage('/search?q=physics');
+
+      await screen.findByText(/unavailable right now/);
+      expect(screen.queryByText(/No books found/i)).not.toBeInTheDocument();
+    });
+
+    it('still falls back to a generic message for an unexplained failure', async () => {
+      mockedAiSearch.mockRejectedValue(new Error('socket hang up'));
+
+      renderSearchPage('/search?q=physics');
+
+      expect(await screen.findByText(/Could not load search results/)).toBeInTheDocument();
     });
   });
 });

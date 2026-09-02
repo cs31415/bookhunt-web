@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { aiSearch } from '../../../api/ai/search';
 import { searchLibrary } from '../../../api/library/search-library';
-import { isAbortError } from '../../../api/client';
+import { ApiError, isAbortError } from '../../../api/client';
 import {
   normalizeAiSearchResponse,
   normalizeLibraryEntryToSearchResult,
@@ -182,7 +182,22 @@ export function useSearchResults(
         setAnswered({ key: fetchKey, items });
       } catch (err) {
         if (isAbortError(err)) return;
-        setError('Could not load search results. Please try again.');
+        /*
+         * 503 SEARCH_UNAVAILABLE means the catalogue was never reached, as
+         * distinct from reaching it and finding nothing (LOS-318). The API
+         * writes that message for the person reading it -- it separates "busy,
+         * try in a minute" from "broken" -- so it is shown rather than replaced
+         * with a generic one.
+         *
+         * The empty state stays suppressed either way, which is the part that
+         * matters: telling someone their book does not exist when we could not
+         * look is the failure this whole chain of changes is about.
+         */
+        setError(
+          err instanceof ApiError && err.code === 'SEARCH_UNAVAILABLE'
+            ? err.message
+            : 'Could not load search results. Please try again.',
+        );
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
