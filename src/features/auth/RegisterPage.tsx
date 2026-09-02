@@ -57,10 +57,6 @@ export function RegisterPage() {
         <h1 id="register-heading" className={styles.heading}>
           Start your library
         </h1>
-        <p className={styles.subheading}>
-          Track what you have read, and get recommendations that follow from it.
-        </p>
-
         {/* First, because it is the first thing the server checks and there is
             no point filling in the rest without one (LOS-376). Said plainly
             rather than hidden behind a link: someone without a code should
