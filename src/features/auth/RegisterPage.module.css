@@ -33,6 +33,20 @@
   margin: 6px 0 24px;
 }
 
+/*
+ * The gap under the heading used to belong entirely to .subheading, so taking
+ * that line off the register page left the heading flush against the first
+ * field (LOS-385).
+ *
+ * An adjacent-sibling rule rather than a margin on .heading itself: six other
+ * auth pages still have a subheading between the two, and they would end up
+ * with the 24px twice.
+ */
+.heading + .field,
+.heading + .fieldGroup {
+  margin-top: 24px;
+}
+
 .address {
   color: var(--ink-2);
   overflow-wrap: anywhere;
