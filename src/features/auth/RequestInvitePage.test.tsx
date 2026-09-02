@@ -42,7 +42,7 @@ describe('RequestInvitePage', () => {
 
   it('carries the optional note when there is one', async () => {
     renderPage();
-    fireEvent.change(screen.getByLabelText('Anything to add'), {
+    fireEvent.change(screen.getByLabelText(/Where you heard about us/), {
       target: { value: 'I read a lot of physics' },
     });
     submit();
@@ -55,7 +55,7 @@ describe('RequestInvitePage', () => {
 
   it('omits the note when it is blank rather than sending an empty one', async () => {
     renderPage();
-    fireEvent.change(screen.getByLabelText('Anything to add'), { target: { value: '   ' } });
+    fireEvent.change(screen.getByLabelText(/Where you heard about us/), { target: { value: '   ' } });
     submit();
 
     await screen.findByText('Request received');
