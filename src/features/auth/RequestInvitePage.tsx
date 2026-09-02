@@ -85,11 +85,6 @@ export function RequestInvitePage() {
         <h1 id="invite-heading" className={styles.heading}>
           Request an invite
         </h1>
-        <p className={styles.subheading}>
-          BookHunt is invite-only while it finds its feet. Leave your address and
-          a line about yourself.
-        </p>
-
         <label className={styles.field}>
           <span className={styles.label}>Email</span>
           <input
@@ -103,26 +98,23 @@ export function RequestInvitePage() {
           />
         </label>
 
-        <div className={styles.fieldGroup}>
-          <div className={`${styles.field} ${styles.fieldTight}`}>
-            <label className={styles.label} htmlFor="invite-note">
-              Anything to add
-            </label>
-            <textarea
-              id="invite-note"
-              className={styles.input}
-              name="note"
-              rows={3}
-              maxLength={MAX_NOTE_LENGTH}
-              aria-describedby="note-hint"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-            />
-          </div>
-          <span id="note-hint" className={styles.hint}>
-            Optional. What you read, or where you heard about this.
+        {/* The label carries what a hint used to, so there is no hint and
+            nothing for aria-describedby to point at (LOS-383). Wrapping, like
+            the Email field: with no hint outside it there is nothing to pull
+            into the accessible name. */}
+        <label className={styles.field}>
+          <span className={styles.label}>
+            Where you heard about us and anything else you&rsquo;d like to add.
           </span>
-        </div>
+          <textarea
+            className={styles.input}
+            name="note"
+            rows={3}
+            maxLength={MAX_NOTE_LENGTH}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+          />
+        </label>
 
         {/*
           The honeypot. Hidden from people, and from screen readers by
