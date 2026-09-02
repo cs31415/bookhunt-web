@@ -93,8 +93,8 @@ export function VerifyEmailPage() {
             Send me a new link
           </h1>
           <p className={styles.subheading}>
-            Confirmation mail sometimes lands in spam, and sometimes never arrives at all. Give
-            us the address you signed up with and we will send another link.
+            You may request a new email if you never received one. Re-enter the email you
+            signed up with and be sure to check your spam folder.
           </p>
 
           <ResendVerificationForm />
