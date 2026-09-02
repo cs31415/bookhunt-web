@@ -66,7 +66,7 @@ export function LoginPage() {
         <h1 id="login-heading" className={styles.heading}>
           Welcome back
         </h1>
-        <p className={styles.subheading}>Sign in to reach your library and recommendations.</p>
+        <p className={styles.subheading}>Sign in to access your library.</p>
 
         <label className={styles.field}>
           <span className={styles.label}>Email</span>
