@@ -238,21 +238,44 @@ export function LibraryPage() {
     return removed;
   }
 
+  /*
+   * The modal closes whatever happens (LOS-391).
+   *
+   * It used to close only on success, so any failure left it open with nothing
+   * said -- press Remove, watch the dialog sit there, press again. The commonest
+   * way to hit that is a stale list: the entry was already gone, the API
+   * answered 404, and the throw skipped the close.
+   *
+   * A 404 is treated as success on purpose. The reader asked for the book not to
+   * be in their library and it is not; reporting an error for the state they
+   * wanted would be pedantry.
+   */
   async function confirmRemoval() {
     if (!pendingRemoval) return;
 
-    if (pendingRemoval.kind === 'one') {
-      await removeEntry(pendingRemoval.bookId);
-      setPendingRemoval(null);
-      toast({ text: `Removed “${pendingRemoval.title}” from your library` });
-    } else {
-      const removed = await removeSelected();
-      setPendingRemoval(null);
-      selection.exit();
-      toast({ text: `Removed ${removed} ${removed === 1 ? 'book' : 'books'} from your library` });
-    }
+    const alreadyGone = (error: unknown) => error instanceof ApiError && error.status === 404;
 
-    reload();
+    try {
+      if (pendingRemoval.kind === 'one') {
+        try {
+          await removeEntry(pendingRemoval.bookId);
+        } catch (error) {
+          if (!alreadyGone(error)) throw error;
+        }
+        toast({ text: `Removed “${pendingRemoval.title}” from your library` });
+      } else {
+        const removed = await removeSelected();
+        selection.exit();
+        toast({ text: `Removed ${removed} ${removed === 1 ? 'book' : 'books'} from your library` });
+      }
+    } catch {
+      // Said rather than swallowed: a silent failure is what made this look
+      // like a dialog that would not close.
+      toast({ text: 'Could not remove that just now. Please try again.' });
+    } finally {
+      setPendingRemoval(null);
+      reload();
+    }
   }
 
   if (loading) {

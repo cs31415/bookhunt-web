@@ -512,6 +512,44 @@ describe('LibraryPage', () => {
       expect(mockedRemoveEntry).toHaveBeenCalledWith(dune.book_id);
     });
 
+    /*
+     * The dialog used to close only on success, so any failure left it sitting
+     * there with nothing said -- press Remove, nothing happens, press again
+     * (LOS-391).
+     */
+    it('closes the dialog and says so when removal fails', async () => {
+      mockedRemoveEntry.mockRejectedValue(new ApiError(500, 'boom'));
+      mockLibrary([dune], { reading: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '1 book' });
+
+      fireEvent.click(menuFor('Dune'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from library' }));
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }));
+
+      expect(await screen.findByText(/Could not remove that just now/)).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    /*
+     * A 404 means the entry is already gone, which is the state the reader
+     * asked for. Reporting an error for it would be pedantry -- and a stale
+     * list is the commonest way to reach this.
+     */
+    it('treats an already-removed entry as removed', async () => {
+      mockedRemoveEntry.mockRejectedValue(new ApiError(404, 'Library entry not found'));
+      mockLibrary([dune], { reading: 1 });
+      renderLibrary();
+      await screen.findByRole('heading', { name: '1 book' });
+
+      fireEvent.click(menuFor('Dune'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from library' }));
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }));
+
+      expect(await screen.findByText(/Removed .Dune. from your library/)).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
     it('does not call the api when the confirmation is cancelled', async () => {
       mockLibrary([dune], { reading: 1 });
       renderLibrary();
