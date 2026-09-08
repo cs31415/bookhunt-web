@@ -10,6 +10,8 @@ import type { CsvBookRow } from '../../../shared/lib/parse-csv';
 import { slugify } from '../../../shared/lib/slugify';
 import { hashToHue } from '../../../shared/lib/hash';
 import type { BookSummary } from '../../../shared/types/book';
+import { formatImportFailures } from '../lib/format-import-failures';
+import type { ImportFailureEntry, ImportFailureTotals } from '../lib/format-import-failures';
 import { useImportReview } from './useImportReview';
 import type { UseImportReviewResult } from './useImportReview';
 
@@ -77,6 +79,16 @@ function messageFor(error: unknown): string {
     return error.message.charAt(0).toUpperCase() + error.message.slice(1) + '.';
   }
   return GENERIC_ERROR;
+}
+
+/**
+ * One report per import, in the console rather than the UI: it is diagnostic,
+ * and the review list already shows the reader which rows found nothing.
+ * Silent when everything resolved, so output means something went wrong.
+ */
+function reportFailures(entries: ImportFailureEntry[], totals: ImportFailureTotals): void {
+  const report = formatImportFailures(entries, totals);
+  if (report) console.warn(`[csv-import] ${report}`);
 }
 
 /** One-line description dense enough to tell near-identical editions apart. */
@@ -265,6 +277,19 @@ export function useCsvImportSession(
   }
 
   async function run(runId: number, file: File, signal: AbortSignal) {
+    /*
+     * What did not resolve, gathered over every batch and reported once at the
+     * end (LOS-394). The API answers one batch per request and cannot see an
+     * import, so a summary written there printed once per POST -- nineteen
+     * fragments for a 372-row file, none of them saying how the import went.
+     *
+     * Declared out here so a session that fails half way still says what it saw
+     * on the way down.
+     */
+    const unresolved: ImportFailureEntry[] = [];
+    let rowCount = 0;
+    let batches = 0;
+
     const fail = (message: string) => {
       if (runId !== runIdRef.current) return;
       setError(message);
@@ -298,6 +323,7 @@ export function useCsvImportSession(
       registerRef.current(pending);
       setWarning(parseWarning);
       setPhase('review');
+      rowCount = parsed.length;
 
       const owned = new Set(excludeRef.current);
 
@@ -318,6 +344,21 @@ export function useCsvImportSession(
         const { rows: resolvedRows } = await resolveImportRows(batch, signal);
 
         if (runId !== runIdRef.current) return;
+        batches += 1;
+
+        for (const raw of resolvedRows) {
+          // A row with a candidate was answered, however badly; only an empty
+          // one is worth reporting. A catalog match arrives as matchedBook
+          // rather than a candidate, so it counts as answered too.
+          if (raw.candidates.length > 0 || raw.matchedBookId !== undefined) continue;
+          unresolved.push({
+            title: raw.title,
+            author: raw.author,
+            publisher: raw.publisher,
+            isbn: raw.isbn,
+            failures: raw.failures ?? [],
+          });
+        }
 
         const filled: CsvRow[] = resolvedRows.map((raw, i) => {
           // The response carries the matched book itself, so there is nothing to
@@ -351,11 +392,16 @@ export function useCsvImportSession(
         registerRef.current(filled);
       }
 
+      reportFailures(unresolved, { rows: rowCount, batches });
+
       if (runId === runIdRef.current) setResolving(false);
     } catch (e) {
       // A cancelled import is not a failure; cancel() has already reset state.
       if (isAbortError(e)) return;
       console.error('[csv-import] failed', e);
+      // Whatever the finished batches saw is still worth having, and an import
+      // that died is exactly when someone wants to know what it hit.
+      reportFailures(unresolved, { rows: rowCount, batches });
       fail(messageFor(e));
     }
   }

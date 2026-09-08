@@ -38,6 +38,23 @@ export interface ImportRowHint {
   isbn?: string | null;
 }
 
+/**
+ * One provider's account of why it could not answer a row (LOS-394).
+ *
+ * The API returns these rather than logging them, because a batch is not an
+ * import: a file goes out `rowsPerRequest()` rows at a time and only this app
+ * knows where the session begins and ends.
+ */
+export interface RawRowFailure {
+  provider: 'google_books' | 'open_library';
+  /** Null when the request never got a response at all. */
+  status: number | null;
+  /** What the provider itself said, where it said anything. */
+  detail: string | null;
+  /** True when the provider was never asked: an earlier 429 opened its circuit. */
+  skipped?: boolean;
+}
+
 export interface RawResolvedRow {
   title: string;
   author: string | null;
@@ -65,6 +82,12 @@ export interface RawResolvedRow {
    * because this flag was ignored it went into the library unnoticed (LOS-205).
    */
   tentative?: boolean;
+  /**
+   * Why the row found nothing. Present only when it found nothing *and* a
+   * provider failed — a row every provider answered and simply had nothing for
+   * carries none, because that is a miss rather than an error.
+   */
+  failures?: RawRowFailure[];
 }
 
 /**

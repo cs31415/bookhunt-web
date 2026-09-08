@@ -637,6 +637,56 @@ describe('CsvImportModal', () => {
     expect(mockedResolve.mock.calls[1][0]).toHaveLength(5);
   });
 
+  /*
+   * One report for the import, not one per batch (LOS-394). The API answers a
+   * batch per request and cannot see a session; this loop can, so it is where
+   * the reasons get put together.
+   */
+  describe('the failure report', () => {
+    it('reports the whole session once, not each batch', async () => {
+      vi.stubEnv('VITE_IMPORT_ROWS_PER_REQUEST', '2');
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      mockedResolve.mockResolvedValue({
+        rows: [
+          resolved({
+            title: 'Early India',
+            author: 'Romila Thapar',
+            candidates: [],
+            failures: [{ provider: 'google_books', status: 429, detail: 'Rate Limit Exceeded' }],
+          }),
+          resolved({ title: 'Zen Garden', author: null, candidates: [] }),
+        ],
+      });
+
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title\nEarly India\nZen Garden\nMaryada\nNightwatch'));
+
+      await waitFor(() => expect(mockedResolve).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(warn).toHaveBeenCalledTimes(1));
+
+      const report = warn.mock.calls[0][0] as string;
+      expect(report).toContain('[csv-import] 4 rows, 2 batches: 4 did not resolve');
+      // Both batches' rows, tallied together.
+      expect(report).toContain('2 x google_books: HTTP 429 Rate Limit Exceeded');
+      expect(report).toContain('2 because no provider had a match:');
+      warn.mockRestore();
+    });
+
+    // A clean import prints nothing, so output means something went wrong.
+    it('says nothing when every row resolved', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(SIMPLE_CSV));
+
+      await screen.findByRole('button', { name: 'Add 1 to library' });
+      expect(warn).not.toHaveBeenCalled();
+      warn.mockRestore();
+    });
+  });
+
   it('cycles a status and drops the count when a row is unticked', async () => {
     mockedResolve.mockResolvedValue({ rows: [resolved(), resolved({ title: 'Ubik' })] });
 
