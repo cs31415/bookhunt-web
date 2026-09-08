@@ -7,6 +7,8 @@ import { registerForwardRoutes } from './routes/register-forward-routes.js';
 import { loginRoute } from './routes/login-route.js';
 import { verifyEmailRoute } from './routes/verify-email-route.js';
 import { logoutRoute } from './routes/logout-route.js';
+import { importReportRoute } from './routes/import-report-route.js';
+import { requireSession } from './session/require-session.js';
 import { serveStaticSpa } from './serve-static-spa.js';
 
 /** Where the browser reaches the BFF. Vite proxies this path in dev. */
@@ -55,6 +57,11 @@ export function createApp(): Express {
   bff.post('/auth/login', loginRoute);
   bff.post('/auth/verify-email', verifyEmailRoute);
   bff.post('/auth/logout', logoutRoute);
+
+  // Answered here rather than forwarded: it reports an import the API never saw
+  // whole, and the log it belongs in is this one (LOS-394).
+  bff.post('/import/report', requireSession, importReportRoute);
+
   registerForwardRoutes(bff);
 
   app.use(BFF_MOUNT_PATH, bff);

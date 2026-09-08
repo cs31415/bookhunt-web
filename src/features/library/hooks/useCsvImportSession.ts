@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, isAbortError } from '../../../api/client';
 import { resolveImportRows, rowsPerRequest } from '../../../api/import/resolve';
+import { reportImportFailures } from '../../../api/import/report-failures';
+import type { ImportFailureEntry, ImportFailureTotals } from '../../../api/import/report-failures';
 import type { RawResolvedRow } from '../../../api/import/resolve';
 import { normalizeCatalogBook } from '../../../normalize/catalog-book';
 import { normalizeAiSearchBook } from '../../../normalize/search';
@@ -10,8 +12,6 @@ import type { CsvBookRow } from '../../../shared/lib/parse-csv';
 import { slugify } from '../../../shared/lib/slugify';
 import { hashToHue } from '../../../shared/lib/hash';
 import type { BookSummary } from '../../../shared/types/book';
-import { formatImportFailures } from '../lib/format-import-failures';
-import type { ImportFailureEntry, ImportFailureTotals } from '../lib/format-import-failures';
 import { useImportReview } from './useImportReview';
 import type { UseImportReviewResult } from './useImportReview';
 
@@ -82,13 +82,18 @@ function messageFor(error: unknown): string {
 }
 
 /**
- * One report per import, in the console rather than the UI: it is diagnostic,
- * and the review list already shows the reader which rows found nothing.
- * Silent when everything resolved, so output means something went wrong.
+ * One report per import, sent to the BFF to be logged there: it is diagnostic,
+ * so it belongs in a server log rather than in the reader's console, and the
+ * review list already shows them which rows found nothing.
+ *
+ * Not awaited. The import is finished either way, and a failed diagnostic is
+ * not worth a moment of the reader's time.
  */
 function reportFailures(entries: ImportFailureEntry[], totals: ImportFailureTotals): void {
-  const report = formatImportFailures(entries, totals);
-  if (report) console.warn(`[csv-import] ${report}`);
+  // A clean import says nothing at all, so a report means something went wrong
+  // rather than being scrolled past by habit.
+  if (entries.length === 0) return;
+  void reportImportFailures(entries, totals);
 }
 
 /** One-line description dense enough to tell near-identical editions apart. */

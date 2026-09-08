@@ -1,17 +1,27 @@
-import type { RawRowFailure } from '../../../api/import/resolve';
-
 /**
  * The failure report for a whole import (LOS-394).
  *
  * The API answers one batch per request and cannot see an import; a 372-row
  * file is nineteen POSTs, so a summary written there printed nineteen times and
- * never gave a total. The session lives here, in the loop that sends the
- * batches, so this is where the reasons are worth putting together.
+ * never gave a total. The browser knows where a session begins and ends, so it
+ * gathers the rows that came back empty and posts them here to be reported --
+ * diagnostics belong in a server log, not in the reader's console.
  *
  * Two questions get answered, in the order they get asked. The tally says what
  * went wrong with the import -- one rate limit reads very differently from
  * forty-seven. The titles say which books are left to deal with.
  */
+
+/** One provider's account of why it could not answer a row. */
+export interface ImportRowFailure {
+  provider: string;
+  /** Null when the request never got a response at all. */
+  status: number | null;
+  /** What the provider itself said, where it said anything. */
+  detail: string | null;
+  /** True when the provider was never asked: an earlier 429 opened its circuit. */
+  skipped?: boolean;
+}
 
 /** A row that came back with nothing, and what the providers said about it. */
 export interface ImportFailureEntry {
@@ -20,7 +30,7 @@ export interface ImportFailureEntry {
   publisher: string | null;
   isbn: string | null;
   /** Empty when every provider answered and simply had nothing. */
-  failures: RawRowFailure[];
+  failures: ImportRowFailure[];
 }
 
 export interface ImportFailureTotals {
@@ -28,20 +38,34 @@ export interface ImportFailureTotals {
   batches: number;
 }
 
+/** Long enough for a title or a provider's sentence, short enough not to wrap the log. */
+const MAX_FIELD = 200;
+
+/**
+ * Every string here was typed into a CSV by the reader or written by a provider
+ * and relayed through the browser, so none of it is trusted: control characters
+ * would let one forge log lines, and an unbounded field would flood them.
+ */
+function clean(value: string): string {
+  const flat = value.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim();
+  return flat.length > MAX_FIELD ? `${flat.slice(0, MAX_FIELD)}...` : flat;
+}
+
 /** A row as its owner would recognise it, ISBN preferred over publisher because it is exact. */
 function describeRow(entry: ImportFailureEntry): string {
-  const parts = [entry.title];
-  if (entry.author) parts.push(`by ${entry.author}`);
-  if (entry.isbn) parts.push(`[${entry.isbn}]`);
-  else if (entry.publisher) parts.push(`(${entry.publisher})`);
+  const parts = [clean(entry.title)];
+  if (entry.author) parts.push(`by ${clean(entry.author)}`);
+  if (entry.isbn) parts.push(`[${clean(entry.isbn)}]`);
+  else if (entry.publisher) parts.push(`(${clean(entry.publisher)})`);
   return parts.join(' ');
 }
 
 /** One provider's account, e.g. `google_books: HTTP 429 Rate Limit Exceeded`. */
-function describeFailure(failure: RawRowFailure): string {
-  if (failure.skipped) return `${failure.provider}: skipped, circuit open`;
+function describeFailure(failure: ImportRowFailure): string {
+  const provider = clean(failure.provider);
+  if (failure.skipped) return `${provider}: skipped, circuit open`;
   const status = failure.status === null ? 'no response' : `HTTP ${failure.status}`;
-  return `${failure.provider}: ${status}${failure.detail ? ` ${failure.detail}` : ''}`;
+  return `${provider}: ${status}${failure.detail ? ` ${clean(failure.detail)}` : ''}`;
 }
 
 /**

@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { formatImportFailures } from './format-import-failures';
-import type { ImportFailureEntry } from './format-import-failures';
-import type { RawRowFailure } from '../../../api/import/resolve';
+import { formatImportFailures } from './format-import-failures.js';
+import type { ImportFailureEntry, ImportRowFailure } from './format-import-failures.js';
 
 function entry(
   title: string,
-  failures: RawRowFailure[] = [],
+  failures: ImportRowFailure[] = [],
   overrides: Partial<ImportFailureEntry> = {},
 ): ImportFailureEntry {
   return { title, author: null, publisher: null, isbn: null, failures, ...overrides };
 }
 
-const rateLimited: RawRowFailure = {
+const rateLimited: ImportRowFailure = {
   provider: 'google_books',
   status: 429,
   detail: 'Rate Limit Exceeded',
@@ -47,7 +46,7 @@ describe('formatImportFailures', () => {
    * forty-seven, and the count is what says which of the two happened.
    */
   it('tallies identical failures, commonest first', () => {
-    const gateway: RawRowFailure = {
+    const gateway: ImportRowFailure = {
       provider: 'open_library',
       status: 503,
       detail: 'Service Unavailable',
@@ -113,6 +112,28 @@ describe('formatImportFailures', () => {
 
     expect(report).toContain('google_books: skipped, circuit open');
     expect(report).not.toContain('no provider had a match');
+  });
+
+  /*
+   * Every string arrives from a browser, so a title carrying a newline could
+   * otherwise forge a line of its own in the server log.
+   */
+  it('strips control characters out of what it prints', () => {
+    const report = formatImportFailures(
+      [entry('Early India\n  47 x google_books: fabricated', [rateLimited])],
+      { rows: 1, batches: 1 },
+    );
+
+    expect(report!.split('\n').filter((line) => line.includes('fabricated'))).toHaveLength(1);
+  });
+
+  it('truncates a field long enough to flood the log', () => {
+    const report = formatImportFailures([entry('x'.repeat(500), [rateLimited])], {
+      rows: 1,
+      batches: 1,
+    });
+
+    expect(report).toContain(`${'x'.repeat(200)}...`);
   });
 
   it('says so when a request never got a response', () => {
