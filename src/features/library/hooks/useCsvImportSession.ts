@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, isAbortError } from '../../../api/client';
 import { resolveImportRows, rowsPerRequest } from '../../../api/import/resolve';
+import { reportImportFailures } from '../../../api/import/report-failures';
+import type { ImportFailureEntry, ImportFailureTotals } from '../../../api/import/report-failures';
 import type { RawResolvedRow } from '../../../api/import/resolve';
 import { normalizeCatalogBook } from '../../../normalize/catalog-book';
 import { normalizeAiSearchBook } from '../../../normalize/search';
@@ -77,6 +79,21 @@ function messageFor(error: unknown): string {
     return error.message.charAt(0).toUpperCase() + error.message.slice(1) + '.';
   }
   return GENERIC_ERROR;
+}
+
+/**
+ * One report per import, sent to the BFF to be logged there: it is diagnostic,
+ * so it belongs in a server log rather than in the reader's console, and the
+ * review list already shows them which rows found nothing.
+ *
+ * Not awaited. The import is finished either way, and a failed diagnostic is
+ * not worth a moment of the reader's time.
+ */
+function reportFailures(entries: ImportFailureEntry[], totals: ImportFailureTotals): void {
+  // A clean import says nothing at all, so a report means something went wrong
+  // rather than being scrolled past by habit.
+  if (entries.length === 0) return;
+  void reportImportFailures(entries, totals);
 }
 
 /** One-line description dense enough to tell near-identical editions apart. */
@@ -265,6 +282,19 @@ export function useCsvImportSession(
   }
 
   async function run(runId: number, file: File, signal: AbortSignal) {
+    /*
+     * What did not resolve, gathered over every batch and reported once at the
+     * end (LOS-394). The API answers one batch per request and cannot see an
+     * import, so a summary written there printed once per POST -- nineteen
+     * fragments for a 372-row file, none of them saying how the import went.
+     *
+     * Declared out here so a session that fails half way still says what it saw
+     * on the way down.
+     */
+    const unresolved: ImportFailureEntry[] = [];
+    let rowCount = 0;
+    let batches = 0;
+
     const fail = (message: string) => {
       if (runId !== runIdRef.current) return;
       setError(message);
@@ -298,6 +328,7 @@ export function useCsvImportSession(
       registerRef.current(pending);
       setWarning(parseWarning);
       setPhase('review');
+      rowCount = parsed.length;
 
       const owned = new Set(excludeRef.current);
 
@@ -318,6 +349,21 @@ export function useCsvImportSession(
         const { rows: resolvedRows } = await resolveImportRows(batch, signal);
 
         if (runId !== runIdRef.current) return;
+        batches += 1;
+
+        for (const raw of resolvedRows) {
+          // A row with a candidate was answered, however badly; only an empty
+          // one is worth reporting. A catalog match arrives as matchedBook
+          // rather than a candidate, so it counts as answered too.
+          if (raw.candidates.length > 0 || raw.matchedBookId !== undefined) continue;
+          unresolved.push({
+            title: raw.title,
+            author: raw.author,
+            publisher: raw.publisher,
+            isbn: raw.isbn,
+            failures: raw.failures ?? [],
+          });
+        }
 
         const filled: CsvRow[] = resolvedRows.map((raw, i) => {
           // The response carries the matched book itself, so there is nothing to
@@ -351,11 +397,16 @@ export function useCsvImportSession(
         registerRef.current(filled);
       }
 
+      reportFailures(unresolved, { rows: rowCount, batches });
+
       if (runId === runIdRef.current) setResolving(false);
     } catch (e) {
       // A cancelled import is not a failure; cancel() has already reset state.
       if (isAbortError(e)) return;
       console.error('[csv-import] failed', e);
+      // Whatever the finished batches saw is still worth having, and an import
+      // that died is exactly when someone wants to know what it hit.
+      reportFailures(unresolved, { rows: rowCount, batches });
       fail(messageFor(e));
     }
   }

@@ -23,7 +23,9 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
     let line = `[bff] ${req.method} ${redactedUrl(req.originalUrl)} ${res.statusCode} ${durationMs.toFixed(1)}ms`;
 
     const body = redactedBody(req);
-    if (req.method === 'POST' && body) line += ` body=${body}`;
+    // The import report is printed in full by its own route; echoing its JSON
+    // here would put the same failures on the screen twice (LOS-394).
+    if (req.method === 'POST' && body && req.path !== '/import/report') line += ` body=${body}`;
 
     console.log(line);
   });

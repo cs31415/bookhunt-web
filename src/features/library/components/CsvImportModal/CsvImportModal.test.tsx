@@ -8,6 +8,7 @@ import { getLibrary } from '../../../../api/library/get-library';
 import { addToLibrary } from '../../../../api/library/add-to-library';
 import { getBooksByIds } from '../../../../api/books/get-books-by-ids';
 import { resolveImportRows } from '../../../../api/import/resolve';
+import { reportImportFailures } from '../../../../api/import/report-failures';
 import { categorizeBooks } from '../../../../api/ai/categorize';
 import { ApiError } from '../../../../api/client';
 import type { RawResolvedRow } from '../../../../api/import/resolve';
@@ -18,6 +19,7 @@ vi.mock('../../../../api/library/get-library');
 vi.mock('../../../../api/library/add-to-library');
 vi.mock('../../../../api/books/get-books-by-ids');
 vi.mock('../../../../api/ai/categorize');
+vi.mock('../../../../api/import/report-failures');
 vi.mock('../../../../api/import/resolve', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../api/import/resolve')>()),
   resolveImportRows: vi.fn(),
@@ -28,6 +30,7 @@ const mockedAddToLibrary = vi.mocked(addToLibrary);
 const mockedCategorizeBooks = vi.mocked(categorizeBooks);
 const mockedGetBooksByIds = vi.mocked(getBooksByIds);
 const mockedResolve = vi.mocked(resolveImportRows);
+const mockedReport = vi.mocked(reportImportFailures);
 
 function makeEntry(overrides: Partial<RawLibraryEntry> = {}): RawLibraryEntry {
   const id = overrides.book_id ?? 1;
@@ -153,6 +156,7 @@ describe('CsvImportModal', () => {
     mockedResolve.mockResolvedValue({ rows: [resolved()] });
     mockedAddToLibrary.mockResolvedValue({ entry: {}, book: { id: 9, slug: 'dune' } });
     mockedCategorizeBooks.mockResolvedValue({ categorized: 1 });
+    mockedReport.mockResolvedValue();
   });
 
   afterEach(() => {
@@ -635,6 +639,66 @@ describe('CsvImportModal', () => {
     await waitFor(() => expect(mockedResolve).toHaveBeenCalledTimes(2));
     expect(mockedResolve.mock.calls[0][0]).toHaveLength(20);
     expect(mockedResolve.mock.calls[1][0]).toHaveLength(5);
+  });
+
+  /*
+   * One report for the import, not one per batch (LOS-394). It goes to the BFF
+   * to be logged there: the API answers a batch per request and never sees a
+   * session, and a diagnostic does not belong in the reader's own console.
+   */
+  describe('the failure report', () => {
+    it('reports the whole session once, not each batch', async () => {
+      vi.stubEnv('VITE_IMPORT_ROWS_PER_REQUEST', '2');
+      mockedResolve.mockResolvedValue({
+        rows: [
+          resolved({
+            title: 'Early India',
+            author: 'Romila Thapar',
+            candidates: [],
+            failures: [{ provider: 'google_books', status: 429, detail: 'Rate Limit Exceeded' }],
+          }),
+          resolved({ title: 'Zen Garden', author: null, candidates: [] }),
+        ],
+      });
+
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile('title\nEarly India\nZen Garden\nMaryada\nNightwatch'));
+
+      await waitFor(() => expect(mockedResolve).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(mockedReport).toHaveBeenCalledTimes(1));
+
+      const [entries, totals] = mockedReport.mock.calls[0];
+      expect(totals).toEqual({ rows: 4, batches: 2 });
+      // Both batches' rows, in one report.
+      expect(entries).toHaveLength(4);
+      expect(entries.filter((entry) => entry.failures.length > 0)).toHaveLength(2);
+    });
+
+    // A clean import says nothing, so a report means something went wrong.
+    it('says nothing when every row resolved', async () => {
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(SIMPLE_CSV));
+
+      await screen.findByRole('button', { name: 'Add 1 to library' });
+      expect(mockedReport).not.toHaveBeenCalled();
+    });
+
+    // Nothing about a diagnostic is worth interrupting an import for.
+    it('finishes the import even when the report cannot be sent', async () => {
+      mockedReport.mockRejectedValue(new Error('bff unreachable'));
+      mockedResolve.mockResolvedValue({ rows: [resolved({ candidates: [] })] });
+
+      renderLibrary();
+      const dialog = await openModal();
+      dropFile(dialog, csvFile(SIMPLE_CSV));
+
+      // The row lists as normal; nothing about the failed report reaches the
+      // reader. ('Dune' is also drawn into the placeholder cover.)
+      expect(await screen.findAllByText('Dune')).not.toHaveLength(0);
+      expect(screen.queryByText(/Couldn't look those books up/)).toBeNull();
+    });
   });
 
   it('cycles a status and drops the count when a row is unticked', async () => {
