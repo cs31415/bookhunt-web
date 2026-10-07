@@ -38,9 +38,8 @@
   /*
    * Cabin Sketch is self-hosted, so it holds on any machine.
    *
-   * Times New Roman leads the prose stack, with Tinos behind it: the two are
-   * metric-compatible, so the lines are the same either way, and a visitor who
-   * already has Times never downloads a file.
+   * Newsreader, the prose face, is self-hosted too. Georgia stands behind it
+   * only for the moment before the file arrives.
    */
   /*
    * 'PlainAt' first, covering U+0040 alone: every other character falls through
@@ -49,7 +48,7 @@
    * remembered to ask for (LOS-348).
    */
   --face-display: 'PlainAt', 'Cabin Sketch', Georgia, 'Times New Roman', serif;
-  --face-prose: 'Times New Roman', Times, Tinos, Georgia, serif;
+  --face-prose: Newsreader, Georgia, serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --face-ui: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --face-field: 'Special Elite', 'Courier New', Courier, monospace;
