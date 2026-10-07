@@ -109,8 +109,8 @@
 .meta {
   font-family: var(--prose);
   /* 85% of the title above it. At the old 0.8125rem it was 73%, which reads
-     as a caption rather than as the second line of a pair -- and Times, with
-     a 0.459em x-height, sets smaller than a sans at the same nominal size. */
+     as a caption rather than as the second line of a pair -- and a book serif
+     sets smaller than a sans at the same nominal size. */
   font-size: calc(0.9375rem - var(--prose-trim));
   color: var(--muted);
   /* Author names run long too, and a surname is as unbreakable as a title word. */
