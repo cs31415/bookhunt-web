@@ -97,10 +97,10 @@
   /*
    * Taken off every size set in the prose face. The ten prose rules all carry
    * different sizes, so there is no one ratio to scale by -- but the trim
-   * itself stays one line. The 2pt makes up for Libre Baskerville's tall
+   * itself stays one line. The 3pt makes up for Libre Baskerville's tall
    * x-height, which sets larger than Newsreader did (LOS-399).
    */
-  --prose-trim: calc(0.0625rem + 2pt);
+  --prose-trim: calc(0.0625rem + 3pt);
   /*
    * The numeric rating beside the stars. Shown where there is room to spare,
    * hidden on a phone, where the stars alone carry it and the digits are the
